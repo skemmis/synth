@@ -23,11 +23,11 @@ export const config = {
   // damage (rule 4)
   sharpMinSpeed: 25, // closing speed below which sharp contact does nothing
   sharpScale: 0.02, // damage per (sharpness * units/s) before hardness
-  crushMinImpulse: 500, // reduced-mass * closing speed below which impacts do nothing
+  crushMinImpulse: 560, // striker mass * closing speed below which impacts do nothing
   crushScale: 0.02,
   // stickiness (rule 5)
   stickyMaxBonds: 3,
-  stickyStrength: 18, // unit weights a single sticky bond holds
+  stickyStrength: 30, // unit weights a single sticky bond holds
   stickyStretch: 0.3,
   // the hand
   handForce: 60, // max pull in unit weights (mass 1 under gravity)

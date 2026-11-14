@@ -38,3 +38,27 @@ PRD milestone 1. Six sources to gather from, an inventory, costs, a recipe book 
 **What did not**
 - Gathering is the least interesting thing on screen. It is a click-and-wait with no physics in it. Idea for a later variant: sources are physical (a tree is a tall wood lattice you break pieces off).
 - Nothing yet makes material scarce, so there is no reason to design small.
+
+## 03 Synthesizer (`play/03-synthesizer.html`)
+
+PRD milestone 2. A conversation panel that turns requests into letter-grid drafts, a test bench that reports what the draft does, and Synthesize to build it. Two helpers: an offline one (keyword rules, no model) and Claude. Claude is reachable when the page is opened on claude.ai; it asks on the viewer's own account, so no API key is needed. Opened as a local file, only the offline helper is available.
+
+**How model use is kept light**
+- The ten scripted requests are answered from a saved library (drawn by a Claude model once, kept only if they passed their physical test). No call is made.
+- Every other answer is cached in the browser by request text, draft and bench report.
+- The panel says where each answer came from and counts live calls.
+
+**What worked**
+- The PRD's own conversation plays through offline: "I need a sword", "line the edges with something that kills hamsterbots", "I need to be able to hold it" gives a blade, then thorns on the edges, then a bare shaft clear of the thorns.
+- Cost shows up as a real constraint the moment thorns enter: the thorned sword needs 13 thorn and the starter kit has 10, so the draft sits there with a red chip until you gather or ask for something smaller.
+- The test bench is the best thing in this prototype. Same seven measurements for any draft (set down, pour water, shove, float, hold by the middle, drop a block, spin into a post), written as plain sentences. It told me the first thorned sword "did no damage" when spun, which was a bug in the bench's post placement, and it tells the model the same things on the next turn.
+- Gate, live model: Sonnet given the exact game prompt for the ten scripted requests returned 10 of 10 valid grids and 8 of 10 passed their physical test (gate is 9 and 6). Offline helper: 10 valid, 9 pass.
+
+**What did not**
+- Ramps do not work as ramps. A grid wedge is a staircase of round nodes, single nodes cannot roll, and a ball set on the high end sits in the first notch. Both the model and the offline helper fail this one. A plank the player tilts with Q/E is the real ramp in this world.
+- A sheet of fiber is not a net. Fiber nodes are as fat as any other and get in each other's way, so a filled fiber grid is a stiff slab. A zigzag (diagonal links only) sags and caught 6 of 6 dropped nodes. The model copied that zigzag from the prompt's examples, so its net result is not independent evidence.
+- For "a cage to keep my berries in" the model drew an open-topped box and said so. Valid, honest, and not a cage. The literal style may be too literal about cost.
+- A 13-node sword is too long for the hand: it droops and drags on the ground. Nothing tells the player that before they pay for it. The bench should probably report "the hand can barely lift it".
+- Live Claude from the published page has not been exercised: it needs a person to open the page and allow it. The recorded-answer test covers the prompt and validation, not the page's call.
+
+**Creativity levers now exposed for playtests**: Literal or Inventive style (one switch), editing the draft's letters by hand, and the bench report feeding the next turn.

@@ -1,0 +1,109 @@
+{
+ "bucket": {
+  "name": "wood bucket",
+  "grid": [
+   "W...W",
+   "W...W",
+   "W...W",
+   "WWWWW"
+  ],
+  "note": "An open-topped wooden cup: a floor and two walls, 11 wood in all. Grab a wall node, scoop it through the water, and lift it out.",
+  "question": ""
+ },
+ "cage": {
+  "name": "berry cage",
+  "grid": [
+   "W.....W",
+   "W.....W",
+   "W.....W",
+   "W.....W",
+   "W.....W",
+   "WWWWWWW"
+  ],
+  "note": "An open-top wood box with a floor and two walls; drop your berries in and carry it by a wall. It uses 16 wood and has no lid, so tipping it will spill the berries.",
+  "question": "Do you want a lid so it stays closed? That needs a hinge or a way to open it."
+ },
+ "hammer": {
+  "name": "stone hammer",
+  "grid": [
+   "SSS",
+   "SSS",
+   ".W.",
+   ".W.",
+   ".W.",
+   ".W.",
+   ".W."
+  ],
+  "note": "A heavy stone head on a straight wood shaft; grab the bottom of the shaft and swing it down, using Q and E to angle the head. The stone head is heavy for the hand to swing fast, so a shorter shaft may be easier to handle.",
+  "question": ""
+ },
+ "lid": {
+  "name": "bucket lid",
+  "grid": [
+   "...W...",
+   "...W...",
+   "WWWWWWW"
+  ],
+  "note": "A flat wood plate 7 wide with a bare wood knob on top to grab; it is meant to rest across the open top of a bucket like the example one. I don't know your bucket's width, so it may need to be resized, and it will not seal against the rim or stay on if the bucket is tipped.",
+  "question": "How wide is your bucket?"
+ },
+ "net": {
+  "name": "catch net",
+  "grid": [
+   "WF.F.F.F.FW",
+   "..F.F.F.F.."
+  ],
+  "note": "A zigzag of fiber sags between two wood ends; hold one wood end (the other end will hang) or pin both to catch things that fall in. It uses 2 wood and 9 fiber.",
+  "question": "Do you want it wider or deeper?"
+ },
+ "raft": {
+  "name": "Wood raft",
+  "grid": [
+   "WWWWWWWW",
+   "WWWWWWWW"
+  ],
+  "note": "A flat two-layer wood platform; wood is lighter than water so it should float, and the wide flat base should keep it level. It costs 16 wood.",
+  "question": "How many things or people need to ride on it, so I can size it up?"
+ },
+ "ramp": {
+  "name": "wood ramp",
+  "grid": [
+   ".......WWW",
+   ".....WWWWW",
+   "...WWWWWWW",
+   "WWWWWWWWWW"
+  ],
+  "note": "A solid wood wedge that rises from the left to a flat top on the right, using 25 of your 40 wood. Round nodes make the slope bumpy, and light wood may slide when pushed, so you may want to anchor it with pitch.",
+  "question": ""
+ },
+ "rope": {
+  "name": "rope",
+  "grid": [
+   "FFFFFFFFFFFF"
+  ],
+  "note": "A single chain of 12 fiber nodes: it resists stretch only, so it hangs and swings from wherever you grab it. Rope cannot push, only pull.",
+  "question": "How long do you want it? I used 12 nodes (8 fiber left over)."
+ },
+ "spike strip": {
+  "name": "spike strip",
+  "grid": [
+   "T.T.T.T.T",
+   "WWWWWWWWW"
+  ],
+  "note": "A flat wood bar with five thorns standing up from it; lay it on the ground and whatever steps or rolls onto the thorns gets hurt. Grab the bare wood to move it, and it only works if it lands thorns-up (Q and E can flip it).",
+  "question": ""
+ },
+ "wall": {
+  "name": "Pitch-footed wood wall",
+  "grid": [
+   "WWW",
+   "WWW",
+   "WWW",
+   "WWW",
+   "WWW",
+   "PPP"
+  ],
+  "note": "A three-wide, five-high block of wood stands on a pitch footing that glues it to the ground so it resists being pushed over. Flaw: wood is light and pitch glue is weak (about 30 per bond), so a strong enemy could still shove or break it; stone would be sturdier but is heavy to carry.",
+  "question": "Do you want it taller, wider, or made of stone instead?"
+ }
+}

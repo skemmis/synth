@@ -62,10 +62,8 @@ SSS
 SSS
 SSS`),
   net: R('net', `
-WFFFFFFW
-.FFFFFF.
-.FFFFFF.
-WFFFFFFW`),
+WF.F.F.F.FW
+..F.F.F.F..`, 'A zigzag of fiber sags between its wood ends and catches what falls in. A solid sheet of fiber cannot fold: the nodes are in each other\'s way.'),
   spikeStrip: R('spike strip', `
 T.T.T.T.T
 WWWWWWWWW

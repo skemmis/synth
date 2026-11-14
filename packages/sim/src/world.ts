@@ -107,11 +107,11 @@ export class World {
     this.balive[k] = 1; this.bondKeys.add(this.key(a, b)); this.bodiesDirty = true;
     return k;
   }
-  addAnchor(a: number, ax: number, ay: number): number {
+  addAnchor(a: number, ax: number, ay: number, strength = this.cfg.stickyStrength): number {
     const k = this.allocBond(); if (k < 0) return -1;
     const rest = Math.max(1, Math.hypot(this.x[a] - ax, this.y[a] - ay));
     this.ba[k] = a; this.bb[k] = -1; this.brest[k] = rest; this.bflags[k] = B_STICKY | B_ANCHOR;
-    this.bcomp[k] = (this.cfg.stickyStretch * rest) / (this.cfg.stickyStrength * this.cfg.gravity); this.blimit[k] = this.cfg.stickyStretch;
+    this.bcomp[k] = (this.cfg.stickyStretch * rest) / (strength * this.cfg.gravity); this.blimit[k] = this.cfg.stickyStretch;
     this.bax[k] = ax; this.bay[k] = ay; this.balive[k] = 1; this.anch[a] = 1;
     return k;
   }
@@ -430,8 +430,10 @@ export class World {
         const cfg = this.cfg;
         let di = 0, dj = 0;
         if (vn > cfg.sharpMinSpeed) { const s = (vn - cfg.sharpMinSpeed) * cfg.sharpScale; dj += SHARP[mi] * s; di += SHARP[mj] * s; }
-        const imp = vn / ws;
-        if (imp > cfg.crushMinImpulse) { const c = (imp - cfg.crushMinImpulse) * cfg.crushScale; di += c; dj += c; }
+        // crushing: the striker's own momentum has to clear a threshold, so heavy things crush and light ones do not
+        const pi = vn * MASS[mi], pj = vn * MASS[mj];
+        if (pi > cfg.crushMinImpulse) dj += (pi - cfg.crushMinImpulse) * cfg.crushScale;
+        if (pj > cfg.crushMinImpulse) di += (pj - cfg.crushMinImpulse) * cfg.crushScale;
         if (di > 0) this.damage(i, di / HARD[mi], j);
         if (dj > 0) this.damage(j, dj / HARD[mj], i);
         if (!this.alive[i] || !this.alive[j]) return;

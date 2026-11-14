@@ -32,3 +32,24 @@ Each default chosen, each rule added, each gate result. Newest at the bottom of 
 "Sam finds it fun to poke at for ten minutes" is open.
 
 Headless speed (one thread, 8 substeps): pond of 662 water particles 6.6x real time; 1,078 mixed nodes 4.1x. Below the PRD's 20x target for a 400-node arena; water is the cost.
+
+### Milestone 1 (recipes and gathering): PASS
+
+Every starter recipe exported to text and imported into a fresh world gives an identical state hash after 1.5 simulated seconds.
+
+### Milestone 2 (synthesizer): PASS on the numbers, with caveats
+
+| Provider | Valid grids | Pass physical test |
+| --- | --- | --- |
+| Offline helper (keyword rules) | 10 / 10 | 9 / 10 (fails ramp) |
+| Sonnet, exact game prompt, one shot each, recorded in `packages/synth/fixtures/` | 10 / 10 | 8 / 10 (fails ramp, cage) |
+
+Caveats: the model's net is a copy of the prompt's example; the live call from the published page (the page asks Claude on the viewer's account) has not been run by a person yet; "no hand fixes" holds, but three of the physical tests were adjusted while writing them (net is hung with slack, ramp is tested downhill, lid tub is nudged gently), so treat the count as a first reading.
+
+## More defaults (prototype 3 onward)
+
+- **Model access.** The published page asks Claude through the page's own "ask Claude" capability on the viewer's account. No API key anywhere. A bring-your-own-key provider can be added behind the same `Provider` interface if Sam wants one for the desktop build.
+- **Library and cache.** Common requests are answered from a shipped library of model-drawn, bench-checked blueprints; everything else is cached locally by request, draft and report.
+- **Crushing damage** uses the striker's own momentum (mass times closing speed) against a threshold, so stone crushes and wood does not.
+- **Pitch** holds 30 unit weights per glue bond (was 18), so a two-wide wall with a pitch foot survives a shove.
+- **Test bench** is seven fixed measurements, the same for every draft. It never knows what the draft is for.
