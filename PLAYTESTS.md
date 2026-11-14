@@ -93,3 +93,19 @@ PRD milestone 4. Day: free defences and your own grid designs. Sleep: 100, 200 o
 - The score bar falls when the base changes, which reads as the creatures getting worse. It should be drawn against what the base was.
 - Sleeping twice without touching anything is the best strategy so far. There is no cost to waiting and no reason to rebuild.
 - The party is three cousins, so one defence answers all of them.
+
+## 06 Day and night (`play/06-day-and-night.html`)
+
+PRD milestone 5, first pass. Pond, sources, home with nine berries, burrow. Daylight is a 100 second clock; night falls when it runs out or when you press Sleep. Inventory and costs, the synthesizer (offline helper, or Claude when opened on claude.ai), a recipe book, the night and raid from 05, salvage with X.
+
+**What worked**
+- All the parts run together in one page without special wiring: the same hand gathers, places, fights and salvages.
+- The clock makes gathering a choice. Five seconds at the bush is 26 berries and a twentieth of the day.
+- Scripted run: gather, make the book's wall (10 wood, 2 pitch), place it between stash and burrow, sleep twice. Both nights took about 21 s with the pond in the world.
+
+**What did not**
+- One book wall wins the game. It is six nodes tall with a pitch foot; nothing bred in two nights got past it or even damaged it (best scores 278 and 225, which is "walked up to the wall"). The raiders then die or stall in front of it and their bodies add to the barricade.
+- So there is no arms race yet. The night needs to be stronger or the wall weaker before anything else in the loop matters.
+- No save. Reloading the page starts over (the recipe book alone persists).
+- Nothing tells the player the stash is the score, or what a good day looks like.
+- The main world runs at 2.3 ms a step with the pond in it. Fine at 60 a second, no headroom for fast-forward.

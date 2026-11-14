@@ -83,7 +83,7 @@ function setMode(m: Mode) {
   phase.textContent = m === 'day' ? `Day ${day}` : m === 'night' ? `Night ${day}` : m === 'raid' ? `Raid ${day}` : m === 'replay' ? 'Replay' : `Dawn, day ${day}`;
   hint.innerHTML = HINTS[m]; game.night = m === 'night' ? 1 : m === 'raid' || m === 'replay' ? 0.55 : 0; game.paused = m === 'night';
   const busy = m === 'night' || m === 'raid' || m === 'replay'; sleep.disabled = busy; budgetSel.disabled = busy; restart.disabled = busy; replayBtn.disabled = busy || !raidStart; dreamTag.hidden = m !== 'night';
-  for (const b of side.querySelectorAll<HTMLButtonElement>('button.place')) b.disabled = m === 'night' || m === 'replay';
+  for (const b of Array.from(side.querySelectorAll<HTMLButtonElement>('button.place'))) b.disabled = m === 'night' || m === 'replay';
 }
 function startNight() {
   real.release(); game.ghost = null; zoo.dismiss(real);
