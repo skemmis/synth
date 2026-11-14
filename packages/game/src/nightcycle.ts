@@ -15,6 +15,8 @@ export interface NightOpts {
   hints?: Partial<Record<Mode, string>>; raidSeconds?: number;
   /** Trials for a given night, overriding the picker. Lets the burrow search harder as the nights go by. */
   budgetFor?: (night: number) => number;
+  /** Awaited before the night starts (for example to collect what a background search found during the day). */
+  beforeSleep?: () => Promise<void>;
   /** The dead last one day: whatever is left of earlier raiders is cleared at dusk. Without it bodies pile up into a free barricade. */
   rot?: boolean;
   onMode?: (m: Mode) => void; onDawn?: (entry: RaidLog) => void;
@@ -78,7 +80,15 @@ export class NightCycle {
   }
   /** Start again with a new world and a fresh burrow. */
   reset(world: World) { this.real = this.o.game.world = world; this.o.zoo.list = []; this.evo = new Evolver(this.o.seed ?? 1, this.o.seeds); this.day = 1; this.log.length = 0; this.party = []; this.raidStart = null; this.setMode('day'); this.renderLog(); }
+  private sleeping = false;
   sleep() {
+    if ((this.mode !== 'day' && this.mode !== 'dawn') || this.sleeping) return;
+    if (!this.o.beforeSleep) { this.fallAsleep(); return; }
+    this.sleeping = true; this.sleepBtn.disabled = true; this.o.beforeSleep().catch(() => {}).then(() => { this.sleeping = false; this.fallAsleep(); });
+  }
+  /** The base as it stood at the last dusk, before the raid touched it. */
+  get lastDusk(): World | null { return this.raidStart; }
+  private fallAsleep() {
     if (this.mode !== 'day' && this.mode !== 'dawn') return; const g = this.o.game;
     this.real = g.world; this.real.release(); g.ghost = null; this.o.zoo.dismiss(this.real);
     if (this.o.rot) { const w = this.real; for (let i = 0; i < w.n; i++) if (w.alive[i] && w.tag[i] >= 1000) w.removeNode(i); this.o.zoo.list = []; }

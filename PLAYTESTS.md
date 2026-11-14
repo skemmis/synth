@@ -225,3 +225,37 @@ This one came out of a balance test, not a feature idea. I gave the headless run
 - A longer wait every night is a poor way to deliver "they are getting smarter". By night seven the player would wait about a minute. The search should run in the background during the day; that is the next thing to build.
 - Two walls a day still holds forever at 200 trials. With the daily crop that is 20 of 24 wood, so it is affordable. Whether 100 more trials a night beats two walls is not tested.
 - All of this is one kind of defence. Nobody, scripted or real, has tried spikes, nets or a pit against these raiders.
+
+## 14 Day shift (`play/14-day-shift.html`)
+
+Families (12) where the burrow also breeds while you work. A background worker tries up to 600 bodies during the day against the base as the raiders met it last night. At dusk the night tries 100 more against the base as it stands now, starting by re-testing every family's best, so what you watch in the dream is still what walks in.
+
+Headless first, with the same scripted defender as 13 (clears the wreckage and sets down one fresh book wall every morning), ten nights:
+
+| Burrow | Seed 1 | Seed 2 | Seed 3 |
+| --- | --- | --- | --- |
+| 200 trials a night, no day shift | held (from 13) | lost the stash on night 9 (from 13) | held |
+| 600 by day, 100 at night | lost 8 of 9 berries on night 8 | lost all 9 on night 3 | held |
+
+Then the browser, one book wall, no rebuilding, 20 second days:
+
+| Night | Day shift gave | Night took | Wall lost | Stash |
+| --- | --- | --- | --- | --- |
+| 1 | 600 bodies | 7 s | 126 hit points, 3 pieces | 9 |
+| 2 | 250 | 6 s | 44, 1 piece | 9 |
+| 3 | 290 | 6 s | 31, 1 piece | 9 |
+| 4 | 300 | 6 s | 11, 1 piece | 9 |
+| 5 | 350 | 5 s | 18, 1 piece | 9 |
+| 6 | 494 | 5 s | 109, 5 pieces | 0: seven eaten, two trampled, ending card |
+
+**What worked**
+- The wait is gone. Nights took 5 to 7 seconds, against 13 to 30 in prototype 13, and the siege still finished in six nights. This is the right way to deliver "they are getting smarter".
+- Studying yesterday's base is good enough. A wall rebuilt in the same place every morning is the same problem every night, and the day shift solves it.
+- The raider that ended it dreamed eight berries and ate seven. Dream and raid still agree with the burrow's state handed between threads.
+- The page says what the burrow is doing ("has tried 412 of 600 bodies against the base it met last night"), which is a nudge to change the base.
+
+**What did not**
+- The day shift is as fast as the player's machine and as long as the player's day. In the test a 20 second day gave 250 to 600 bodies depending on what else the machine was doing. Two players will meet different burrows. Fine for a prototype; a real build should count the work in bodies, not seconds, and finish the remainder at dusk.
+- Nights two to five were quiet (11 to 44 hit points) between two loud ones. The wall's own wreckage seems to slow the next raid. Not chased.
+- Saving mid-day keeps the burrow as of last dawn; whatever the day shift had found so far is lost on reload.
+- If the page cannot start a worker it falls back to 200 bodies at night. Not seen in testing, so that path is only tested by reading it.
