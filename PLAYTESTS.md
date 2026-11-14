@@ -24,3 +24,17 @@ PRD milestone 0. The strip world, all seven solid materials, water, the hand, an
 **Open**
 - Thorn damage is strong (a thorn club deletes a wooden dummy in three swings). Tune once creatures exist.
 - Headless speed is 4 to 7x real time with lots of water, short of the 20x target.
+
+## 02 Gather and craft (`play/02-gather-and-craft.html`)
+
+PRD milestone 1. Six sources to gather from, an inventory, costs, a recipe book saved in the browser, the grid editor, and export and import as text.
+
+**What worked**
+- Hold-to-gather (about five units a second) is quick enough that cost is a constraint, not a chore: 4 seconds on the tree pays for a bucket.
+- Taking an object apart with X gives every node back. That makes trying a design nearly free, which matters more for creativity than the gathering does.
+- The book shows what each recipe is short of, in the material's colour, so "go and get 12 fiber" needs no reading.
+- Gate: every starter recipe exported to text and re-imported into a fresh world gives the same state hash after 1.5 simulated seconds.
+
+**What did not**
+- Gathering is the least interesting thing on screen. It is a click-and-wait with no physics in it. Idea for a later variant: sources are physical (a tree is a tall wood lattice you break pieces off).
+- Nothing yet makes material scarce, so there is no reason to design small.

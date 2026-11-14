@@ -7,6 +7,8 @@ export interface GameOpts {
   labels?: [number, string][];
   onStep?: (g: Game) => void; // once per sim step
   onDraw?: (g: Game, ctx: CanvasRenderingContext2D) => void; // overlay, after solids
+  onDrawBack?: (g: Game, ctx: CanvasRenderingContext2D) => void; // props behind water and solids
+  onRelease?: (g: Game) => void;
   onClickWorld?: (g: Game, x: number, y: number, node: number) => boolean; // return true to swallow the click
   canGrab?: (g: Game, node: number) => boolean;
   startX?: number;
@@ -59,7 +61,7 @@ export class Game {
       this.setMouse(e); this.mouse.inside = true;
       if (this.panning) { this.cam.x = this.camStart - (this.mouse.x - this.panStart) / this.cam.zoom; this.clampCam(); }
     });
-    const up = () => { this.mouse.down = false; this.panning = false; if (this.world.hand.active) this.world.release(); };
+    const up = () => { this.mouse.down = false; this.panning = false; if (this.world.hand.active) this.world.release(); this.opts.onRelease?.(this); };
     c.addEventListener('pointerup', up); c.addEventListener('pointercancel', up);
     c.addEventListener('pointerleave', () => { this.mouse.inside = false; });
     c.addEventListener('wheel', (e) => { e.preventDefault(); this.cam.x += (e.deltaX || e.deltaY) / this.cam.zoom; this.clampCam(); }, { passive: false });
@@ -107,7 +109,7 @@ export class Game {
   }
   draw() {
     const cam = this.cam, w = this.world;
-    const b = this.bg.getContext('2d')!; drawBackground(b, cam, w, this.night); drawTerrain(b, cam, w, this.night); drawLandmarks(b, cam, w, LAYOUT, this.opts.labels ?? []);
+    const b = this.bg.getContext('2d')!; drawBackground(b, cam, w, this.night); drawTerrain(b, cam, w, this.night); drawLandmarks(b, cam, w, LAYOUT, this.opts.labels ?? []); this.opts.onDrawBack?.(this, b);
     drawWater(this.water.getContext('2d')!, cam, w);
     const f = this.fg.getContext('2d')!; f.clearRect(0, 0, cam.w, cam.h);
     drawSolids(f, cam, w, { showGlyphs: this.showGlyphs });
