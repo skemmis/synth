@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { CONFIG, exportRegion, importRegion, makeTerrain, World, spawnGrid } from '../src/sim';
+import { CONFIG, LAYOUT, exportRegion, importRegion, makeTerrain, World, spawnGrid } from '../src/sim';
 import { BUCKET, fillPond, moveHand, run } from '../src/sim/scenarios';
 
 function scene(seed: number) {
@@ -75,7 +75,7 @@ test('a body tried in the arena does exactly what it does in the live world', as
   for (let k = 0; k < 6; k++) w.addNode(6, 2100 + k * 14, 550);
   run(w, 2);
   const t = startTrial(makeArena(w), SEEDS[0], 10);
-  const body = spawnCreature(w, SEEDS[0], 3190).body;
+  const body = spawnCreature(w, SEEDS[0], LAYOUT.burrow.x - 60).body;
   for (let s = 0; s < 600; s++) { t.step(); w.step(); }
   const a = t.world.bodyHeart[t.body], b = w.bodyHeart[body];
   expect(a).toBe(b);

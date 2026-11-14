@@ -237,3 +237,18 @@ the only reliable way to hurt something; raiders hop about three cells high). A 
 new prompt: **10/10 valid, 9/10 pass** (the lid still lets stones in). The fixture in
 `tests/fixtures/m2-responses.json` is this second run. Caveat: the prompt was improved with knowledge of
 these ten tests, so 9/10 flatters it; the live gate with other requests is the honest measure.
+
+### Layout change and the milestone 4 gate, second result
+The stash was 92 cells from the burrow and only the fastest seed could cover that inside a 20 s trial, so
+most bodies were scored on how far they got rather than on what they did at the base. Now: the burrow sits
+just past the ditch, the stash is nearer the ditch (57 cells from the burrow), and the ditch is 28 deep with
+17-degree sides. Home, ditch and burrow fit on one screen, which also makes a raid watchable. Night budget
+is 800 trial-equivalents (400 bodies, two starts each). Old saves are not loaded (save key bumped).
+
+`npm run gate:m4` on this layout (240 trial-equivalents a night in the test):
+- **Best fitness rose in 4 of 5 seeds** (needs 3), with visible climbs: 752 → 1152, 453 → 953,
+  953 → 1154, 753 → 954; one seed found its best on night 1 and stayed there.
+- **Two breach strategies appeared** (needs 2): four seeds knock the wall over, one vaults it while it
+  stands. **The gate passes in full.**
+- Consequence for play: an unprotected stash now loses most of its berries on night 1. The first day has
+  to produce some defence.

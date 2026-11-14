@@ -3,7 +3,7 @@ import type { EvolverState } from '../evo';
 import type { Game } from './game';
 import type { Player } from './state';
 
-const SAVE_KEY = 'synth.save.v1';
+const SAVE_KEY = 'synth.save.v2';
 
 export interface SaveFile {
   v: 1;

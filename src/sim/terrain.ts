@@ -7,9 +7,9 @@ export const LAYOUT = {
   sources: {
     tree: 760, outcrop: 930, vines: 1090, bramble: 1250, resin: 1410, bush: 1570,
   },
-  home: { x0: 1800, x1: 2500, stashX: 2150 },
-  ditch: { x: 2760, halfWidth: 150, depth: 58, edge: 105 },
-  burrow: { x: 3250 },
+  home: { x0: 1800, x1: 2540, stashX: 2300 },
+  ditch: { x: 2760, halfWidth: 150, depth: 28, edge: 130 },
+  burrow: { x: 3040 },
   roughness: 7,
 } as const;
 

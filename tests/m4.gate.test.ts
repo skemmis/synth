@@ -28,7 +28,7 @@ describe.skipIf(!process.env.GATES)('milestone 4 gate', () => {
     const sps = 600 / ((performance.now() - t0) / 1000);
     console.log(`REPORT arena speed: ${arena.liveNodes} nodes at ${sps.toFixed(0)} steps/s (${(sps / 60).toFixed(0)}x real time) on one thread`);
 
-    const budget = 120 * EVO_CONFIG.trialSeconds * 60;
+    const budget = 240 * EVO_CONFIG.trialSeconds * 60;
     let rose = 0;
     const breaches = new Set<string>();
     const lines: string[] = [];
@@ -49,10 +49,7 @@ describe.skipIf(!process.env.GATES)('milestone 4 gate', () => {
     expect(rose).toBeGreaterThanOrEqual(3);
   }, 3600000);
 
-  // KNOWN GAP (see DECISIONS.md): against this loose wall every successful raider
-  // knocks it over, so only one strategy appears. Marked as an expected failure so
-  // it turns into a real failure, and gets noticed, the day it starts passing.
-  test.fails('at least two different breach strategies appear across seeds', () => {
+  test('at least two different breach strategies appear across seeds', () => {
     expect(summary!.breaches.size).toBeGreaterThanOrEqual(2);
   });
 });

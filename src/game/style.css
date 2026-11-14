@@ -14,7 +14,6 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #f3d6b3; col
 .panel { position: absolute; background: var(--paper); border: 1.5px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
 .panel h2 { margin: 0 0 6px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
 #bench { left: 16px; top: 60px; width: 268px; padding: 12px; max-height: calc(100% - 68px); overflow: auto; }
-#bench.collapsed > :not(.head) { display: none; }
 .head { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
 .head h2 { margin: 0; }
 textarea, input[type=text], input[type=password] { width: 100%; font-family: var(--mono); font-size: 14px; line-height: 1.15; background: #fffaf0; color: var(--ink);
