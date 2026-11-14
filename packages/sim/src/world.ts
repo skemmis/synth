@@ -247,7 +247,7 @@ export class World {
     // --- bonds (XPBD, one iteration per substep)
     const ba = this.ba, bb = this.bb, nb = this.nb, bflags = this.bflags;
     const TAU = Math.PI * 2;
-    for (let k = 0; k < nb; k++) {
+    for (let it = 0; it < cfg.bondIterations; it++) for (let k = 0; k < nb; k++) {
       if (!this.balive[k]) continue;
       const a = ba[k], b = bb[k], fl = bflags[k];
       let rest = this.brest[k];

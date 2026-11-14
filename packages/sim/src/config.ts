@@ -2,6 +2,7 @@
 export const config = {
   dt: 1 / 60,
   substeps: 8,
+  bondIterations: 2, // bond passes per substep; more is stiffer
   gravity: 900, // world units / s^2 (a node is 16 units across)
   cell: 16, // recipe grid spacing = one node diameter
   maxSpeed: 900, // speed cap, units/s. Stops tunnelling.
