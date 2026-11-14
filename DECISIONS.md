@@ -224,3 +224,16 @@ failed half of the milestone 4 gate (only one breach strategy).
 - **Variants** (`VITE_VARIANT`): `garden` (no raids, no costs) and `tame` (open question 3: hearts can be
   taken from the burrow, two a day, and built into creatures of your own; they stay at dawn, and they eat
   berries they touch, including yours).
+- **Variant `avatar`** (open question 1): the player has a seven-cell wooden body that walks (A/D), jumps
+  about five cells (W), and has an arm's reach of 230 units; gathering, grabbing and placing only work
+  inside it, and the camera follows the body. If the body's core cell is destroyed the player is knocked
+  out until dawn. Raiders do not target the body; it can block them. The walking and jumping forces are
+  applied from outside the rule list, like the hand.
+
+### Synthesizer prompt, second round
+The first cold-reply run passed 6 of 10. The failures were informative, so three sentences of true physics
+were added to the prompt (light things get shoved, so weight them low or give them pitch feet; thorn is
+the only reliable way to hurt something; raiders hop about three cells high). A fresh cold run against the
+new prompt: **10/10 valid, 9/10 pass** (the lid still lets stones in). The fixture in
+`tests/fixtures/m2-responses.json` is this second run. Caveat: the prompt was improved with knowledge of
+these ten tests, so 9/10 flatters it; the live gate with other requests is the honest measure.

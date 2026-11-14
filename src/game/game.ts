@@ -36,6 +36,12 @@ export class Game {
   onClick: ((g: Game, node: number) => boolean)[] = [];
   onRightClick: ((g: Game, node: number) => void)[] = [];
   canPlace: (g: Game, grid: string[]) => boolean = () => true;
+  /** set false when A and D mean something else (the avatar variant walks with them) */
+  panKeys = true;
+  /** optional limit on where the hand can be (the avatar variant has an arm's reach) */
+  handLimit: ((x: number, y: number) => [number, number]) | null = null;
+  /** nodes that get a face drawn on them */
+  faces: number[] = [];
 
   constructor(public canvas: HTMLCanvasElement) {
     this.renderer = new Renderer(canvas);
@@ -180,7 +186,7 @@ export class Game {
 
   update(dt: number) {
     const k = this.keys;
-    const pan = (k.has('a') || k.has('arrowleft') ? -1 : 0) + (k.has('d') || k.has('arrowright') ? 1 : 0);
+    const pan = ((this.panKeys && k.has('a')) || k.has('arrowleft') ? -1 : 0) + ((this.panKeys && k.has('d')) || k.has('arrowright') ? 1 : 0);
     if (pan) { this.cam.x += pan * 700 * dt; this.clampCam(); }
     // nudge the camera when carrying something to the edge of the screen
     if ((this.world.hand.active || this.ghost) && this.cursor.inside) {
@@ -206,7 +212,8 @@ export class Game {
     while (this.acc >= CONFIG.dt && steps < 4) {
       const hand = this.world.hand;
       if (hand.active) {
-        hand.x = this.cursor.x; hand.y = this.cursor.y;
+        if (this.handLimit) [hand.x, hand.y] = this.handLimit(this.cursor.x, this.cursor.y);
+        else { hand.x = this.cursor.x; hand.y = this.cursor.y; }
         hand.angle += rot * CONFIG.hand.rotateSpeed * CONFIG.dt;
       }
       this.world.step();
@@ -233,6 +240,7 @@ export class Game {
       scenery: this.scenery,
       night: this.night,
       hover,
+      faces: this.faces,
       floaters: this.floaters,
       label: this.label,
       time,

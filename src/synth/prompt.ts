@@ -50,7 +50,9 @@ ${GRID_RULES.allowHearts
 - Water is small loose particles, about 0.6 of a cell wide. A row or column of cells that touch edge to edge holds water. Cells that only touch diagonally leak. A container needs an opening at the top.
 - Wood floats, stone sinks. Stone is five times heavier than wood.
 - The player has no body, only a hand that grabs one node and the stiff nodes right next to it, and drags. The hand can lift about 45 mass units (a cell's mass is its density), so 15 stone cells is the limit and 70 wood cells is easy. Leave a plain wood or stone cell to hold: grabbing a thorn is fine for the hand but the player usually wants a handle away from the sharp end.
-- Thorn hurts on contact, more at speed. Wood and stone hitting things only hurt when heavy and fast.
+- Thorn hurts on contact, more at speed, and is the only reliable way to hurt something. Wood and stone hitting things barely hurt: a blow mostly knocks a light target away.
+- Light things get shoved. Raiders are small, fast hoppers that bump into whatever is in the way, so anything meant to stay put (a wall, a cage, a spike strip) needs weight low down: a bottom row of stone, or pitch feet that stick to the ground. A wooden cage with no weight is simply pushed off what it covers.
+- Raiders hop about three cells high and can be thrown higher. A wall needs to be tall or have a roof.
 - Pitch sticks to whatever it touches, including the ground and the player's other objects. Put it only where sticking is wanted.
 - Fiber: a line of F is a rope, a block of F is a net or sling, one F between stiff parts is a hinge.
 - Sinew twitches at about 1.4 beats a second; use it only when the player wants motion.

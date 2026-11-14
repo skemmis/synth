@@ -1,5 +1,6 @@
 import './style.css';
 import { GRID_RULES, LAYOUT, Mat, exportRegion, importRegion, spawnGrid } from '../sim';
+import { installAvatar } from './avatar';
 import { installCycle } from './cycle';
 import { h } from './dom';
 import { Game } from './game';
@@ -90,6 +91,11 @@ game.onStep.push((g) => {
   hurt = dmg; hearts = alive;
 });
 
+if (VARIANT === 'avatar') {
+  const avatar = installAvatar(game, ui, cycle.onDawn);
+  ui.onNewWorld.push(() => avatar.respawn());
+  (window as any).__avatar = avatar;
+}
 if (VARIANT === 'tame' && player.day === 1 && !player.inventory.N) player.add('N', 6);
 if (VARIANT === 'garden') {
   // no nights, no costs: everything is a toy

@@ -15,6 +15,7 @@ export interface DrawExtras {
   night?: number; // 0 day .. 1 night
   hover?: number; // node under cursor
   floaters?: Floater[];
+  faces?: number[];
   label?: { x: number; y: number; text: string } | null;
   time: number;
 }
@@ -250,6 +251,13 @@ export class Renderer {
       const lx = (vx / v) * 1.6, ly = (vy / v) * 1.6;
       ctx.beginPath(); ctx.arc(x[i], y[i], 3.4, 0, 6.2832); ctx.fillStyle = '#fff'; ctx.fill();
       ctx.beginPath(); ctx.arc(x[i] + lx, y[i] + ly, 1.6, 0, 6.2832); ctx.fillStyle = '#1c1512'; ctx.fill();
+    }
+    for (const i of ex.faces ?? []) {
+      if (!alive[i]) continue;
+      for (const dx of [-2.6, 2.6]) {
+        ctx.beginPath(); ctx.arc(x[i] + dx, y[i] - 1, 2, 0, 6.2832); ctx.fillStyle = '#fff'; ctx.fill();
+        ctx.beginPath(); ctx.arc(x[i] + dx + 0.5, y[i] - 0.8, 1, 0, 6.2832); ctx.fillStyle = '#1c1512'; ctx.fill();
+      }
     }
     // wounded nodes show a dark crack; anchored pitch shows a drip
     ctx.beginPath();
