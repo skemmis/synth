@@ -155,3 +155,19 @@ Big beasts (08) plus a save file in the browser: the world, the burrow's stock a
 - A night or a raid in progress is not saved. Close the page then and you return to the last dawn or the last daytime save.
 - The save lives in one browser. There is no export, so it cannot move between machines yet. The recipe book has text export; the world does not.
 - Dead raiders lose their names on reload (the bodies are there and can be salvaged; the labels are gone).
+
+## 10 Daily crop (`play/10-daily-crop.html`)
+
+Saved games (09) with gathering changed. Click-and-wait is gone. Each dawn every source drops loose pieces on the ground (a day's crop: 24 wood, 8 stone, 12 fiber, 8 thorn, 6 pitch, 12 berries). Pick one up, press X, and it is in your pocket. A source keeps at most two days' worth. You start with much less (12 wood, 6 fiber, 2 pitch).
+
+**What worked**
+- Materials are finite for the first time. A recipe-book wall is 10 wood and 2 pitch: nearly half the day's wood and a third of its pitch. "Design small" now has a reason.
+- The crop is made of the same nodes as everything else, so it rolls. Logs dropped on the slope by the pond end up floating in it.
+- Scripted run: 8 logs pocketed for 24 wood, 6 berry pairs for 12 berries; all of it back the next dawn.
+- With no wall built, the first raid emptied the stash (9 berries) and the ending card came up. That is the first scripted run to reach it.
+
+**What did not**
+- The script pockets a whole tree's crop in under a second. A person will be slower, but grab-and-X is still quick; the limit is the crop, not the clock. Daylight may no longer matter in this variant.
+- Pocketing works anywhere, so nothing has to be carried home. Hauling (a cart, a raft across the pond) would be the physical version; it is not tried here.
+- First attempt scattered the logs at random angles, some inside each other, and they burst into single nodes on spawn. Now laid out in rows.
+- Pitch pieces glue themselves to the ground where they land. You can still pick them up; it looks odd.
