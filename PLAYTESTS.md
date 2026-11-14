@@ -109,3 +109,19 @@ PRD milestone 5, first pass. Pond, sources, home with nine berries, burrow. Dayl
 - No save. Reloading the page starts over (the recipe book alone persists).
 - Nothing tells the player the stash is the score, or what a good day looks like.
 - The main world runs at 2.3 ms a step with the pond in it. Fine at 60 a second, no headroom for fast-forward.
+
+## 07 Siege (`play/07-siege.html`)
+
+Prototype 06 with one lever: raiders are also scored on the hit points they take off what you built (4 points per hit point). A switch in the Night panel turns it off, which gives 06's raiders back.
+
+**What worked**
+- The wall now wears. Scripted run, same book wall as 06: the first raid took 110 hit points and 3 pieces off it, the second 28, the third 4. Headless, five nights, three seeds: the wall went from 340 hit points to 46, 175 and 275.
+- Damage shows as darkened nodes and stays until you take the thing apart and rebuild it, so the morning has a job: look at what was chewed and decide whether to spend light on it.
+- The raid report says what the defences lost.
+- A raider now does in the raid exactly what it did in its dream, to the last digit, even with the pond in the world (`scripts/fidelity.ts`). Before this version it did not, and that was most of why raids looked random. Two fixes, both in the decisions log.
+
+**What did not**
+- No berry was eaten in any of these runs. Wearing a wall down is slower than a player rebuilds it, so this is pressure, not yet a threat.
+- Wrecking and eating pull against each other. A body covered in thorns chews wood well and tramples the berries when it gets to them.
+- Attrition differs a lot by seed (46 to 275 hit points left after five nights). One player gets a siege and the next gets a quiet week.
+- Taking a damaged wall apart gives back every surviving piece at full value, so repair costs only light. Probably right for now; it makes daylight the currency.

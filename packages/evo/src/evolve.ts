@@ -11,13 +11,17 @@ export interface EvoState { seed: number; night: number; counter: number; archiv
 /** `starts`: each creature is run from this many slightly different spots and keeps its worst score, so a lucky gait does not win. */
 export const nightConfig = { trials: 200, trialSeconds: 20, randomShare: 0.08, crossShare: 0.12, raiders: 3, starts: 1, startGap: 14 };
 
-/** Cut a world down to the part a raid crosses: drop everything left of `minX` (the pond, mostly). */
+/**
+ * Cut a world down to the part a raid crosses: drop everything left of `minX` (the pond, mostly).
+ * Call `world.compact()` on the real world first. Then a creature spawned in the arena and one spawned in the real
+ * world sit after every other node in both, and the two runs resolve contacts in the same order.
+ */
 export function makeArena(world: World, minX: number): World {
   const a = world.clone(); a.release();
   for (let i = 0; i < a.n; i++) if (a.alive[i] && a.x[i] < minX) a.removeNode(i);
   // creatures from earlier raids are not part of the base
   for (let i = 0; i < a.n; i++) if (a.alive[i] && a.tag[i] >= 1000 && a.mat[i] === M.HEART) { const t = a.tag[i]; for (let j = 0; j < a.n; j++) if (a.alive[j] && a.tag[j] === t) a.removeNode(j); }
-  a.events = []; return a;
+  a.events = []; a.compact(); return a;
 }
 
 export class Evolver {

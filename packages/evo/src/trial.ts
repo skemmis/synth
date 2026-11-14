@@ -14,9 +14,10 @@ export function spawnCreature(w: World, g: Genome, x: number, tag: number, flip 
   const heart = s.nodes.find((i) => w.mat[i] === M.HEART) ?? -1;
   return { tag, nodes: s.nodes, heart };
 }
-export interface TrialResult { dx: number; eaten: number; closer: number; damage: number; alive: boolean; heartX: number; fitness: number; }
+export interface TrialResult { dx: number; eaten: number; closer: number; damage: number; alive: boolean; heartX: number; fitness: number; wreck: number; }
 export interface TrialOpts { seconds?: number; spawnX: number; dir?: number; }
-export const fitnessConfig = { berry: 1000, damage: 150, death: 200 };
+/** `wreck` is off in the PRD's fitness. Set it above zero to pay creatures for hit points taken off the base (a lever, see prototype 07). */
+export const fitnessConfig = { berry: 1000, damage: 150, death: 200, wreck: 0 };
 /**
  * One creature run against a world, steppable so the dream view can show it while it runs.
  * PRD fitness: berries eaten (large weight), plus how much closer the heart got to the nearest berry, minus damage taken.
@@ -29,8 +30,11 @@ export class Trial {
     this.w = w; this.g = g;
     this.c = spawnCreature(w, g, opts.spawnX, tag, (opts.dir ?? -1) > 0);
     this.hp0 = this.c.nodes.reduce((t, i) => t + w.hp[i], 0); this.eaten0 = w.eaten; this.x0 = this.lastX = w.x[this.c.heart];
-    this.d0 = this.dBest = this.nearest(); w.recordEvents = false; this.steps = Math.round((opts.seconds ?? 15) / config.dt);
+    this.d0 = this.dBest = this.nearest(); w.recordEvents = false; this.base0 = this.baseHp(); this.steps = Math.round((opts.seconds ?? 15) / config.dt);
   }
+  private base0 = 0;
+  /** Hit points left in everything that is not this creature, a berry or water. */
+  private baseHp(): number { const w = this.w; let t = 0; for (let i = 0; i < w.n; i++) if (w.alive[i] && w.tag[i] !== this.c.tag && w.mat[i] !== M.BERRY && w.mat[i] !== M.WATER) t += Math.max(0, w.hp[i]); return t; }
   private nearest(): number {
     const w = this.w, h = this.c.heart; let best = 1e9; if (!w.alive[h]) return best;
     for (let i = 0; i < w.n; i++) if (w.alive[i] && w.mat[i] === M.BERRY) { const dx = w.x[i] - w.x[h], dy = w.y[i] - w.y[h], d = Math.sqrt(dx * dx + dy * dy); if (d < best) best = d; }
@@ -52,8 +56,9 @@ export class Trial {
     const w = this.w, alive = !!w.alive[this.c.heart], eaten = w.eaten - this.eaten0;
     const hp1 = this.c.nodes.reduce((t, i) => t + (w.alive[i] ? Math.max(0, w.hp[i]) : 0), 0);
     const damage = (this.hp0 - hp1) / this.hp0, closer = this.d0 < 1e8 ? this.d0 - this.dBest : this.x0 - this.lastX, dx = this.lastX - this.x0;
-    const fitness = eaten * fitnessConfig.berry + closer - damage * fitnessConfig.damage - (alive ? 0 : fitnessConfig.death);
-    return { dx, eaten, closer, damage, alive, heartX: this.lastX, fitness };
+    const wreck = fitnessConfig.wreck ? Math.max(0, this.base0 - this.baseHp()) : 0;
+    const fitness = eaten * fitnessConfig.berry + closer - damage * fitnessConfig.damage - (alive ? 0 : fitnessConfig.death) + wreck * fitnessConfig.wreck;
+    return { dx, eaten, closer, damage, alive, heartX: this.lastX, fitness, wreck };
   }
 }
 export function runTrial(w: World, g: Genome, opts: TrialOpts): TrialResult { const t = new Trial(w, g, opts); while (!t.step(60)); return t.result(); }

@@ -77,7 +77,8 @@ export class World {
   removeNode(i: number) {
     if (!this.alive[i]) return;
     this.alive[i] = 0;
-    for (let b = 0; b < this.nb; b++) if (this.balive[b] && (this.ba[b] === i || this.bb[b] === i)) this.removeBond(b);
+    // a brace runs through its middle node, so it goes when that node goes (otherwise it would grab whatever reuses the slot)
+    for (let b = 0; b < this.nb; b++) if (this.balive[b] && (this.ba[b] === i || this.bb[b] === i || ((this.bflags[b] & B_BRACE) && this.bmid[b] === i))) this.removeBond(b);
     this.free.push(i); this.free.sort((a, b) => b - a); // lowest index reused first: deterministic
     if (this.hand.node === i) { this.hand.active = false; this.hand.node = -1; }
     this.bodiesDirty = true;
@@ -371,7 +372,36 @@ export class World {
         }
       }
     }
+    // Canonical order: by lower index, then higher. The grid's visiting order depends on the bounding box of the whole
+    // world, so without this a pond sloshing far away would change the order two nearby nodes are resolved in, and
+    // a creature would not behave in a raid as it did in its trial.
+    let keys = this.candKey; if (!keys) keys = this.candKey = new Float64Array(cap);
+    for (let q = 0; q < nc2; q++) { const i = cI[q], j = cJ[q]; keys[q] = i < j ? i * 65536 + j : j * 65536 + i; }
+    keys.subarray(0, nc2).sort();
+    for (let q = 0; q < nc2; q++) { const k = keys[q], i = Math.floor(k / 65536); cI[q] = i; cJ[q] = k - i * 65536; }
     this.ncand = nc2;
+  }
+  private candKey: Float64Array | null = null;
+
+  /**
+   * Renumber live nodes and bonds without changing their order, and empty the free lists, so the next thing spawned
+   * is appended at the end. Returns old index to new index (-1 for removed nodes).
+   */
+  compact(): Int32Array {
+    const n = this.n, map = new Int32Array(n).fill(-1); let m = 0;
+    const NA = [this.x, this.y, this.px, this.py, this.mat, this.hp, this.alive, this.body, this.wet, this.stick, this.anch, this.tag] as any[];
+    for (let i = 0; i < n; i++) { if (!this.alive[i]) continue; map[i] = m; if (m !== i) for (const a of NA) a[m] = a[i]; m++; }
+    this.alive.fill(0, m, n); this.n = m;
+    const BA = [this.ba, this.bb, this.brest, this.bflags, this.bcomp, this.blimit, this.bamp, this.bphase, this.bfreq, this.bax, this.bay, this.balive, this.bmid, this.bcur] as any[];
+    let kb = 0; this.bondKeys.clear();
+    for (let k = 0; k < this.nb; k++) {
+      if (!this.balive[k]) continue; if (kb !== k) for (const a of BA) a[kb] = a[k];
+      this.ba[kb] = map[this.ba[kb]]; if (this.bb[kb] >= 0) { this.bb[kb] = map[this.bb[kb]]; this.bondKeys.add(this.key(this.ba[kb], this.bb[kb])); }
+      if (this.bmid[kb] >= 0) this.bmid[kb] = map[this.bmid[kb]]; kb++;
+    }
+    this.balive.fill(0, kb, this.nb); this.nb = kb; this.free = []; this.freeB = [];
+    if (this.hand.node >= 0) { this.hand.node = map[this.hand.node]; if (this.hand.node < 0) this.hand.active = false; }
+    this.bodiesDirty = true; return map;
   }
 
   private collide(h: number) {

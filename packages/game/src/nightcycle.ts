@@ -9,7 +9,7 @@ import type { Creatures } from './creatures.ts';
 
 export type Mode = 'day' | 'night' | 'raid' | 'dawn' | 'replay';
 export interface RaiderLog { name: string; parent?: string; niche: string; grid: string[]; trialAte: number; ate: number; alive: boolean; }
-export interface RaidLog { night: number; best: number; lost: number; eaten: number; party: RaiderLog[]; }
+export interface RaidLog { night: number; best: number; lost: number; eaten: number; wrecked: number; pieces: number; party: RaiderLog[]; }
 export interface NightOpts {
   game: Game; zoo: Creatures; seeds: Genome[]; seed?: number; state?: EvoState; day?: number; log?: RaidLog[];
   hints?: Partial<Record<Mode, string>>;
@@ -46,7 +46,7 @@ export class NightCycle {
   private fill = el('i'); private msg = el('p'); private bars = el('div', 'bars'); private body = el('div');
   private dream: Trial | null = null; private dreamOf: Genome | null = null; private lastShown: Genome | null = null; private arena: World | null = null;
   private t0 = 0; private steps = 0; private budget = nightConfig.trials;
-  private party: Elite[] = []; private raidStep = 0; private raidStart: World | null = null; private berries0 = 0; private eaten0 = 0;
+  private party: Elite[] = []; private raidStep = 0; private raidStart: World | null = null; private berries0 = 0; private eaten0 = 0; private base0 = { hp: 0, n: 0 };
   private saved: World | null = null; private zooSaved: Creatures['list'] = [];
   constructor(public o: NightOpts) {
     this.real = o.game.world; this.day = o.day ?? 1; this.log = o.log ?? []; this.evo = new Evolver(o.seed ?? 1, o.seeds, o.state);
@@ -59,6 +59,8 @@ export class NightCycle {
     const loop = () => { requestAnimationFrame(loop); if (this.mode === 'night') this.nightFrame(); }; requestAnimationFrame(loop);
     this.setMode('day'); this.renderLog();
   }
+  /** Hit points and piece count of everything the player built (not creatures, berries or water). */
+  private baseHp(w: World) { let hp = 0, n = 0; for (let i = 0; i < w.n; i++) if (w.alive[i] && w.tag[i] < 1000 && w.mat[i] !== M.BERRY && w.mat[i] !== M.WATER) { hp += Math.max(0, w.hp[i]); n++; } return { hp, n }; }
   get busy() { return this.mode === 'night' || this.mode === 'raid' || this.mode === 'replay'; }
   /** True when the player may build and take things apart. */
   get canBuild() { return this.mode !== 'night' && this.mode !== 'replay'; }
@@ -74,6 +76,8 @@ export class NightCycle {
   sleep() {
     if (this.mode !== 'day' && this.mode !== 'dawn') return; const g = this.o.game;
     this.real = g.world; this.real.release(); g.ghost = null; this.o.zoo.dismiss(this.real);
+    // renumber so the raiders land after everything else, in the arena and here alike: the raid then matches the dream
+    const map = this.real.compact(); for (const c of this.o.zoo.list) { c.nodes = c.nodes.map((i) => map[i] ?? -1).filter((i) => i >= 0); c.heart = map[c.heart] ?? -1; }
     this.arena = makeArena(this.real, ARENA_MIN_X); this.budget = +this.budgetSel.value;
     this.evo.beginNight(this.arena, SPAWN_X, this.budget); this.t0 = performance.now(); this.steps = 0; this.dream = null; this.dreamOf = null; this.lastShown = null; this.setMode('night');
   }
@@ -92,7 +96,7 @@ export class NightCycle {
   }
   private startRaid() {
     const g = this.o.game, real = this.real; this.party = this.evo.raiders(nightConfig.raiders); g.world = real; this.raidStart = real.clone(); this.raidStep = 0;
-    this.berries0 = real.count(M.BERRY); this.eaten0 = real.eaten; real.events.length = 0;
+    this.berries0 = real.count(M.BERRY); this.eaten0 = real.eaten; this.base0 = this.baseHp(real); real.events.length = 0;
     this.fill.style.width = '100%'; this.msg.textContent = `Night ${this.day} took ${((performance.now() - this.t0) / 1000).toFixed(0)} s. ${this.party.length} raiders are on their way.`;
     this.setMode('raid'); g.centerOn(LAYOUT.home[1] + 60);
   }
@@ -112,7 +116,8 @@ export class NightCycle {
     const g = this.o.game, zoo = this.o.zoo;
     if (this.mode === 'replay') { g.world = this.real = this.saved!; zoo.list = this.zooSaved; this.saved = null; this.setMode('dawn'); return; }
     const lost = this.berries0 - w.count(M.BERRY); const raiders = zoo.list.slice(-this.party.length); const h = this.evo.state.history;
-    const entry: RaidLog = { night: this.day, best: h[h.length - 1]?.best ?? 0, lost, eaten: w.eaten - this.eaten0,
+    const b1 = this.baseHp(w);
+    const entry: RaidLog = { night: this.day, best: h[h.length - 1]?.best ?? 0, lost, eaten: w.eaten - this.eaten0, wrecked: Math.max(0, Math.round(this.base0.hp - b1.hp)), pieces: Math.max(0, this.base0.n - b1.n),
       party: this.party.map((e, i) => ({ name: e.g.name ?? 'creature', parent: e.g.parent, niche: e.niche, grid: toRecipe(e.g).grid, trialAte: e.result.eaten, ate: raiders[i]?.ate ?? 0, alive: raiders[i]?.alive ?? false })) };
     this.log.push(entry); zoo.dismiss(w); this.day++; this.setMode('dawn'); this.renderLog(); this.o.onDawn?.(entry);
   }
@@ -122,7 +127,7 @@ export class NightCycle {
     bars.hidden = false; const max = Math.max(...log.map((l) => l.best), 1);
     for (const l of log.slice(-10)) { const b = el('div'); b.style.height = `${Math.max(3, (l.best / max) * 100)}%`; b.title = `Night ${l.night}: best score ${Math.round(l.best)}`; b.append(el('span', '', String(Math.round(l.best)))); bars.append(b); }
     const last = log[log.length - 1];
-    body.append(el('p', '', `Bars are the best trial score each night (it can fall when you change the base). Last raid cost you ${last.lost} berries: ${last.eaten} eaten, ${last.lost - last.eaten} trampled.`));
+    body.append(el('p', '', `Bars are the best trial score each night (it can fall when you change the base). Last raid cost you ${last.lost} berries: ${last.eaten} eaten, ${last.lost - last.eaten} trampled.` + (last.wrecked ? ` Your defences took ${last.wrecked} damage and lost ${last.pieces} pieces.` : '')));
     for (const p of last.party) {
       const row = el('div', 'raider'), who = el('div', 'who');
       who.append(el('b', '', p.name), el('small', '', `${p.niche}${p.parent ? ', bred from ' + p.parent : ''}. Ate ${p.trialAte} in its dream, ${p.ate} in the raid. ${p.alive ? 'Went home.' : 'Died here.'}`));
