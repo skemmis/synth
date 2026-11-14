@@ -3,12 +3,13 @@
 import { Rng } from '../../sim/src/rng.ts';
 import { M } from '../../sim/src/materials.ts';
 import type { World } from '../../sim/src/world.ts';
-import { crossover, mutate, nicheOf, randomGenome, type Genome } from './genome.ts';
+import { creatureName, crossover, mutate, nicheOf, randomGenome, type Genome } from './genome.ts';
 import { Trial, type TrialResult } from './trial.ts';
 
 export interface Elite { g: Genome; niche: string; fitness: number; result: TrialResult; born: number; }
 export interface EvoState { seed: number; night: number; counter: number; archive: Elite[]; history: { night: number; best: number; mean: number; niches: number; trials: number }[]; }
-export const nightConfig = { trials: 200, trialSeconds: 20, randomShare: 0.08, crossShare: 0.12, raiders: 3 };
+/** `starts`: each creature is run from this many slightly different spots and keeps its worst score, so a lucky gait does not win. */
+export const nightConfig = { trials: 200, trialSeconds: 20, randomShare: 0.08, crossShare: 0.12, raiders: 3, starts: 1, startGap: 14 };
 
 /** Cut a world down to the part a raid crosses: drop everything left of `minX` (the pond, mostly). */
 export function makeArena(world: World, minX: number): World {
@@ -39,7 +40,7 @@ export class Evolver {
   get done() { return !this.current && this.trialsTonight >= this.budget; }
   private pick(): Genome {
     if (this.queue.length) return this.queue.shift()!;
-    const A = this.state.archive, rng = this.rng; const id = `n${this.state.night}.${++this.state.counter}`;
+    const A = this.state.archive, rng = this.rng; const id = creatureName(++this.state.counter);
     if (!A.length || rng.chance(nightConfig.randomShare)) return { ...randomGenome(rng), name: id };
     // tournament of two, so fitter elites breed more but every niche gets a turn
     const a = A[rng.int(A.length)], b = A[rng.int(A.length)]; const p = a.fitness >= b.fitness ? a : b;
@@ -48,20 +49,22 @@ export class Evolver {
   }
   private next() {
     if (this.trialsTonight >= this.budget || !this.arena) { this.current = null; return; }
-    this.currentG = this.pick(); this.current = new Trial(this.arena.clone(), this.currentG, { spawnX: this.spawnX, seconds: nightConfig.trialSeconds, dir: -1 });
+    this.currentG = this.pick(); this.runs = []; this.launch();
   }
+  private runs: TrialResult[] = [];
+  private launch() { this.current = new Trial(this.arena!.clone(), this.currentG!, { spawnX: this.spawnX - this.runs.length * nightConfig.startGap, seconds: nightConfig.trialSeconds, dir: -1 }); }
   /** Run up to `steps` simulation steps of the current trial. Returns true when the night's budget is spent. */
   advance(steps: number): boolean {
     let left = steps;
     while (left > 0 && this.current) {
       const t = this.current, before = t.t; const fin = t.step(left); left -= t.t - before || 1;
-      if (fin) { this.finish(t); this.next(); }
+      if (fin) { this.runs.push(t.result()); if (this.runs.length < nightConfig.starts) this.launch(); else { this.finish(); this.next(); } }
     }
     if (!this.current && this.trialsTonight >= this.budget) this.endNight();
     return this.done;
   }
-  private finish(t: Trial) {
-    const r = t.result(), g = this.currentG!, niche = nicheOf(g); this.trialsTonight++;
+  private finish() {
+    const r = this.runs.reduce((a, b) => (b.fitness < a.fitness ? b : a)), g = this.currentG!, niche = nicheOf(g); this.trialsTonight++;
     const A = this.state.archive, i = A.findIndex((e) => e.niche === niche);
     const kept = i < 0 || r.fitness > A[i].fitness;
     if (kept) { const e: Elite = { g, niche, fitness: r.fitness, result: r, born: this.state.night }; if (i < 0) A.push(e); else A[i] = e; }

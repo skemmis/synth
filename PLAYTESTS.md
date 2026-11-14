@@ -62,3 +62,34 @@ PRD milestone 2. A conversation panel that turns requests into letter-grid draft
 - Live Claude from the published page has not been exercised: it needs a person to open the page and allow it. The recorded-answer test covers the prompt and validation, not the page's call.
 
 **Creativity levers now exposed for playtests**: Literal or Inventive style (one switch), editing the draft's letters by hand, and the bench report feeding the next turn.
+
+## 04 Creature pen (`play/04-creature-pen.html`)
+
+PRD milestone 3. Six seed crawlers to release at the burrow, a mutant button, an inspector, a grid editor for your own creature with a beat slider, things to put in the way, and salvage (X on a dead body gives up its sinew).
+
+**What worked**
+- Creatures made only of nodes, bonds and pulsing sinew do walk, and they look alive: Skipper is six cells and hops, Sprinter gallops.
+- In the scripted run all six crossed to home and Nibbler ate 6 of 9 loose berries.
+- Dragging a live creature by a leg and dropping it on its back is the most fun thing in the prototype. It keeps pulsing and sometimes rights itself.
+- Runs at 0.14 ms a step with six creatures out.
+
+**What did not**
+- Hand-drawn creatures almost never walk. The editor gives every muscle the same strength and a phase from its position, which is a guess. Walking needs search, not drawing; the editor is a toy for now.
+- Walkers bred only for distance cannot eat: heart in the middle, berries pushed ahead of the chest. See the decisions log.
+- Nothing shows why a creature died.
+
+## 05 Night raid (`play/05-night-raid.html`)
+
+PRD milestone 4. Day: free defences and your own grid designs. Sleep: 100, 200 or 400 trials against a copy of the base at dusk, while the view follows the current champion's attempt. Then the best of three niches come from the burrow one at a time. Dawn: survivors leave, the dead stay, and a report shows each raider's grid, its parent, what it ate in its dream and in the raid.
+
+**What worked**
+- The loop reads at a glance: sky goes dark, a meter fills in 9 to 16 seconds, the sky goes dusk-red and things come out of the hole.
+- Watching the champion's dream is a real tell. You see the thing that will come, and how it gets in, before it comes.
+- Raid report with names and parents ("Brukusk, medium thorny, bred from Thornback") makes the arms race legible.
+- Scripted three-night run: night one's top raider ate 1 in its dream and 1 in the raid.
+
+**What did not**
+- Raids are weak more often than not. In the three-night run only the first raid took a berry. After a raid the wall is shoved against the stash and that jam is a better defence than the wall was.
+- The score bar falls when the base changes, which reads as the creatures getting worse. It should be drawn against what the base was.
+- Sleeping twice without touching anything is the best strategy so far. There is no cost to waiting and no reason to rebuild.
+- The party is three cousins, so one defence answers all of them.

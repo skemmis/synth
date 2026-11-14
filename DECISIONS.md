@@ -46,6 +46,30 @@ Every starter recipe exported to text and imported into a fresh world gives an i
 
 Caveats: the model's net is a copy of the prompt's example; the live call from the published page (the page asks Claude on the viewer's account) has not been run by a person yet; "no hand fixes" holds, but three of the physical tests were adjusted while writing them (net is hung with slack, ramp is tested downhill, lid tub is nudged gently), so treat the count as a first reading.
 
+### Milestone 3 (creatures): PASS
+
+All six seed crawlers travel at least 30 node diameters over flat ground in 15 simulated seconds (worst is Nibbler at 486 units against a gate of 480; best is Sprinter at 1535). A heart touching a berry eats it. A creature whose heart is destroyed stops and its body, sinew included, stays as salvage. 300 chained mutations all give a viable body with one heart. Tests: `packages/evo/test/gate3.test.ts`.
+
+### Milestone 4 (overnight evolution): PASS, narrowly, and only at one start per trial
+
+Test base: nine berries behind a wood wall three nodes high. 200 trials a night, five nights, `scripts/gate4.ts`.
+
+| Seed | Best score by night | How it got in | Berries eaten |
+| --- | --- | --- | --- |
+| 1 | 1346 1346 1346 1346 1346 | shoved the wall | 1 |
+| 2 | 1346 2344 7346 7346 9347 | broke through | 9 |
+| 3 | 1346 1346 9395 9395 9395 | shoved the wall | 9 |
+| 4 | 8347 8348 9343 9343 9343 | broke through | 9 |
+| 5 | 1346 2345 9347 9347 9347 | broke through | 9 |
+
+Best score rises in 4 of 5 seeds (gate: 3 of 5). Two ways in were seen, through and shove (gate: 2). Nothing went over or under.
+Speed: a night of 200 twenty-second trials takes about 10 s headless and 9 to 16 s in the browser on the main thread, roughly 250 to 400 times real time for these small arenas.
+
+Caveats, all of which matter:
+- Gaits are chaotic. A tiny change in where the wall settled turns a nine-berry run into a zero. Scoring each creature on the worst of two starts (`nightConfig.starts = 2`) is the honest fix and it is in the code, but with it only 1 of 4 seeds learned to get in within five nights, so it is off by default.
+- A dream does not always carry over to the raid. Sending raiders 2.5 s apart: seed 4's party ate 9 and 8 alone and 0 together. Sending them 8 s apart: 5 eaten, 4 trampled. The page uses 8 s.
+- The three raiders are usually cousins. Niches are size by main material, and one good body plan spreads across "sinewy", "stringy" and "wood" by swapping a cell or two.
+
 ## More defaults (prototype 3 onward)
 
 - **Model access.** The published page asks Claude through the page's own "ask Claude" capability on the viewer's account. No API key anywhere. A bring-your-own-key provider can be added behind the same `Provider` interface if Sam wants one for the desktop build.
@@ -53,3 +77,11 @@ Caveats: the model's net is a copy of the prompt's example; the live call from t
 - **Crushing damage** uses the striker's own momentum (mass times closing speed) against a threshold, so stone crushes and wood does not.
 - **Pitch** holds 30 unit weights per glue bond (was 18), so a two-wide wall with a pitch foot survives a shove.
 - **Test bench** is seven fixed measurements, the same for every draft. It never knows what the draft is for.
+- **Sinew has a force limit** (12 unit weights) and cannot shorten past touching. Without both, muscles were a free-energy source and creatures flew.
+- **Heart death** clears every muscle in that creature. The body stays, bonds intact, as salvage.
+- **Layout changed for raids.** The strip is now pond, sources, ditch, home, burrow. The ditch used to sit between home and the burrow; nothing crossed it and still had time to eat inside a 20 second trial. The burrow is now 370 units from the edge of home. Veto if a moat between burrow and home matters to you: it would need longer trials.
+- **Trials are 20 seconds**, not the PRD's 15. Crossing to the stash takes most of 15.
+- **Three of the six seeds were bred to eat**, not only to walk: the walkers kept their heart in the middle of the body and pushed the berries away with their own chest. Trying the heart in every cell and then hill-climbing on berries eaten fixed that (`scripts/eatseeds.ts`).
+- **Mutation can swap two neighbouring cells**, which is how a heart moves to the front.
+- **Thorny creatures trample berries.** A thorn touching a berry damages it like anything else. No special case was added; the raid report counts eaten and trampled separately.
+- **Creatures get names** from a fixed syllable table keyed by birth order, and remember their parent's name.

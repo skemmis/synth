@@ -96,3 +96,8 @@ export function nicheOf(g: Genome): string {
   if (dom === 'wood' && (count.N ?? 0) > n * 0.45) dom = 'sinewy';
   return `${size} ${dom}`;
 }
+/** A pronounceable name for the n-th creature bred, so raid reports read like a bestiary and not a log. Pure function of n. */
+export function creatureName(n: number): string {
+  const A = ['Mor', 'Ska', 'Thi', 'Bru', 'Gna', 'Vel', 'Ock', 'Zib', 'Hul', 'Pry', 'Dra', 'Kes', 'Yor', 'Fen', 'Wim', 'Quo'], B = ['ra', 'li', 'to', 'ne', 'ku', 'sha', 'bo', 'mi', 'ga', 'ze'], C = ['k', 'x', 'th', 'n', 'rl', 'sk', 'm', 'p', 'zz', ''];
+  let h = (n * 2654435761) >>> 0; const a = A[h % A.length]; h = Math.floor(h / A.length); const b = B[h % B.length]; h = Math.floor(h / B.length); return a + b + C[h % C.length];
+}
