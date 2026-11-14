@@ -117,7 +117,15 @@ export function installCycle(game: Game, player: Player, ui: Ui, sfx: (name: str
       // a worker failed (some sandboxes forbid them): finish the night on this thread
       pool?.dispose();
       pool = new LocalPool(() => new Promise((r) => setTimeout(r, 0)));
-      elites = await runNight(evolver, lastArena, pool, { cancelled: () => cancelDream, budgetSteps: EVO_CONFIG.nightBudgetSteps / 4 });
+      insetTitle.textContent = 'The dream (running on one thread here, so a shorter night)';
+      elites = await runNight(evolver, lastArena, pool, {
+        cancelled: () => cancelDream, budgetSteps: EVO_CONFIG.nightBudgetSteps / 4, batch: 2,
+        onProgress: (p) => {
+          (bar.firstChild as HTMLElement).style.width = `${Math.min(100, (p.stepsUsed / p.budget) * 100).toFixed(1)}%`;
+          insetInfo.textContent = `${p.trials} bodies tried · ${evolver.archive.size} kinds alive`;
+          for (const el of p.improved) showQueue.push(el.genome);
+        },
+      });
     }
     void t0;
     lastBest = elites[0] ?? null;

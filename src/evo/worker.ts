@@ -14,6 +14,7 @@ self.onmessage = (e: MessageEvent<Msg>) => {
   const m = e.data;
   if (m.type === 'arena') {
     arena = World.restore(m.snap, new Terrain(m.width, m.h));
+    (self as unknown as Worker).postMessage({ type: 'ready' });
   } else if (m.type === 'trial' && arena) {
     const result = runTrial(arena, m.genome, m.seconds);
     (self as unknown as Worker).postMessage({ type: 'result', id: m.id, result });

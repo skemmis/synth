@@ -16,7 +16,7 @@ export async function runNight(
 ): Promise<Elite[]> {
   const budget = opts.budgetSteps ?? EVO_CONFIG.nightBudgetSteps;
   const batch = opts.batch ?? Math.max(4, pool.size * 3);
-  pool.setArena(arena);
+  await pool.setArena(arena);
   evolver.beginNight();
   let used = 0, trials = 0;
   while (used < budget && !opts.cancelled?.()) {
