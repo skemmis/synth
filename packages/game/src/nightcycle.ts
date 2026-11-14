@@ -13,6 +13,8 @@ export interface RaidLog { night: number; best: number; lost: number; eaten: num
 export interface NightOpts {
   game: Game; zoo: Creatures; seeds: Genome[]; seed?: number; state?: EvoState; day?: number; log?: RaidLog[];
   hints?: Partial<Record<Mode, string>>; raidSeconds?: number;
+  /** Trials for a given night, overriding the picker. Lets the burrow search harder as the nights go by. */
+  budgetFor?: (night: number) => number;
   /** The dead last one day: whatever is left of earlier raiders is cleared at dusk. Without it bodies pile up into a free barricade. */
   rot?: boolean;
   onMode?: (m: Mode) => void; onDawn?: (entry: RaidLog) => void;
@@ -59,6 +61,7 @@ export class NightCycle {
     this.sleepBtn.onclick = () => this.sleep(); this.replayBtn.onclick = () => { if ((this.mode === 'day' || this.mode === 'dawn') && this.raidStart) this.startReplay(); };
     this.dreamTag.hidden = true; o.game.opts.mount.append(this.hint, this.dreamTag);
     const loop = () => { requestAnimationFrame(loop); if (this.mode === 'night') this.nightFrame(); }; requestAnimationFrame(loop);
+    if (o.budgetFor) this.budgetSel.hidden = true;
     this.setMode('day'); this.renderLog();
   }
   /** Hit points and piece count of everything the player built (not creatures, berries or water). */
@@ -81,7 +84,7 @@ export class NightCycle {
     if (this.o.rot) { const w = this.real; for (let i = 0; i < w.n; i++) if (w.alive[i] && w.tag[i] >= 1000) w.removeNode(i); this.o.zoo.list = []; }
     // renumber so the raiders land after everything else, in the arena and here alike: the raid then matches the dream
     const map = this.real.compact(); for (const c of this.o.zoo.list) { c.nodes = c.nodes.map((i) => map[i] ?? -1).filter((i) => i >= 0); c.heart = map[c.heart] ?? -1; }
-    this.arena = makeArena(this.real, ARENA_MIN_X); this.budget = +this.budgetSel.value;
+    this.arena = makeArena(this.real, ARENA_MIN_X); this.budget = this.o.budgetFor ? this.o.budgetFor(this.day) : +this.budgetSel.value;
     this.evo.beginNight(this.arena, SPAWN_X, this.budget); this.t0 = performance.now(); this.steps = 0; this.dream = null; this.dreamOf = null; this.lastShown = null; this.setMode('night');
   }
   private nightFrame() {

@@ -202,3 +202,26 @@ Saved games (09) with one change in the burrow: the best creature is kept per si
 - Seeds themselves show up in parties late in a run ("Sprinter" on nights 5 and 6), which means that family had bred nothing better than its founder for the base as it stood.
 
 **Update after the pitch fix (see decisions log).** Same script, same build, pitch grip lowered. Nights one to three took 32, 9 and 26 hit points off the wall. Night four took 221 and nine pieces: the wall was down. Night five, a raider of Thornback's line that ate nine in its dream ate six in the raid, the rest were trampled, the stash was empty and the ending card came up. That is the first full siege played out in the browser, start to finish, and it took five nights.
+
+## 13 The burrow grows (`play/13-the-burrow-grows.html`)
+
+Families (12) where the night gets longer: 200 trials on night one and 100 more each night, up to 800.
+
+This one came out of a balance test, not a feature idea. I gave the headless run a scripted defender who clears the wreckage every morning and sets down one fresh recipe-book wall (10 wood and 2 pitch, well inside a day's crop), then counted nights.
+
+| Burrow | Seed 1 | Seed 2 |
+| --- | --- | --- |
+| 200 trials every night, party of 3 | held all 12 nights | lost the stash on night 9 only |
+| same, party grows to 7 | held all 12 | held all 12 |
+| same, bodies allowed to grow 5 cells a night | same as the first row | same as the first row |
+| 100 more trials every night | lost berries on nights 5 and 9 | lost the whole stash on night 7 |
+| defender sets down two walls a day, 200 trials | held all 12 | held all 12 |
+
+**What worked**
+- More search is the only one of the three levers that got through a wall rebuilt daily. Bigger parties did nothing: the fourth to seventh best raiders are passengers. Letting bodies grow did nothing at all, the runs were identical, because nothing bred wanted to be bigger than 26 cells.
+- In the browser the nights took 13, 19, 27 and 30 seconds, and the wall lost 35, 8, 59 and 86 hit points. The pressure climbs.
+
+**What did not**
+- A longer wait every night is a poor way to deliver "they are getting smarter". By night seven the player would wait about a minute. The search should run in the background during the day; that is the next thing to build.
+- Two walls a day still holds forever at 200 trials. With the daily crop that is 20 of 24 wood, so it is affordable. Whether 100 more trials a night beats two walls is not tested.
+- All of this is one kind of defence. Nobody, scripted or real, has tried spikes, nets or a pit against these raiders.

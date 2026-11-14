@@ -15,8 +15,13 @@ const baseHp = () => { let t = 0, n = 0; for (let i = 0; i < w.n; i++) if (w.ali
 console.log('start', baseHp());
 // the game's own rhythm: breed against the base as it stands, raid it for real (raiders 8 s apart), survivors leave, the dead stay
 for (let n = 0; n < +nights; n++) {
+  // a simple defender: every morning clear what is left of the defences and set down this many fresh ones (same kind as at the start)
+  if (process.env.REBUILD && n > 0) { for (let i = 0; i < w.n; i++) if (w.alive[i] && w.tag[i] < 1000 && w.mat[i] !== M.BERRY && w.mat[i] !== M.WATER) w.removeNode(i);
+    const names = base.split('+'); for (let k = 0; k < +process.env.REBUILD; k++) setDown(w, { name: names[0], grid: defs[names[0]] }, WALL_X + k * 70, w.terrain.groundY(WALL_X + k * 70)); for (let i = 0; i < 90; i++) w.step(); }
+  if (process.env.GROWCELLS) evoConfig.maxCells = Math.min(60, 26 + +process.env.GROWCELLS * n);
+  if (process.env.GROWTRIALS) (globalThis as any).__trials = +trials + +process.env.GROWTRIALS * n;
   if (process.env.ROT) for (let i = 0; i < w.n; i++) if (w.alive[i] && w.tag[i] >= 1000) w.removeNode(i);
-  w.compact(); const h = evo.runNight(makeArena(w, LAYOUT.home[0] - 200), LAYOUT.burrow - 60, +trials); const party = evo.raiders(3); const e0 = w.eaten, b0 = w.count(M.BERRY); const mine: number[] = [];
+  w.compact(); const h = evo.runNight(makeArena(w, LAYOUT.home[0] - 200), LAYOUT.burrow - 60, (globalThis as any).__trials ?? +trials); const size = process.env.GROW ? Math.min(7, 3 + Math.floor(n / +process.env.GROW)) : 3; const party = evo.raiders(size); const e0 = w.eaten, b0 = w.count(M.BERRY); const mine: number[] = [];
   for (let t = 0; t < +(process.env.RAID ?? 44) * 60; t++) { if (t % 480 === 0 && t / 480 < party.length) { mine.push(tag); spawnCreature(w, party[t / 480].g, LAYOUT.burrow - 60, tag++); } w.step(); }
   for (const tg of mine) { let live = false; for (let i = 0; i < w.n; i++) if (w.alive[i] && w.tag[i] === tg && w.mat[i] === M.HEART) live = true; if (live) for (let i = 0; i < w.n; i++) if (w.alive[i] && w.tag[i] === tg) w.removeNode(i); }
   out.push(`night ${n + 1}: best ${h.best.toFixed(0)} dream ate ${party[0].result.eaten} | raid ate ${w.eaten - e0}, gone ${b0 - w.count(M.BERRY)} | base ${baseHp()} | ${party.map((p) => `${p.niche}[${p.g.root ?? p.g.name}]`).join(', ')}`);
