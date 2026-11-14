@@ -3,7 +3,7 @@ import { spawnRecipe } from '../packages/sim/src/grid.ts'; import { RECIPES } fr
 import { LAYOUT, stripTerrain } from '../packages/sim/src/terrain.ts'; import { World } from '../packages/sim/src/world.ts'; import { M } from '../packages/sim/src/materials.ts';
 import { Evolver, makeArena, nightConfig } from '../packages/evo/src/evolve.ts'; import { SEEDS } from '../packages/evo/src/seeds.ts'; import { fitnessConfig, spawnCreature } from '../packages/evo/src/trial.ts'; import { evoConfig, toRecipe } from '../packages/evo/src/genome.ts';
 const [base, seed, nights = '6', trials = '200', wreck = '0', maxCells = '26', seconds = '20'] = process.argv.slice(2);
-fitnessConfig.wreck = +wreck; evoConfig.maxCells = +maxCells; nightConfig.trialSeconds = +seconds;
+if (process.env.FAMILY) evoConfig.nicheBy = 'family'; fitnessConfig.wreck = +wreck; evoConfig.maxCells = +maxCells; nightConfig.trialSeconds = +seconds;
 const STASH_X = LAYOUT.home[1] - 110, WALL_X = LAYOUT.home[1] + 40;
 const w = new World(stripTerrain()); spawnRecipe(w, RECIPES.berryStack, STASH_X, w.terrain.groundY(STASH_X) - 32);
 const defs: Record<string, string[]> = { wall3: ['WW', 'WW', 'WW'], book: RECIPES.wall.grid, stone: ['SS', 'SS', 'SS', 'SS'], spikes: RECIPES.spikeStrip.grid };
@@ -19,6 +19,6 @@ for (let n = 0; n < +nights; n++) {
   w.compact(); const h = evo.runNight(makeArena(w, LAYOUT.home[0] - 200), LAYOUT.burrow - 60, +trials); const party = evo.raiders(3); const e0 = w.eaten, b0 = w.count(M.BERRY); const mine: number[] = [];
   for (let t = 0; t < +(process.env.RAID ?? 44) * 60; t++) { if (t % 480 === 0 && t / 480 < party.length) { mine.push(tag); spawnCreature(w, party[t / 480].g, LAYOUT.burrow - 60, tag++); } w.step(); }
   for (const tg of mine) { let live = false; for (let i = 0; i < w.n; i++) if (w.alive[i] && w.tag[i] === tg && w.mat[i] === M.HEART) live = true; if (live) for (let i = 0; i < w.n; i++) if (w.alive[i] && w.tag[i] === tg) w.removeNode(i); }
-  out.push(`night ${n + 1}: best ${h.best.toFixed(0)} dream ate ${party[0].result.eaten} | raid ate ${w.eaten - e0}, gone ${b0 - w.count(M.BERRY)} | base ${baseHp()} | ${party.map((p) => p.niche).join(', ')}`);
+  out.push(`night ${n + 1}: best ${h.best.toFixed(0)} dream ate ${party[0].result.eaten} | raid ate ${w.eaten - e0}, gone ${b0 - w.count(M.BERRY)} | base ${baseHp()} | ${party.map((p) => `${p.niche}[${p.g.root ?? p.g.name}]`).join(', ')}`);
 }
 console.log(`${base} seed ${seed} trials ${trials} wreck ${wreck} cells ${maxCells} secs ${seconds} (${((performance.now() - t0) / 1000).toFixed(0)} s)\n` + out.join('\n') + '\n' + toRecipe(evo.raiders(1)[0].g).grid.join('\n'));

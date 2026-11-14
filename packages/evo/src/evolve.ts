@@ -47,10 +47,10 @@ export class Evolver {
   private pick(): Genome {
     if (this.queue.length) return this.queue.shift()!;
     const A = this.state.archive, rng = this.rng; const id = creatureName(++this.state.counter);
-    if (!A.length || rng.chance(nightConfig.randomShare)) return { ...randomGenome(rng), name: id };
+    if (!A.length || rng.chance(nightConfig.randomShare)) return { ...randomGenome(rng), name: id, root: 'wild' };
     // tournament of two, so fitter elites breed more but every niche gets a turn
     const a = A[rng.int(A.length)], b = A[rng.int(A.length)]; const p = a.fitness >= b.fitness ? a : b;
-    if (rng.chance(nightConfig.crossShare) && A.length > 1) return mutate({ ...crossover(p.g, A[rng.int(A.length)].g, rng), name: p.g.name }, rng, id);
+    if (rng.chance(nightConfig.crossShare) && A.length > 1) return mutate({ ...crossover(p.g, A[rng.int(A.length)].g, rng), name: p.g.name, root: p.g.root }, rng, id);
     return mutate(p.g, rng, id);
   }
   private next() {

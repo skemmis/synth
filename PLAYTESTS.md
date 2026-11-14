@@ -187,3 +187,16 @@ Daily crop (10) with one rule changed: X only works at home, marked by a yellow 
 - The bucket's centre post splits it into two slots only two nodes wide, so three-node logs do not lie flat in it.
 - The sources stand 220 apart and each drops crop 100 either side, so there is no clear ground to set a container down next to the tree.
 - No raft run was tried. The pond is between nothing and nothing in this layout, so a raft has no job.
+
+## 12 Families (`play/12-families.html`)
+
+Saved games (09) with one change in the burrow: the best creature is kept per size and per founding seed (Skipper's line, Thornback's line, and so on, plus "wild" for ones born at random), instead of per size and main material.
+
+**What worked**
+- Raid parties are different animals. Scripted, six nights: every party had three different lines in it (for example Sprinter's, Thornback's and Nibbler's on night one). Before, a typical party was three bodies off the same plan that differed by a cell.
+- The eaters survive. Headless, three seeds, same unrepaired wall: it fell on nights 5, 8 and 7, about the same as before, but now the stash was eaten and not only trampled. One raider of Thornback's line ate all nine in its dream and all nine in the raid.
+- The report reads better: "Drakup: medium, Thornback's line, bred from Zibgak."
+
+**What did not**
+- The browser run stalled again after two nights (45 and 66 hit points off the wall, then almost nothing for four nights) while the headless runs kept going. Same pattern as 08. Next thing to chase.
+- Seeds themselves show up in parties late in a run ("Sprinter" on nights 5 and 6), which means that family had bred nothing better than its founder for the base as it stood.

@@ -2,10 +2,11 @@
 import { Rng } from '../../sim/src/rng.ts';
 import { countPieces, type Actuation, type Recipe } from '../../sim/src/grid.ts';
 
-export interface Genome { grid: string[]; freq: number; cells: Record<string, { phase: number; amp: number }>; name?: string; parent?: string; }
+export interface Genome { grid: string[]; freq: number; cells: Record<string, { phase: number; amp: number }>; name?: string; parent?: string; /** the seed this line descends from */ root?: string; }
 export const GW = 9, GH = 7; // genome canvas
 const BODY = 'WWWWNNNNNFTSP'; // mutation alphabet, weighted
-export const evoConfig = { minCells: 5, maxCells: 26, freqMin: 0.6, freqMax: 2.2, ampMax: 0.4 };
+/** `nicheBy`: 'material' keeps the best creature per size and main material; 'family' keeps the best per size and founding seed, so raid parties are different animals and not three cousins. */
+export const evoConfig = { minCells: 5, maxCells: 26, freqMin: 0.6, freqMax: 2.2, ampMax: 0.4, nicheBy: 'material' as 'material' | 'family' };
 
 const blank = () => Array.from({ length: GH }, () => '.'.repeat(GW));
 const setc = (g: string[], c: number, r: number, ch: string) => { g[r] = g[r].slice(0, c) + ch + g[r].slice(c + 1); };
@@ -51,7 +52,7 @@ export function randomGenome(rng: Rng): Genome {
 /** PRD mutations: change a cell's material, add or remove an edge cell, mirror the body, jitter phase, amplitude and frequency. */
 export function mutate(parent: Genome, rng: Rng, name?: string): Genome {
   for (let attempt = 0; attempt < 30; attempt++) {
-    const g: Genome = { grid: parent.grid.slice(), freq: parent.freq, cells: JSON.parse(JSON.stringify(parent.cells)), parent: parent.name, name };
+    const g: Genome = { grid: parent.grid.slice(), freq: parent.freq, cells: JSON.parse(JSON.stringify(parent.cells)), parent: parent.name, root: parent.root ?? parent.name ?? 'wild', name };
     const ops = 1 + (rng.chance(0.35) ? 1 : 0) + (rng.chance(0.1) ? 1 : 0);
     for (let o = 0; o < ops; o++) {
       const cells = cellsOf(g.grid); const roll = rng.next();
@@ -79,7 +80,7 @@ export function mutate(parent: Genome, rng: Rng, name?: string): Genome {
     syncCells(g, rng);
     if (isViable(g)) return g;
   }
-  return { ...parent, grid: parent.grid.slice(), cells: JSON.parse(JSON.stringify(parent.cells)), name, parent: parent.name };
+  return { ...parent, grid: parent.grid.slice(), cells: JSON.parse(JSON.stringify(parent.cells)), name, parent: parent.name, root: parent.root ?? parent.name ?? 'wild' };
 }
 export function crossover(a: Genome, b: Genome, rng: Rng): Genome {
   // body from a, rhythm from b where cells line up
@@ -92,6 +93,7 @@ export function nicheOf(g: Genome): string {
   const count: Record<string, number> = {}; let n = 0;
   for (const row of g.grid) for (const ch of row) if (ch !== '.') { n++; count[ch] = (count[ch] ?? 0) + 1; }
   const size = n <= 9 ? 'small' : n <= 16 ? 'medium' : 'large';
+  if (evoConfig.nicheBy === 'family') { const r = g.root ?? g.name ?? 'wild'; return r === 'wild' ? `${size}, wild` : `${size}, ${r}'s line`; }
   let dom = 'wood', best = 0; for (const [ch, label] of [['T', 'thorny'], ['S', 'stony'], ['P', 'sticky'], ['F', 'stringy']] as const) if ((count[ch] ?? 0) >= 2 && (count[ch] ?? 0) > best) { best = count[ch]; dom = label; }
   if (dom === 'wood' && (count.N ?? 0) > n * 0.45) dom = 'sinewy';
   return `${size} ${dom}`;
