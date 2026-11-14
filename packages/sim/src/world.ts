@@ -23,7 +23,7 @@ export class World {
   mat: Uint8Array; hp: Float32Array; alive: Uint8Array; body: Int32Array; wet: Float32Array; wetNext: Float32Array;
   stick: Uint8Array; anch: Uint8Array; tag: Int32Array; // tag: free-form owner id (creature id, object id); survives splits
   ba: Int32Array; bb: Int32Array; brest: Float64Array; bflags: Uint8Array; bcomp: Float64Array; blimit: Float32Array;
-  bamp: Float32Array; bphase: Float32Array; bfreq: Float32Array; bax: Float64Array; bay: Float64Array; balive: Uint8Array; bmid: Int32Array;
+  bamp: Float32Array; bphase: Float32Array; bfreq: Float32Array; bax: Float64Array; bay: Float64Array; balive: Uint8Array; bmid: Int32Array; bcur: Float64Array;
   bondKeys = new Set<number>();
   bodiesDirty = true; nbodies = 0;
   hand: Hand = { active: false, node: -1, x: 0, y: 0, spin: 0 };
@@ -46,7 +46,7 @@ export class World {
     this.wet = new Float32Array(N); this.wetNext = new Float32Array(N); this.stick = new Uint8Array(N); this.anch = new Uint8Array(N); this.tag = new Int32Array(N);
     this.ba = new Int32Array(NB); this.bb = new Int32Array(NB); this.brest = new Float64Array(NB); this.bflags = new Uint8Array(NB);
     this.bcomp = new Float64Array(NB); this.blimit = new Float32Array(NB); this.bamp = new Float32Array(NB); this.bphase = new Float32Array(NB);
-    this.bfreq = new Float32Array(NB); this.bax = new Float64Array(NB); this.bay = new Float64Array(NB); this.balive = new Uint8Array(NB); this.bmid = new Int32Array(NB);
+    this.bfreq = new Float32Array(NB); this.bax = new Float64Array(NB); this.bay = new Float64Array(NB); this.balive = new Uint8Array(NB); this.bmid = new Int32Array(NB); this.bcur = new Float64Array(NB);
     this.cs = Math.max(2 * RMAX + cfg.wetMargin, cfg.fluidH) + cfg.pairSlack;
     this.candI = new Int32Array(N * 24); this.candJ = new Int32Array(N * 24);
     this.pairI = new Int32Array(N * 12); this.pairJ = new Int32Array(N * 12); this.pairQ = new Float32Array(N * 12);
@@ -62,7 +62,7 @@ export class World {
     for (const k of ['x', 'y', 'px', 'py', 'mat', 'hp', 'alive', 'body', 'wet', 'stick', 'anch', 'tag'] as const) (w[k] as any).set((this[k] as any).subarray(0, n));
     for (const k of ['ba', 'bb', 'brest', 'bflags', 'bcomp', 'blimit', 'bamp', 'bphase', 'bfreq', 'bax', 'bay', 'balive', 'bmid'] as const) (w[k] as any).set((this[k] as any).subarray(0, nb));
     w.bondKeys = new Set(this.bondKeys); w.bodiesDirty = true; w.nbodies = this.nbodies;
-    w.hand = { ...this.hand }; w.eaten = this.eaten; w.damageDealt = this.damageDealt;
+    w.hand = { ...this.hand }; w.heartsLost = this.heartsLost; w.eaten = this.eaten; w.damageDealt = this.damageDealt;
     (w as any).free = [...this.free]; (w as any).freeB = [...this.freeB];
     return w;
   }
@@ -189,6 +189,15 @@ export class World {
   step() {
     const cfg = this.cfg, sub = cfg.substeps, h = cfg.dt / sub;
     this.computeBodies();
+    // muscles: this step's rest length for every actuated bond (rule 7)
+    const TAU = Math.PI * 2, t = this.time;
+    for (let k = 0; k < this.nb; k++) {
+      if (!this.balive[k] || !(this.bflags[k] & B_ACTUATED)) continue;
+      let rest = this.brest[k] * (1 + this.bamp[k] * Math.sin(TAU * this.bfreq[k] * t + this.bphase[k]));
+      const b = this.bb[k], minRest = RAD[this.mat[this.ba[k]]] + (b >= 0 ? RAD[this.mat[b]] : 0);
+      if (rest < minRest) rest = minRest; // a muscle cannot pull two nodes into each other
+      this.bcur[k] = rest;
+    }
     this.buildPairs();
     for (let s = 0; s < sub; s++) this.substep(h);
     this.breakBonds();
@@ -200,7 +209,6 @@ export class World {
     const x = this.x, y = this.y, px = this.px, py = this.py, mat = this.mat, alive = this.alive, wet = this.wet;
     const maxMove = cfg.maxSpeed * h;
     const airK = 1 - cfg.airDamping * h, waterK = 1 - cfg.waterDamping * h;
-    const t = this.time + 0; // actuation uses step time plus substep offset
     // --- hand torque (Q/E): tangential acceleration around the held node
     const hand = this.hand; let spinAcc = 0, hb = -2;
     if (hand.active && hand.node >= 0 && alive[hand.node] && hand.spin !== 0) {
@@ -246,12 +254,12 @@ export class World {
     }
     // --- bonds (XPBD, one iteration per substep)
     const ba = this.ba, bb = this.bb, nb = this.nb, bflags = this.bflags;
-    const TAU = Math.PI * 2;
+    const muscleMax = cfg.sinewForce * g * h2 / cfg.bondIterations;
     for (let it = 0; it < cfg.bondIterations; it++) for (let k = 0; k < nb; k++) {
       if (!this.balive[k]) continue;
       const a = ba[k], b = bb[k], fl = bflags[k];
       let rest = this.brest[k];
-      if (fl & B_ACTUATED) rest *= 1 + this.bamp[k] * Math.sin(TAU * this.bfreq[k] * t + this.bphase[k]);
+      if (fl & B_ACTUATED) rest = this.bcur[k];
       if (fl & B_BRACE) { // straightness: hold the middle node at the midpoint of the two ends
         const m = this.bmid[k];
         const cx = x[m] - 0.5 * (x[a] + x[b]), cy = y[m] - 0.5 * (y[a] + y[b]);
@@ -273,7 +281,8 @@ export class World {
       const c = d - rest;
       if ((fl & (B_TENSION | B_STICKY)) && c < 0) continue;
       const wa = INVM[mat[a]], wb = INVM[mat[b]];
-      const dl = c / (wa + wb + this.bcomp[k] / h2), nx = dx / d, ny = dy / d;
+      let dl = c / (wa + wb + this.bcomp[k] / h2); const nx = dx / d, ny = dy / d;
+      if (fl & B_ACTUATED) { if (dl > muscleMax) dl = muscleMax; else if (dl < -muscleMax) dl = -muscleMax; } // muscles have a force limit
       x[a] += nx * dl * wa; y[a] += ny * dl * wa; x[b] -= nx * dl * wb; y[b] -= ny * dl * wb;
     }
     // --- contacts
@@ -318,23 +327,6 @@ export class World {
     for (let i = 0; i < n; i++) { if (!alive[i]) continue; const dx = x[i] - this.px[i], dy = y[i] - this.py[i]; let v = Math.sqrt(dx * dx + dy * dy) * cfg.substeps; if (v > stepMax) v = stepMax; sp[i] = v; if (v > vmax) vmax = v; }
     const margin = 2 * vmax + cfg.pairSlack, slack = cfg.pairSlack;
     const solidReach = cfg.wetMargin + margin, fluidReach = cfg.fluidH + margin;
-    const cs = Math.max(2 * RMAX + solidReach, fluidReach);
-    const cols = Math.ceil(this.terrain.width / cs) + 2, rows = Math.ceil(this.terrain.height / cs) + 2;
-    const cellStart = this.cellStart, items = this.cellItems, cellOf = this.cellOf;
-    const nc = cols * rows;
-    cellStart.fill(0, 0, nc + 2);
-    let live = 0;
-    for (let i = 0; i < n; i++) {
-      if (!alive[i]) { cellOf[i] = -1; continue; }
-      let cx = (x[i] / cs) | 0, cy = (y[i] / cs) | 0;
-      if (cx < 0) cx = 0; else if (cx >= cols) cx = cols - 1;
-      if (cy < 0) cy = 0; else if (cy >= rows) cy = rows - 1;
-      const c = cy * cols + cx; cellOf[i] = c; cellStart[c + 1]++; live++;
-    }
-    for (let c = 0; c < nc; c++) cellStart[c + 1] += cellStart[c];
-    // Backwards fill keeps index order inside a cell. Afterwards cell c spans cellStart[c+1] .. cellStart[c+2].
-    for (let i = n - 1; i >= 0; i--) { const c = cellOf[i]; if (c < 0) continue; items[--cellStart[c + 1]] = i; }
-    cellStart[nc + 1] = live;
     const cI = this.candI, cJ = this.candJ, cap = cI.length; let nc2 = 0;
     const test = (i: number, j: number) => {
       const mi = mat[i], mj = mat[j];
@@ -342,6 +334,28 @@ export class World {
       const dx = x[j] - x[i], dy = y[j] - y[i];
       if (dx * dx + dy * dy < reach * reach && nc2 < cap) { cI[nc2] = i; cJ[nc2] = j; nc2++; }
     };
+    // bounding box of everything alive; the grid only covers that
+    let bx0 = 1e30, bx1 = -1e30, by0 = 1e30, by1 = -1e30, live = 0;
+    for (let i = 0; i < n; i++) { if (!alive[i]) continue; live++; const xi = x[i], yi = y[i]; if (xi < bx0) bx0 = xi; if (xi > bx1) bx1 = xi; if (yi < by0) by0 = yi; if (yi > by1) by1 = yi; }
+    if (live <= 40) { // few nodes: test every pair, in index order
+      for (let i = 0; i < n; i++) { if (!alive[i]) continue; for (let j = i + 1; j < n; j++) if (alive[j]) test(i, j); }
+      this.ncand = nc2; return;
+    }
+    let cs = Math.max(2 * RMAX + solidReach, fluidReach);
+    const cellStart = this.cellStart, items = this.cellItems, cellOf = this.cellOf;
+    let cols = Math.floor((bx1 - bx0) / cs) + 1, rows = Math.floor((by1 - by0) / cs) + 1;
+    while (cols * rows + 2 > cellStart.length) { cs *= 1.5; cols = Math.floor((bx1 - bx0) / cs) + 1; rows = Math.floor((by1 - by0) / cs) + 1; }
+    const nc = cols * rows;
+    cellStart.fill(0, 0, nc + 2);
+    for (let i = 0; i < n; i++) {
+      if (!alive[i]) { cellOf[i] = -1; continue; }
+      const cx = ((x[i] - bx0) / cs) | 0, cy = ((y[i] - by0) / cs) | 0;
+      const c = cy * cols + cx; cellOf[i] = c; cellStart[c + 1]++;
+    }
+    for (let c = 0; c < nc; c++) cellStart[c + 1] += cellStart[c];
+    // Backwards fill keeps index order inside a cell. Afterwards cell c spans cellStart[c+1] .. cellStart[c+2].
+    for (let i = n - 1; i >= 0; i--) { const c = cellOf[i]; if (c < 0) continue; items[--cellStart[c + 1]] = i; }
+    cellStart[nc + 1] = live;
     for (let c = 0; c < nc; c++) {
       const s0 = cellStart[c + 1], e0 = cellStart[c + 2];
       if (e0 <= s0) continue;
@@ -431,7 +445,7 @@ export class World {
         let di = 0, dj = 0;
         if (vn > cfg.sharpMinSpeed) { const s = (vn - cfg.sharpMinSpeed) * cfg.sharpScale; dj += SHARP[mi] * s; di += SHARP[mj] * s; }
         // crushing: the striker's own momentum has to clear a threshold, so heavy things crush and light ones do not
-        const pi = vn * MASS[mi], pj = vn * MASS[mj];
+        const vc = vn > cfg.maxSpeed ? cfg.maxSpeed : vn; const pi = vc * MASS[mi], pj = vc * MASS[mj];
         if (pi > cfg.crushMinImpulse) dj += (pi - cfg.crushMinImpulse) * cfg.crushScale;
         if (pj > cfg.crushMinImpulse) di += (pj - cfg.crushMinImpulse) * cfg.crushScale;
         if (di > 0) this.damage(i, di / HARD[mi], j);
@@ -469,10 +483,18 @@ export class World {
     this.hp[i] -= amount; this.damageDealt += amount;
     if (this.hp[i] <= 0) {
       if (this.recordEvents) this.events.push({ type: 'death', tick: this.tick, node: i, other: by, x: this.x[i], y: this.y[i], mat: this.mat[i], body: this.tag[i] });
+      if (this.mat[i] === M.HEART) this.stopCreature(this.tag[i]);
       this.removeNode(i);
     }
   }
 
+  /** A creature whose heart is destroyed stops moving: its sinew goes slack and the body stays as salvage. */
+  stopCreature(tag: number) {
+    if (tag <= 0) return;
+    for (let k = 0; k < this.nb; k++) if (this.balive[k] && (this.bflags[k] & B_ACTUATED) && this.tag[this.ba[k]] === tag) this.bflags[k] &= ~B_ACTUATED;
+    this.heartsLost++;
+  }
+  heartsLost = 0;
   /** Rule 3: a bond stretched past its limit breaks. Checked once per step. */
   private breakBonds() {
     const x = this.x, y = this.y;

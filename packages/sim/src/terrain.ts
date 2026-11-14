@@ -30,19 +30,19 @@ export const basin = (x: number, x0: number, x1: number, depth: number, wall: nu
 export const bump = (x: number, c: number, w: number, hgt: number) => hgt * smooth(1 - Math.abs(x - c) / w);
 
 export interface Layout { width: number; height: number; base: number; pond: [number, number]; home: [number, number]; ditch: [number, number]; burrow: number; sources: Record<string, number>; }
-/** The proof-of-concept strip: pond, sources, home, ditch, burrow. */
+/** The proof-of-concept strip: pond, sources, ditch, home, burrow. */
 export const LAYOUT: Layout = {
-  width: 5120, height: 900, base: 600,
-  pond: [140, 760], home: [2500, 3250], ditch: [3420, 3740], burrow: 4700,
-  sources: { tree: 1000, outcrop: 1260, vines: 1520, bramble: 1780, resin: 2040, bush: 2300 },
+  width: 4160, height: 900, base: 600,
+  pond: [140, 760], home: [2500, 3250], ditch: [2140, 2460], burrow: 3620,
+  sources: { tree: 960, outcrop: 1180, vines: 1400, bramble: 1620, resin: 1840, bush: 2060 },
 };
 export function stripTerrain(L: Layout = LAYOUT): Terrain {
   return Terrain.from(L.width, L.height, (x) => {
     let y = L.base;
     y += basin(x, L.pond[0], L.pond[1], 130, 90);
-    y += basin(x, L.ditch[0], L.ditch[1], 80, 60);
+    y += basin(x, L.ditch[0], L.ditch[1], 44, 160);
     y -= bump(x, 1400, 500, 26) + bump(x, 2050, 300, 14);
-    y -= bump(x, L.burrow + 180, 260, 70); // burrow mound
+    y -= bump(x, L.burrow + 230, 200, 70); // burrow mound
     y -= bump(x, 0, 120, 120); // left wall so the pond cannot drain off-world
     return y;
   });

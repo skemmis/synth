@@ -68,6 +68,10 @@ WF.F.F.F.FW
 T.T.T.T.T
 WWWWWWWWW
 PPPPPPPPP`),
+  berryStack: R('berry stack', `
+BBB
+BBB
+BBB`),
   berryPile: R('berries', `
 B.B.B
 .....

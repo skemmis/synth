@@ -35,6 +35,7 @@ export const config = {
   handDamping: 300,
   handTorque: 14, // max angular acceleration, rad/s^2
   handTorqueInertia: 40000, // bodies with more inertia than this turn slower
+  sinewForce: 12, // the most a single sinew bond can pull or push, in unit weights
   // sinew phase offset per bond direction (8 directions around a cell)
   sinewDirPhase: Math.PI / 4,
   pairSlack: 4, // extra broadphase reach, covers acceleration within a step
