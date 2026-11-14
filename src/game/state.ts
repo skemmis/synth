@@ -1,4 +1,4 @@
-import { GLYPH_TO_MAT, LAYOUT, MATERIALS, Mat, gridCost, spawnGrid, type Recipe, type World } from '../sim';
+import { GLYPH_TO_MAT, GRID_RULES, LAYOUT, MATERIALS, Mat, gridCost, spawnGrid, type Recipe, type World } from '../sim';
 import { PRESETS } from './presets';
 import type { Scenery } from './render';
 
@@ -11,6 +11,7 @@ export const GATHER: Record<string, { glyph: string; perClick: number; label: st
   resin: { glyph: 'P', perClick: 2, label: 'Resin tree' },
   bush: { glyph: 'B', perClick: 1, label: 'Berry bush' },
 };
+export const HEARTS_PER_DAY = 2;
 export const GATHER_COOLDOWN = 0.22;
 export const STASH_SIZE = 12;
 export const BUSH_STOCK = 6;
@@ -42,9 +43,11 @@ export class Player {
   freeBuild = false;
   day = 1;
   bushStock = BUSH_STOCK;
+  /** tame variant: hearts that can still be taken from the burrow today */
+  heartStock = HEARTS_PER_DAY;
 
   constructor() {
-    for (const m of MATERIALS) if (m.blueprint) this.inventory[m.glyph] = 0;
+    for (const m of MATERIALS) if (m.blueprint || (m.creatureOnly && GRID_RULES.allowHearts)) this.inventory[m.glyph] = 0;
     this.book = this.loadBook() ?? PRESETS.slice(0, 4).map((r) => ({ ...r }));
   }
 

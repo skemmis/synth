@@ -1,6 +1,6 @@
 // The synthesizer's prompt is generated from the same materials table the
 // simulation uses, so it cannot drift from the physics.
-import { CONFIG, MATERIALS, type Material, type Recipe } from '../sim';
+import { CONFIG, GRID_RULES, MATERIALS, type Material, type Recipe } from '../sim';
 import type { ChatMessage, SynthContext } from './types';
 
 /** How literal the synthesizer is asked to be: one of the "creativity question" levers. */
@@ -21,7 +21,7 @@ function materialLine(m: Material): string {
 }
 
 export function buildSystemPrompt(opts: PromptOptions): string {
-  const usable = MATERIALS.filter((m) => m.blueprint);
+  const usable = MATERIALS.filter((m) => m.blueprint || (m.creatureOnly && GRID_RULES.allowHearts));
   const max = CONFIG.recipe.maxSize;
   const style = {
     literal: 'Build exactly what was asked for, as plainly as possible. Do not add features the player did not ask for.',
@@ -42,7 +42,9 @@ export function buildSystemPrompt(opts: PromptOptions): string {
 # Materials (the only letters allowed)
 ${usable.map(materialLine).join('\n')}
 
-Not allowed in a blueprint: water (~) must be scooped from the pond, and hearts (H) belong to creatures.
+${GRID_RULES.allowHearts
+    ? 'Not allowed in a blueprint: water (~) must be scooped from the pond. A blueprint with a heart (H) is alive: it is a creature of the player\'s own. Give it sinew (N) if it should move. Its heart eats any berry it touches, including the player\'s, so keep it away from the stash or wall it off.'
+    : 'Not allowed in a blueprint: water (~) must be scooped from the pond, and hearts (H) belong to creatures.'}
 
 # Physics the design must survive
 - Water is small loose particles, about 0.6 of a cell wide. A row or column of cells that touch edge to edge holds water. Cells that only touch diagonally leak. A container needs an opening at the top.

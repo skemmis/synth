@@ -1,4 +1,4 @@
-import { MATERIALS, Mat } from '../sim';
+import { GRID_RULES, LAYOUT, MATERIALS, Mat } from '../sim';
 import type { Game } from './game';
 import { BUSH_STOCK, GATHER, GATHER_COOLDOWN, Player, makeScenery, sourceAt, spawnStash } from './state';
 import type { Scenery } from './render';
@@ -31,10 +31,19 @@ export function installPlay(game: Game, player: Player) {
     if (names.length) game.float(game.cursor.x, game.cursor.y - 20, `need ${names.join(', ')}`, '#b8423a');
     return names.length === 0;
   };
-  game.onPlace.push((_g, grid) => { player.spend(grid); sfx('place'); });
+  game.onPlace.push((g, grid, body) => {
+    player.spend(grid); sfx('place');
+    // a placed body with a heart is the player's own creature: it stays at dawn
+    if (grid.some((r) => r.includes('H'))) g.world.bodyKind[body] = 2;
+  });
 
   game.onClick.push((g, node) => {
     if (node >= 0) return false;
+    if (GRID_RULES.allowHearts && Math.abs(g.cursor.x - LAYOUT.burrow.x) < 60 && g.cursor.y > g.world.terrain.heightAt(LAYOUT.burrow.x) - 60) {
+      if (player.heartStock > 0) { player.heartStock--; player.add('H', 1); sfx('gather'); g.float(g.cursor.x, g.cursor.y - 10, '+1 heart', '#b8423a'); }
+      else g.float(g.cursor.x, g.cursor.y - 10, 'no more hearts today', '#8a5a4a');
+      return true;
+    }
     const s = sourceAt(g.world, g.scenery, g.cursor.x, g.cursor.y);
     if (!s) return false;
     gather(s);
@@ -48,11 +57,11 @@ export function installPlay(game: Game, player: Player) {
     if (node < 0) return;
     const w = g.world;
     const parts = w.component(node, false);
-    if (parts.some((i) => w.mat[i] === Mat.Heart)) { g.float(w.x[node], w.y[node] - 14, 'it is alive', '#b8423a'); return; }
+    if (parts.some((i) => w.mat[i] === Mat.Heart) && !GRID_RULES.allowHearts) { g.float(w.x[node], w.y[node] - 14, 'it is alive', '#b8423a'); return; }
     const got: Record<string, number> = {};
     for (const i of parts) {
       const m = MATERIALS[w.mat[i]];
-      if (!m.blueprint) continue;
+      if (!m.blueprint && !(m.creatureOnly && GRID_RULES.allowHearts)) continue;
       got[m.glyph] = (got[m.glyph] ?? 0) + 1;
     }
     for (const i of parts) w.removeNode(i);
@@ -78,6 +87,9 @@ export function installPlay(game: Game, player: Player) {
     if (!g.cursor.inside || g.ghost || g.world.hand.active) return;
     if (g.world.nodeAt(g.cursor.x, g.cursor.y) >= 0) return;
     const s = sourceAt(g.world, g.scenery, g.cursor.x, g.cursor.y);
+    if (GRID_RULES.allowHearts && Math.abs(g.cursor.x - LAYOUT.burrow.x) < 60 && g.cursor.y > g.world.terrain.heightAt(LAYOUT.burrow.x) - 60) {
+      g.label = { x: g.cursor.x, y: g.cursor.y, text: `Burrow: reach in for a heart (${player.heartStock} left today)` };
+    }
     if (s) {
       const src = GATHER[s.kind];
       const m = MATERIALS.find((mm) => mm.glyph === src.glyph)!;

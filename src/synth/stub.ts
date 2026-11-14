@@ -6,6 +6,10 @@ import type { Blueprint, ChatMessage, Provider, SynthContext } from './types';
 const g = (s: string) => s.trim().split('\n').map((l) => l.trim());
 
 const CANNED: { keys: RegExp; bp: Blueprint }[] = [
+  { keys: /guard|pet|creature|animal|beast|dog|watch|tame|alive|living/, bp: { name: 'Thorn hound', note: 'A living thing of your own: a heart, sinew legs and a thorn snout. It wanders and hurts what it bumps. It will also eat berries it touches.', grid: g(`
+    TWHW
+    NWWN
+    N..N`) } },
   { keys: /bucket|pail|carry water|scoop|container|cup|bowl|pot/, bp: { name: 'Bucket', note: 'A wooden U. Hold it by the bottom, tip the mouth forward to scoop.', grid: g(`
     W.....W
     W.....W

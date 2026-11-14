@@ -7,7 +7,7 @@ import { LAYOUT, Mat, type World } from '../sim';
 import { h } from './dom';
 import type { Game } from './game';
 import { Renderer } from './render';
-import { BUSH_STOCK, countStash, type Player } from './state';
+import { BUSH_STOCK, HEARTS_PER_DAY, countStash, type Player } from './state';
 import { gridThumb, type Ui } from './ui';
 
 export type Phase = 'day' | 'dream' | 'raid' | 'dawn';
@@ -157,6 +157,7 @@ export function installCycle(game: Game, player: Player, ui: Ui, sfx: (name: str
     }
     const left = countStash(w);
     player.bushStock = BUSH_STOCK;
+    player.heartStock = HEARTS_PER_DAY;
     setPhase('dawn');
     sfx('dawn');
     showReport(survivors, killed, stashAtDusk - left, left);

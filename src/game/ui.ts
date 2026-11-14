@@ -1,7 +1,8 @@
-import { BLUEPRINT_GLYPHS, CONFIG, LAYOUT, MATERIALS, formatRecipes, gridCost, parseRecipes, validateGrid, type Recipe } from '../sim';
+import { BLUEPRINT_GLYPHS, CONFIG, GRID_RULES, LAYOUT, MATERIALS, formatRecipes, gridCost, parseRecipes, validateGrid, type Recipe } from '../sim';
 import { h } from './dom';
 import { Game } from './game';
 import { PRESETS } from './presets';
+import { TITLE } from './variant';
 import { Player, countStash, describeCost, spawnStash } from './state';
 
 /** a small picture of a recipe: one dot per cell */
@@ -61,14 +62,14 @@ export function buildUi(game: Game, player: Player, root: HTMLElement): Ui {
   );
   const menuBtn = h('button', { onclick: () => { menuBody.hidden = !menuBody.hidden; } }, 'Menu');
   const top = h('div.panel#topbar', {},
-    h('span.title', {}, 'SYNTH'),
+    h('span.title', {}, TITLE),
     inv, berries,
     h('span.spacer'),
     topSlot,
     menuBtn,
   );
   const drawInv = () => {
-    inv.replaceChildren(...MATERIALS.filter((m) => BLUEPRINT_GLYPHS.includes(m.glyph)).map((m) =>
+    inv.replaceChildren(...MATERIALS.filter((m) => BLUEPRINT_GLYPHS.includes(m.glyph) || (m.creatureOnly && GRID_RULES.allowHearts)).map((m) =>
       h('span.item', { title: `${m.name} (${m.glyph}): ${m.useful}. From: ${m.source}.` },
         h('span.dot', { style: { background: m.color } }),
         player.freeBuild ? '∞' : String(player.inventory[m.glyph] ?? 0))));
@@ -108,7 +109,7 @@ export function buildUi(game: Game, player: Player, root: HTMLElement): Ui {
     drawBook();
     toast(`Saved "${d.recipe.name}" to the book`);
   });
-  const legend = h('div.legend', {}, ...MATERIALS.filter((m) => BLUEPRINT_GLYPHS.includes(m.glyph)).flatMap((m) => [
+  const legend = h('div.legend', {}, ...MATERIALS.filter((m) => BLUEPRINT_GLYPHS.includes(m.glyph) || (m.creatureOnly && GRID_RULES.allowHearts)).flatMap((m) => [
     h('b', {}, h('span.dot', { style: { background: m.color } }), m.glyph),
     h('span', {}, `${m.name}: ${m.useful}`),
   ]));

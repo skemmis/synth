@@ -1,5 +1,5 @@
 import './style.css';
-import { Mat } from '../sim';
+import { GRID_RULES, Mat, spawnGrid } from '../sim';
 import { installCycle } from './cycle';
 import { h } from './dom';
 import { Game } from './game';
@@ -9,7 +9,10 @@ import { isMuted, setMuted, sfx } from './sound';
 import { Player, spawnStash } from './state';
 import { installTalk } from './talk';
 import { buildUi } from './ui';
+import { PRESETS } from './presets';
+import { VARIANT } from './variant';
 
+GRID_RULES.allowHearts = VARIANT === 'tame';
 const canvas = document.getElementById('view') as HTMLCanvasElement;
 const game = new Game(canvas);
 game.reset(game.seed, false);
@@ -58,5 +61,21 @@ game.onStep.push((g) => {
   hurt = dmg; hearts = alive;
 });
 
+if (VARIANT === 'tame' && player.day === 1 && !player.inventory.N) player.add('N', 6);
+if (VARIANT === 'garden') {
+  // no nights, no costs: everything is a toy
+  player.freeBuild = true;
+  (document.getElementById('free') as HTMLInputElement).checked = true;
+  for (const el of ui.topSlot.querySelectorAll<HTMLElement>('.phase, button')) el.hidden = true;
+  PRESETS.forEach((p) => { if (!player.book.some((b) => b.name === p.name)) player.book.push({ ...p }); });
+  if (game.world.liveNodes < 560) {
+    const gy = (x: number) => game.world.terrain.heightAt(x);
+    const put = (name: string, x: number) => { const r = PRESETS.find((p) => p.name === name)!; spawnGrid(game.world, r.grid, x, gy(x) - r.grid.length * 6 - 2); };
+    put('Bucket', 700); put('Rope', 880); put('Flail', 1010); put('Net', 1140);
+    spawnGrid(game.world, PRESETS.find((p) => p.name === 'Raft')!.grid, 380, 520);
+  }
+  ui.redraw();
+  game.centerOn(620);
+}
 game.start();
 Object.assign(window as any, { __game: game, __player: player, __ui: ui, __talk: talk, __cycle: cycle });

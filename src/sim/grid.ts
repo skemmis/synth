@@ -19,6 +19,9 @@ export interface Drive {
 
 export const EMPTY = '.';
 
+/** Rule switches for design experiments. `allowHearts` lets a player blueprint contain a heart. */
+export const GRID_RULES = { allowHearts: false };
+
 /** Turn pasted text into grid rows: trims blank edges, pads rows to equal width. */
 export function parseGrid(text: string | string[]): string[] {
   let rows = Array.isArray(text) ? text.slice() : text.split(/\r?\n/);
@@ -60,7 +63,7 @@ export function validateGrid(
       if (id === undefined) { errors.push(`unknown glyph "${g}"`); continue; }
       const m = MATERIALS[id];
       if (id === Mat.Water) errors.push('water cannot be in a blueprint; it must be scooped');
-      else if (m.creatureOnly && !opts.creature) errors.push(`${m.name} (${g}) is creature-only`);
+      else if (m.creatureOnly && !opts.creature && !GRID_RULES.allowHearts) errors.push(`${m.name} (${g}) is creature-only`);
       if (id === Mat.Heart) hearts++;
     }
   }
