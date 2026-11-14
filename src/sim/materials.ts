@@ -67,7 +67,7 @@ export const MATERIALS: Material[] = [
   row(5, 'N', 'Sinew', 'Creature corpses only', 0.9, 6, 0.8, 'rigid', 0, 0.6, 1, 12, 0, 0, 0.7, 0.28, true, false, '#e0736d',
     'Any bond touching it contracts and relaxes rhythmically (the only actuator)'),
   row(6, 'B', 'Berry', 'Bush', 0.8, 6, 0.3, 'rigid', 0, 0.5, 0.5, 5, 0, 0, 0.7, 0, true, false, '#d6336c',
-    'Food. Soft. What enemies want. Also bait.'),
+    'Food. Soft. What enemies want. Also bait'),
   row(7, 'H', 'Heart', 'Creatures only', 1.0, 6, 0.8, 'rigid', 0.6, 0.5, 1, 10, 0, 0, 0.6, 0, false, true, '#ff5d5d',
     'A creature dies when it is destroyed; eats berries on contact'),
   row(8, '~', 'Water', 'Pond', 1.0, 3.6, 0, 'rigid', 0, 0, 0, 1, 0, 0, 0, 0, false, false, '#5aa9e6',
