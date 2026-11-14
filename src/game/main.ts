@@ -41,7 +41,7 @@ cycle.onDawn.push(() => save(true));
 cycle.onPhase((p) => { if (p === 'dream') save(true); });
 ui.onNewWorld.push(() => { clearSave(); player.day = 1; cycle.reset(); });
 const mute = h('button', { onclick: () => { setMuted(!isMuted()); mute.textContent = isMuted() ? 'Sound off' : 'Sound on'; } }, 'Sound on');
-ui.topSlot.append(h('button', { onclick: () => save() }, 'Save'), h('button', { onclick: () => load() }, 'Load'), mute);
+ui.menu.prepend(h('button', { onclick: () => save() }, 'Save now'), h('button', { onclick: () => load() }, 'Load last save'), mute);
 if (load(true)) ui.toast(`Welcome back: day ${player.day}`);
 else if (!game.world.count(Mat.Berry)) spawnStash(game.world);
 

@@ -29,6 +29,7 @@ export interface Ui {
   addTab(id: string, label: string, body: HTMLElement, first?: boolean): void;
   showTab(id: string): void;
   topSlot: HTMLElement;
+  menu: HTMLElement;
   onNewWorld: (() => void)[];
   redraw(): void;
   panel: HTMLElement;
@@ -45,12 +46,8 @@ export function buildUi(game: Game, player: Player, root: HTMLElement): Ui {
   const pauseBtn = h('button', { onclick: () => { game.paused = !game.paused; } }, 'Pause');
   const free = h('input#free', { type: 'checkbox' }) as HTMLInputElement;
   free.addEventListener('change', () => { player.freeBuild = free.checked; drawInv(); refresh(); });
-  const top = h('div.panel#topbar', {},
-    h('span.title', {}, 'SYNTH'),
-    inv, berries,
-    h('span.spacer'),
-    topSlot,
-    h('label.stat', { for: 'free', title: 'Build without spending materials' }, free, ' free build'),
+  const menuBody = h('div.panel#menu', { hidden: true },
+    h('label.stat', { for: 'free', title: 'Build without spending materials' }, free, ' Free build (no material costs)'),
     pauseBtn,
     h('button', { onclick: () => {
       game.reset(game.seed + 1, false);
@@ -58,8 +55,17 @@ export function buildUi(game: Game, player: Player, root: HTMLElement): Ui {
       for (const k of Object.keys(player.inventory)) player.inventory[k] = 0;
       drawInv();
       for (const f of onNewWorld) f();
+      menuBody.hidden = true;
     } }, 'New world'),
     stat,
+  );
+  const menuBtn = h('button', { onclick: () => { menuBody.hidden = !menuBody.hidden; } }, 'Menu');
+  const top = h('div.panel#topbar', {},
+    h('span.title', {}, 'SYNTH'),
+    inv, berries,
+    h('span.spacer'),
+    topSlot,
+    menuBtn,
   );
   const drawInv = () => {
     inv.replaceChildren(...MATERIALS.filter((m) => BLUEPRINT_GLYPHS.includes(m.glyph)).map((m) =>
@@ -163,9 +169,11 @@ export function buildUi(game: Game, player: Player, root: HTMLElement): Ui {
   const addTab = (id: string, label: string, body: HTMLElement, first = false) => {
     const btn = h('button.tab', { onclick: () => showTab(id) }, label);
     tabMap.set(id, { btn, body });
-    if (first) { tabs.prepend(btn); bodies.prepend(body); } else { tabs.append(btn); bodies.append(body); }
+    const fold = tabs.querySelector('.spacer');
+    if (first) { tabs.prepend(btn); bodies.prepend(body); } else { tabs.insertBefore(btn, fold); bodies.append(body); }
     body.hidden = true;
   };
+  tabs.append(h('span.spacer'), h('button.tab.fold', { title: 'Hide or show this panel', onclick: () => panel.classList.toggle('collapsed') }, '▾'));
   addTab('grid', 'Grid', editor);
   addTab('book', 'Book', book);
   showTab('grid');
@@ -193,6 +201,13 @@ export function buildUi(game: Game, player: Player, root: HTMLElement): Ui {
     for (const x of Object.values(LAYOUT.sources)) c.fillRect(x * sx - 2, H * 0.3, 4, H * 0.2);
     c.fillStyle = '#d6336c'; c.beginPath(); c.arc(LAYOUT.home.stashX * sx, H * 0.4, 6, 0, 7); c.fill();
     c.fillStyle = '#1c1512'; c.beginPath(); c.arc(LAYOUT.burrow.x * sx, H * 0.5, 7, 0, 7); c.fill();
+    // living hearts show as red dots, so a raid can be followed from anywhere
+    const w = game.world;
+    c.fillStyle = '#ff3b3b';
+    for (let b = 0; b < w.nextBody; b++) {
+      const hrt = w.bodyHeart[b];
+      if (hrt >= 0 && w.alive[hrt]) { c.beginPath(); c.arc(w.x[hrt] * sx, H * 0.42, 5, 0, 7); c.fill(); }
+    }
     c.strokeStyle = '#2c2420'; c.lineWidth = 3;
     c.strokeRect(game.cam.x * sx, 2, game.cam.viewW * sx, H - 4);
   };
@@ -206,7 +221,7 @@ export function buildUi(game: Game, player: Player, root: HTMLElement): Ui {
     clearTimeout(toastT); toastT = window.setTimeout(() => { toastEl.hidden = true; }, 2600);
   };
 
-  root.append(top, panel, mini, hint, toastEl);
+  root.append(top, panel, mini, hint, toastEl, menuBody);
   let n = 0, lastInv = '';
   game.onFrame.push(() => {
     if (n++ % 10) return;
@@ -227,7 +242,7 @@ export function buildUi(game: Game, player: Player, root: HTMLElement): Ui {
       if (opts?.hold) game.hold(r.grid); else showTab('grid');
     },
     getDraft: () => readDraft().recipe ?? null,
-    addTab, showTab, topSlot, panel, toast, onNewWorld,
+    addTab, showTab, topSlot, menu: menuBody, panel, toast, onNewWorld,
     redraw() { drawInv(); refresh(); drawBook(); },
   };
   ui.setDraft(PRESETS[0]);

@@ -176,8 +176,10 @@ export function installCycle(game: Game, player: Player, ui: Ui, sfx: (name: str
       h('div.big', {}, lost > 0 ? `${lost} berr${lost === 1 ? 'y' : 'ies'} taken. ${left} left.` : `Nothing taken. ${left} berries safe.`),
       h('div.stat', {}, `${raiders.length} raiders came; ${killed} died at your base, ${survivors} went home. Corpses are yours to break down: they are the only source of sinew. The bush has regrown.`),
       h('div.book', {}, ...rows),
+      evolver.history.length > 1 ? h('div', {}, h('div.stat', {}, 'How well the burrow has done, night by night (its best body\'s score):'),
+        h('div.spark', {}, ...evolver.history.map((v) => { const el = h('i', { title: v.toFixed(0) }); el.style.height = `${Math.max(3, Math.min(34, (Math.max(0, v) / Math.max(100, ...evolver.history)) * 34))}px`; return el; }))) : '',
       h('div.row', {},
-        lastBest ? h('button', { onclick: replay }, 'Watch how the best one got in') : '',
+        lastBest ? h('button', { onclick: replay }, lost > 0 ? 'Watch how the best one got in' : 'Watch the best attempt') : '',
         h('span.spacer'),
         h('button.primary', { onclick: beginDay }, `Begin day ${player.day + 1}`)),
     );

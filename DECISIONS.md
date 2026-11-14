@@ -167,3 +167,23 @@ the hammer hits too softly (see above); the lid let stones in. Passing at the th
   resembling the current best; a sturdier reference wall.
 - Headless arena speed: 18 nodes at about 20,000 steps/s (340x real time) on one thread; target was 20x
   for 400 nodes. The 400-node figure from milestone 0 is 24x.
+
+## Milestone 5: loop and feel
+
+### Defaults chosen
+- **Night budget raised to 400 trials** (about 12 s of dreaming on four workers). At 200 the first
+  nights' raiders rarely reached an undefended stash inside a 20 s trial, so there was no early threat.
+- **Saves**: one JSON document in local storage (seed, day, full node and bond state, inventory, recipe
+  book, bush stock, enemy population with its random state). Written automatically at dusk and at dawn,
+  and from the menu. Loaded on start. The API key is stored separately and never enters a save.
+- **Sound**: synthesized in the browser (no audio files): gather, place, break down, ask and answer, a
+  berry eaten, a hit, a death, dusk, raid, dawn. Mute is in the menu.
+- **Look**: water drawn as two stacked passes of overlapping discs (rim and body) so it reads as one
+  mass; stars at night; hearts have an eye that looks where they are moving; muscles swell as they
+  contract; wounded nodes crack. Raiders show as red dots on the minimap.
+- **Top bar** holds inventory, stash count, the day and End day; everything else is under Menu. The
+  synthesizer panel folds away.
+
+### Gate
+"Sam plays five nights and wants a sixth": **pending Sam.** Scripted playtests cover a paid first day,
+three nights against a caged base, and save and reload.

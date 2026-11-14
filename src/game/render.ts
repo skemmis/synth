@@ -52,6 +52,16 @@ export class Renderer {
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
+    if (night > 0.05) {
+      ctx.fillStyle = '#fff';
+      for (let k = 0; k < 70; k++) {
+        const sx = ((k * 7919) % 1000) / 1000 * W, sy = ((k * 104729) % 1000) / 1000 * H * 0.55;
+        ctx.globalAlpha = night * (0.35 + 0.5 * Math.abs(Math.sin(ex.time * 0.7 + k)));
+        ctx.fillRect(sx, sy, k % 5 === 0 ? 3 : 2, k % 5 === 0 ? 3 : 2);
+      }
+      ctx.globalAlpha = 1;
+    }
+
     // far hills, with parallax
     for (const [par, col, base, amp] of [[0.25, PALETTE.hillFar, 430, 60], [0.5, PALETTE.hillNear, 480, 40]] as const) {
       ctx.setTransform(cam.scale, 0, 0, cam.scale, -cam.x * par * cam.scale, -cam.y * cam.scale);
@@ -231,6 +241,15 @@ export class Renderer {
         ctx.lineWidth = 1.6;
         ctx.stroke();
       }
+    }
+    // hearts get an eye that looks where they are going
+    for (let i = 0; i < world.n; i++) {
+      if (!alive[i] || mat[i] !== Mat.Heart || x[i] < x0 || x[i] > x1) continue;
+      const vx = x[i] - world.px[i], vy = y[i] - world.py[i];
+      const v = Math.hypot(vx, vy) || 1;
+      const lx = (vx / v) * 1.6, ly = (vy / v) * 1.6;
+      ctx.beginPath(); ctx.arc(x[i], y[i], 3.4, 0, 6.2832); ctx.fillStyle = '#fff'; ctx.fill();
+      ctx.beginPath(); ctx.arc(x[i] + lx, y[i] + ly, 1.6, 0, 6.2832); ctx.fillStyle = '#1c1512'; ctx.fill();
     }
     // wounded nodes show a dark crack; anchored pitch shows a drip
     ctx.beginPath();

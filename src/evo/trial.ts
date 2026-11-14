@@ -5,7 +5,7 @@ export const EVO_CONFIG = {
   /** seconds simulated per trial */
   trialSeconds: 20,
   /** simulation steps the whole night may spend */
-  nightBudgetSteps: 200 * 20 * 60,
+  nightBudgetSteps: 400 * 20 * 60,
   /** fitness weights */
   berryWeight: 100,
   approachWeight: 1,      // per node diameter closer to the nearest berry
