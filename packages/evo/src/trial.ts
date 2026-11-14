@@ -33,8 +33,8 @@ export class Trial {
     this.d0 = this.dBest = this.nearest(); w.recordEvents = false; this.base0 = this.baseHp(); this.steps = Math.round((opts.seconds ?? 15) / config.dt);
   }
   private base0 = 0;
-  /** Hit points left in everything that is not this creature, a berry or water. */
-  private baseHp(): number { const w = this.w; let t = 0; for (let i = 0; i < w.n; i++) if (w.alive[i] && w.tag[i] !== this.c.tag && w.mat[i] !== M.BERRY && w.mat[i] !== M.WATER) t += Math.max(0, w.hp[i]); return t; }
+  /** Hit points left in what the player built: not a creature or its remains (tags from 1000 up), not a berry, not water. */
+  private baseHp(): number { const w = this.w; let t = 0; for (let i = 0; i < w.n; i++) if (w.alive[i] && w.tag[i] < 1000 && w.mat[i] !== M.BERRY && w.mat[i] !== M.WATER) t += Math.max(0, w.hp[i]); return t; }
   private nearest(): number {
     const w = this.w, h = this.c.heart; let best = 1e9; if (!w.alive[h]) return best;
     for (let i = 0; i < w.n; i++) if (w.alive[i] && w.mat[i] === M.BERRY) { const dx = w.x[i] - w.x[h], dy = w.y[i] - w.y[h], d = Math.sqrt(dx * dx + dy * dy); if (d < best) best = d; }

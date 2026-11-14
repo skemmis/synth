@@ -12,7 +12,9 @@ export interface RaiderLog { name: string; parent?: string; niche: string; grid:
 export interface RaidLog { night: number; best: number; lost: number; eaten: number; wrecked: number; pieces: number; party: RaiderLog[]; }
 export interface NightOpts {
   game: Game; zoo: Creatures; seeds: Genome[]; seed?: number; state?: EvoState; day?: number; log?: RaidLog[];
-  hints?: Partial<Record<Mode, string>>;
+  hints?: Partial<Record<Mode, string>>; raidSeconds?: number;
+  /** The dead last one day: whatever is left of earlier raiders is cleared at dusk. Without it bodies pile up into a free barricade. */
+  rot?: boolean;
   onMode?: (m: Mode) => void; onDawn?: (entry: RaidLog) => void;
 }
 export const NIGHT_CSS = `
@@ -76,6 +78,7 @@ export class NightCycle {
   sleep() {
     if (this.mode !== 'day' && this.mode !== 'dawn') return; const g = this.o.game;
     this.real = g.world; this.real.release(); g.ghost = null; this.o.zoo.dismiss(this.real);
+    if (this.o.rot) { const w = this.real; for (let i = 0; i < w.n; i++) if (w.alive[i] && w.tag[i] >= 1000) w.removeNode(i); this.o.zoo.list = []; }
     // renumber so the raiders land after everything else, in the arena and here alike: the raid then matches the dream
     const map = this.real.compact(); for (const c of this.o.zoo.list) { c.nodes = c.nodes.map((i) => map[i] ?? -1).filter((i) => i >= 0); c.heart = map[c.heart] ?? -1; }
     this.arena = makeArena(this.real, ARENA_MIN_X); this.budget = +this.budgetSel.value;
@@ -110,7 +113,7 @@ export class NightCycle {
     if (this.raidStep % RAID_GAP === 0) { const k = this.raidStep / RAID_GAP; if (k < this.party.length) zoo.spawn(w, this.party[k].g, SPAWN_X); }
     zoo.step(w); this.raidStep++;
     const all = this.raidStep > (this.party.length - 1) * RAID_GAP;
-    if (all && (this.raidStep >= RAID_MAX || zoo.aliveCount() === 0 || w.count(M.BERRY) === 0)) this.endRaid(w);
+    if (all && (this.raidStep >= (this.o.raidSeconds ? this.o.raidSeconds * 60 : RAID_MAX) || zoo.aliveCount() === 0 || w.count(M.BERRY) === 0)) this.endRaid(w);
   }
   private endRaid(w: World) {
     const g = this.o.game, zoo = this.o.zoo;

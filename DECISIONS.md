@@ -89,3 +89,7 @@ Caveats, all of which matter:
 - **Contacts are resolved in a fixed order** (by node number), not in the order the broadphase grid happens to visit them. The grid's order depended on the bounding box of the whole world, so a pond sloshing far away changed how two nodes at home were resolved.
 - **The world is renumbered at dusk** (`World.compact`) and the trial arena is a renumbered copy. A creature spawned in either lands after every other node, so the two runs are step-for-step identical until something the arena did not have interferes (the second raider, your hand).
 - **Lever, needs your yes: raiders are paid for wrecking.** `fitnessConfig.wreck` adds score per hit point taken off anything that is not the creature, a berry or water. It is 0 in the core (the PRD's fitness) and 4 in prototype 07. Without it nothing bred in six nights at up to 600 trials a night got past the recipe book's six-high pitch-footed wall or scratched it.
+- **Wrecking counts only what the player built.** Chewing on dead raiders paid at first, and the night bred corpse-eaters that never touched the wall.
+- **The burrow keeps its original stock.** The six seed creatures are re-tested at the start of every night along with last night's best, so plain eaters are on hand when a base opens up.
+- **Rule for your yes or no (prototype 08 only): the dead last one day.** Remains of raiders are removed at the next dusk. Without it bodies pile into a free barricade.
+- **Prototype 08 allows 40-cell creatures** (`evoConfig.maxCells`, 26 elsewhere) and 60 second raids.

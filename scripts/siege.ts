@@ -15,6 +15,7 @@ const baseHp = () => { let t = 0, n = 0; for (let i = 0; i < w.n; i++) if (w.ali
 console.log('start', baseHp());
 // the game's own rhythm: breed against the base as it stands, raid it for real (raiders 8 s apart), survivors leave, the dead stay
 for (let n = 0; n < +nights; n++) {
+  if (process.env.ROT) for (let i = 0; i < w.n; i++) if (w.alive[i] && w.tag[i] >= 1000) w.removeNode(i);
   w.compact(); const h = evo.runNight(makeArena(w, LAYOUT.home[0] - 200), LAYOUT.burrow - 60, +trials); const party = evo.raiders(3); const e0 = w.eaten, b0 = w.count(M.BERRY); const mine: number[] = [];
   for (let t = 0; t < +(process.env.RAID ?? 44) * 60; t++) { if (t % 480 === 0 && t / 480 < party.length) { mine.push(tag); spawnCreature(w, party[t / 480].g, LAYOUT.burrow - 60, tag++); } w.step(); }
   for (const tg of mine) { let live = false; for (let i = 0; i < w.n; i++) if (w.alive[i] && w.tag[i] === tg && w.mat[i] === M.HEART) live = true; if (live) for (let i = 0; i < w.n; i++) if (w.alive[i] && w.tag[i] === tg) w.removeNode(i); }

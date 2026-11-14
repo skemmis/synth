@@ -28,17 +28,19 @@ export class Evolver {
   state: EvoState; rng: Rng;
   current: Trial | null = null; private currentG: Genome | null = null; private queue: Genome[] = [];
   trialsTonight = 0; budget = 0; arena: World | null = null; spawnX = 0; lastResult: { g: Genome; r: TrialResult; kept: boolean } | null = null;
+  /** The burrow's original stock. Re-tested every night, so when a base opens up the plain eaters are there to take it. */
+  stock: Genome[] = [];
   constructor(seed: number, seeds: Genome[], state?: EvoState) {
     this.state = state ?? { seed, night: 0, counter: 0, archive: [], history: [] };
     this.rng = new Rng(seed + this.state.night * 7919 + 13);
-    if (!state) this.queue = seeds.map((g, i) => ({ ...g, name: g.name ?? `seed ${i + 1}` }));
+    this.stock = seeds.map((g, i) => ({ ...g, name: g.name ?? `seed ${i + 1}` }));
   }
   /** Start a night against a snapshot of the base. Elites are re-tested first: the base may have changed. */
   beginNight(arena: World, spawnX: number, budget = nightConfig.trials) {
     this.arena = arena; this.spawnX = spawnX; this.budget = budget; this.trialsTonight = 0; this.state.night++;
     this.rng = new Rng(this.state.seed + this.state.night * 7919 + 13);
     const old = this.state.archive; this.state.archive = [];
-    this.queue = [...this.queue, ...old.sort((a, b) => b.fitness - a.fitness).map((e) => e.g)];
+    this.queue = [...this.stock, ...old.sort((a, b) => b.fitness - a.fitness).map((e) => e.g)];
     this.next();
   }
   get done() { return !this.current && this.trialsTonight >= this.budget; }

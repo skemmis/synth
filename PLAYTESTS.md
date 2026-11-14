@@ -125,3 +125,19 @@ Prototype 06 with one lever: raiders are also scored on the hit points they take
 - Wrecking and eating pull against each other. A body covered in thorns chews wood well and tramples the berries when it gets to them.
 - Attrition differs a lot by seed (46 to 275 hit points left after five nights). One player gets a siege and the next gets a quiet week.
 - Taking a damaged wall apart gives back every surviving piece at full value, so repair costs only light. Probably right for now; it makes daylight the currency.
+
+## 08 Big beasts (`play/08-big-beasts.html`)
+
+Siege (07) with four changes: raiders may grow to 40 cells instead of 26; raids last up to a minute; whatever is left of dead raiders is gone by the next nightfall; the header counts mornings survived and the game ends, with a summary, the morning the stash is empty.
+
+**What worked**
+- Headless, one recipe-book wall and nobody repairing it: the wall fell and all nine berries were lost on night 6, 7 and 7 across three seeds. Two walls back to back were still half standing after eight nights. That is the first version where "how much do I build" has an answer that is neither "nothing" nor "one wall".
+- Bodies lasting one day turns salvage into a choice against the clock. In 07 the dead piled up in front of the wall and became a better barricade than the wall: by the third night raiders could not reach it.
+- Size alone gets a creature over. With wrecking switched off and 40 cells allowed, one raider in eight nights got past the intact six-high wall and ate two berries, in its dream and again in the raid.
+- In the browser the first raid took 124 hit points and 4 pieces off the wall.
+
+**What did not**
+- The same browser run then stalled for seven nights with the stash untouched. What was left of the wall was its pitch foot, and raiders that touched it stuck to it. Pitch on the ground is flypaper, and nothing bred learned to avoid or chew it. This is a real defence the player can find, and also a hole in the night.
+- Berries are lost by trampling, not eating. The wreckers are thorny; when the wall goes they roll over the stash and burst it. The report says so, but "eaten 0, trampled 9" reads oddly for creatures that are supposed to be hungry.
+- Results swing a lot between a headless run and a browser run of what should be the same game, because the wall lands a pixel differently. Each run is repeatable; the game as a whole is not predictable.
+- The ending has not been reached in a scripted run (the script never loses its stash), so the summary card is untested beyond opening it by hand in code.
