@@ -6,8 +6,8 @@ const [base, seed, nights = '6', trials = '200', wreck = '0', maxCells = '26', s
 if (process.env.FAMILY) evoConfig.nicheBy = 'family'; fitnessConfig.wreck = +wreck; evoConfig.maxCells = +maxCells; nightConfig.trialSeconds = +seconds;
 const STASH_X = LAYOUT.home[1] - 110, WALL_X = LAYOUT.home[1] + 40;
 const w = new World(stripTerrain()); spawnRecipe(w, RECIPES.berryStack, STASH_X, w.terrain.groundY(STASH_X) - 32);
-const defs: Record<string, string[]> = { wall3: ['WW', 'WW', 'WW'], book: RECIPES.wall.grid, stone: ['SS', 'SS', 'SS', 'SS'], spikes: RECIPES.spikeStrip.grid };
-for (const [k, name] of base.split('+').entries()) setDown(w, { name, grid: defs[name] }, WALL_X + k * 70, w.terrain.groundY(WALL_X + k * 70));
+const defs: Record<string, string[]> = { wall3: ['WW', 'WW', 'WW'], book: RECIPES.wall.grid, stone: ['SS', 'SS', 'SS', 'SS'], spikes: RECIPES.spikeStrip.grid, glue: ['P'], glue3: ['PPP'], none: [] };
+for (const [k, name] of base.split('+').entries()) if (defs[name].length) setDown(w, { name, grid: defs[name] }, WALL_X + k * 70, w.terrain.groundY(WALL_X + k * 70));
 if (process.env.WATER) w.spawnWater(LAYOUT.pond[0] + 40, LAYOUT.base + 25, LAYOUT.pond[1] - 40, LAYOUT.base + 135);
 for (let i = 0; i < 120; i++) w.step();
 const evo = new Evolver(+seed, SEEDS); const t0 = performance.now(); const out: string[] = []; let tag = 1000;

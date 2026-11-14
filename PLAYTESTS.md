@@ -200,3 +200,5 @@ Saved games (09) with one change in the burrow: the best creature is kept per si
 **What did not**
 - The browser run stalled again after two nights (45 and 66 hit points off the wall, then almost nothing for four nights) while the headless runs kept going. Same pattern as 08. Next thing to chase.
 - Seeds themselves show up in parties late in a run ("Sprinter" on nights 5 and 6), which means that family had bred nothing better than its founder for the base as it stood.
+
+**Update after the pitch fix (see decisions log).** Same script, same build, pitch grip lowered. Nights one to three took 32, 9 and 26 hit points off the wall. Night four took 221 and nine pieces: the wall was down. Night five, a raider of Thornback's line that ate nine in its dream ate six in the raid, the rest were trampled, the stash was empty and the ending card came up. That is the first full siege played out in the browser, start to finish, and it took five nights.

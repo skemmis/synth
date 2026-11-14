@@ -27,7 +27,8 @@ export const config = {
   crushScale: 0.02,
   // stickiness (rule 5)
   stickyMaxBonds: 3,
-  stickyStrength: 30, // unit weights a single sticky bond holds
+  stickyStrength: 30, // unit weights a pitch-to-ground bond holds
+  stickyGrip: 9, // unit weights a pitch-to-node bond holds: less than one sinew can pull (12), so a creature can tear itself off
   stickyStretch: 0.3,
   // the hand
   handForce: 60, // max pull in unit weights (mass 1 under gravity)

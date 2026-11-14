@@ -113,7 +113,7 @@ export class World {
     const dx = this.x[b] - this.x[a], dy = this.y[b] - this.y[a];
     const rest = Math.hypot(dx, dy);
     let flags = 0; let strength = weak.strength, stretch = weak.stretch;
-    if (opts.sticky) { flags |= B_STICKY; strength = this.cfg.stickyStrength; stretch = this.cfg.stickyStretch; }
+    if (opts.sticky) { flags |= B_STICKY; strength = this.cfg.stickyGrip; stretch = this.cfg.stickyStretch; }
     else if (opts.brace !== undefined) flags |= B_BRACE;
     else {
       if (ma.mode === 'tension' || mb.mode === 'tension') flags |= B_TENSION;
