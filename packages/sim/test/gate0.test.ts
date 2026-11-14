@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { bucketCarry, ropeSwing, clubHit, pitchStick, stripWorld, run } from '../src/scenarios.ts';
 import { RECIPES } from '../src/recipes.ts';
+import { World } from '../src/world.ts';
 import { spawnRecipe, parseRecipe, recipeToText, validateRecipe } from '../src/grid.ts';
 
 describe('milestone 0 gate', () => {
@@ -40,6 +41,13 @@ describe('determinism', () => {
     const w = stripWorld(); spawnRecipe(w, RECIPES.bucket, 450, 480); run(w, 1);
     const c = w.clone(); run(w, 2); run(c, 2);
     expect(c.hash()).toBe(w.hash());
+  }, 30000);
+  it('a world saved to JSON and loaded again carries on exactly as the renumbered original would', () => {
+    const w = stripWorld(); spawnRecipe(w, RECIPES.bucket, 450, 480); spawnRecipe(w, RECIPES.wall, 3000, 520); run(w, 1);
+    w.removeNode(w.nearestNode(3000, 520, 60)); run(w, 0.5);
+    const text = JSON.stringify(w.save()); const back = World.load(w.terrain, JSON.parse(text));
+    const twin = w.clone(); twin.compact(); run(twin, 2); run(back, 2);
+    expect(back.hash()).toBe(twin.hash()); expect(text.length).toBeLessThan(1_000_000);
   }, 30000);
 });
 

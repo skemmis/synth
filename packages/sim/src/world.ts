@@ -16,6 +16,10 @@ let RMAX = 0; for (let i = 0; i < NMAT; i++) RMAX = Math.max(RMAX, RAD[i]);
 export interface Hand { active: boolean; node: number; x: number; y: number; spin: number; }
 export interface SimEvent { type: 'eat' | 'death' | 'break'; tick: number; node: number; other: number; x: number; y: number; mat: number; body: number; }
 
+const SAVE_NODE = ['x', 'y', 'px', 'py', 'mat', 'hp', 'alive', 'wet', 'stick', 'anch', 'tag'] as const;
+const SAVE_BOND = ['ba', 'bb', 'brest', 'bflags', 'bcomp', 'blimit', 'bamp', 'bphase', 'bfreq', 'bax', 'bay', 'balive', 'bmid'] as const;
+export interface WorldSave { v: 1; n: number; nb: number; tick: number; time: number; eaten: number; heartsLost: number; damageDealt: number; nodes: Record<string, number[]>; bonds: Record<string, number[]>; }
+
 export class World {
   cfg: Config; terrain: Terrain;
   n = 0; nb = 0; tick = 0; time = 0;
@@ -65,6 +69,20 @@ export class World {
     w.hand = { ...this.hand }; w.heartsLost = this.heartsLost; w.eaten = this.eaten; w.damageDealt = this.damageDealt;
     (w as any).free = [...this.free]; (w as any).freeB = [...this.freeB];
     return w;
+  }
+
+  /** Everything needed to carry on later, as plain JSON. The saved copy is renumbered (see compact); this world is not touched. */
+  save(): WorldSave {
+    const w = this.clone(); w.release(); w.compact(); const n = w.n, nb = w.nb; const A = (a: ArrayLike<number>, len: number) => Array.from((a as any).subarray(0, len)) as number[];
+    const nodes: Record<string, number[]> = {}, bonds: Record<string, number[]> = {};
+    for (const k of SAVE_NODE) nodes[k] = A(w[k], n); for (const k of SAVE_BOND) bonds[k] = A(w[k], nb);
+    return { v: 1, n, nb, tick: w.tick, time: w.time, eaten: w.eaten, heartsLost: w.heartsLost, damageDealt: w.damageDealt, nodes, bonds };
+  }
+  static load(terrain: Terrain, d: WorldSave, cfg: Config = defaultConfig): World {
+    const w = new World(terrain, cfg); w.n = d.n; w.nb = d.nb; w.tick = d.tick; w.time = d.time; w.eaten = d.eaten; w.heartsLost = d.heartsLost; w.damageDealt = d.damageDealt;
+    for (const k of SAVE_NODE) (w[k] as any).set(d.nodes[k]); for (const k of SAVE_BOND) (w[k] as any).set(d.bonds[k]);
+    for (let k = 0; k < w.nb; k++) if (w.balive[k] && w.bb[k] >= 0) w.bondKeys.add(w.key(w.ba[k], w.bb[k]));
+    w.bodiesDirty = true; return w;
   }
 
   addNode(mat: number, x: number, y: number, tag = 0): number {

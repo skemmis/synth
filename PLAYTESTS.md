@@ -141,3 +141,17 @@ Siege (07) with four changes: raiders may grow to 40 cells instead of 26; raids 
 - Berries are lost by trampling, not eating. The wreckers are thorny; when the wall goes they roll over the stash and burst it. The report says so, but "eaten 0, trampled 9" reads oddly for creatures that are supposed to be hungry.
 - Results swing a lot between a headless run and a browser run of what should be the same game, because the wall lands a pixel differently. Each run is repeatable; the game as a whole is not predictable.
 - The ending has not been reached in a scripted run (the script never loses its stash), so the summary card is untested beyond opening it by hand in code.
+
+## 09 Saved games (`play/09-saved-games.html`)
+
+Big beasts (08) plus a save file in the browser: the world, the burrow's stock and history, inventory, daylight and score. It saves at every dawn, when you leave the page by day, and on a button. Start over clears it.
+
+**What worked**
+- Scripted run: gather, build a wall, sleep through a raid, reload the page. Day, daylight, inventory, stash, raid report, the 16 kinds in the burrow and every node in the world (7 wood, 662 water) came back, and a second night then ran normally and bred a 17th kind.
+- A loaded world carries on step for step as the original would have (test in `packages/sim/test/gate0.test.ts`).
+- The file is small: about 150 KB with the pond in it.
+
+**What did not**
+- A night or a raid in progress is not saved. Close the page then and you return to the last dawn or the last daytime save.
+- The save lives in one browser. There is no export, so it cannot move between machines yet. The recipe book has text export; the world does not.
+- Dead raiders lose their names on reload (the bodies are there and can be salvaged; the labels are gone).
