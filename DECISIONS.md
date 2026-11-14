@@ -49,3 +49,19 @@ row property and one more solver pass.
 
 ### Gate results
 See the table at the end of this file, regenerated at each milestone.
+
+## Milestone 1: recipes and gathering
+
+### Defaults chosen
+- **Gathering** is click or hold on a source: +4 wood, +3 stone, +4 fiber, +2 thorn, +2 pitch per click,
+  about four clicks a second. The bush holds 6 berries and regrows one every 25 s (it will regrow at dawn
+  once days exist). These numbers are the scarcity lever from "the creativity question"; they sit in
+  `src/game/state.ts`.
+- **Breaking down**: right-click an object to get its materials back. Not in the PRD; added because without
+  it a wrong guess costs a trip back to the sources, which punishes experimenting.
+- **Recipe text format**: `# name`, optional `# note:` and `# parent:` lines, then the grid; recipes
+  separated by blank lines. If a pasted grid contains dots, spaces are ignored (`W . . W`); if it has no
+  dots, spaces are the empty cells.
+- **Recipe book** is kept in the browser's local storage; export and import are plain text.
+- **Free build** checkbox keeps the milestone 0 toy available.
+- **Stash**: 12 loose berries at the home site, counted in the top bar.

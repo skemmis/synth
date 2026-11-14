@@ -1,59 +1,172 @@
-import { BLUEPRINT_GLYPHS, CONFIG, LAYOUT, MATERIALS, gridCost } from '../sim';
+import { BLUEPRINT_GLYPHS, CONFIG, LAYOUT, MATERIALS, formatRecipes, gridCost, parseRecipes, validateGrid, type Recipe } from '../sim';
 import { h } from './dom';
 import { Game } from './game';
 import { PRESETS } from './presets';
+import { Player, countStash, describeCost, spawnStash } from './state';
 
-/** Top bar, minimap, hint line and the workbench where grids are pasted. */
-export function buildUi(game: Game, root: HTMLElement) {
+/** a small picture of a recipe: one dot per cell */
+export function gridThumb(grid: string[], cell = 5): HTMLCanvasElement {
+  const w = grid[0]?.length ?? 1, hgt = grid.length || 1;
+  const c = h('canvas', { width: w * cell * 2, height: hgt * cell * 2 }) as HTMLCanvasElement;
+  c.style.width = `${w * cell}px`; c.style.height = `${hgt * cell}px`;
+  const ctx = c.getContext('2d')!;
+  ctx.scale(2, 2);
+  grid.forEach((row, r) => [...row].forEach((g, col) => {
+    const m = MATERIALS.find((mm) => mm.glyph === g);
+    if (!m) return;
+    ctx.beginPath();
+    ctx.arc(col * cell + cell / 2, r * cell + cell / 2, cell / 2, 0, 7);
+    ctx.fillStyle = m.color;
+    ctx.fill();
+  }));
+  return c;
+}
+
+export interface Ui {
+  /** load a recipe into the draft editor */
+  setDraft(r: Recipe, opts?: { hold?: boolean }): void;
+  getDraft(): Recipe | null;
+  addTab(id: string, label: string, body: HTMLElement, first?: boolean): void;
+  showTab(id: string): void;
+  topSlot: HTMLElement;
+  panel: HTMLElement;
+  toast(text: string): void;
+}
+
+export function buildUi(game: Game, player: Player, root: HTMLElement): Ui {
+  // ------------------------------------------------------------- top bar
   const stat = h('span.stat');
+  const inv = h('div.inv');
+  const berries = h('span.berries', { title: 'Berries in your stash' });
+  const topSlot = h('span.slot');
   const pauseBtn = h('button', { onclick: () => { game.paused = !game.paused; } }, 'Pause');
+  const free = h('input#free', { type: 'checkbox' }) as HTMLInputElement;
+  free.addEventListener('change', () => { player.freeBuild = free.checked; drawInv(); refresh(); });
   const top = h('div.panel#topbar', {},
     h('span.title', {}, 'SYNTH'),
-    h('span.stat', {}, 'physics toy'),
+    inv, berries,
     h('span.spacer'),
-    stat,
+    topSlot,
+    h('label.stat', { for: 'free', title: 'Build without spending materials' }, free, ' free build'),
     pauseBtn,
-    h('button', { onclick: () => game.reset(game.seed) }, 'Reset world'),
+    h('button', { onclick: () => {
+      game.reset(game.seed, false);
+      spawnStash(game.world);
+      for (const k of Object.keys(player.inventory)) player.inventory[k] = 0;
+      drawInv();
+    } }, 'New world'),
+    stat,
   );
+  const drawInv = () => {
+    inv.replaceChildren(...MATERIALS.filter((m) => BLUEPRINT_GLYPHS.includes(m.glyph)).map((m) =>
+      h('span.item', { title: `${m.name} (${m.glyph}): ${m.useful}. From: ${m.source}.` },
+        h('span.dot', { style: { background: m.color } }),
+        player.freeBuild ? '∞' : String(player.inventory[m.glyph] ?? 0))));
+  };
 
-  // workbench
+  // -------------------------------------------------------- draft editor
+  const nameIn = h('input#rname', { type: 'text', placeholder: 'name', spellcheck: 'false' }) as HTMLInputElement;
   const area = h('textarea#grid', { spellcheck: 'false', rows: 7 }) as HTMLTextAreaElement;
   const msg = h('div.msg');
-  const make = h('button.primary', {}, 'Make') as HTMLButtonElement;
-  const refresh = () => {
+  const make = h('button.primary', {}, 'Synthesize') as HTMLButtonElement;
+  const save = h('button', {}, 'Save to book') as HTMLButtonElement;
+  let parent: string | undefined;
+  let note: string | undefined;
+
+  const readDraft = (): { recipe?: Recipe; errors: string[] } => {
     const r = Game.readGrid(area.value);
-    if (!area.value.trim()) { msg.textContent = 'Type a grid of letters, or pick a recipe.'; msg.className = 'msg'; make.disabled = true; return null; }
-    if (!r.grid) { msg.textContent = r.errors.join('; '); msg.className = 'msg bad'; make.disabled = true; return null; }
-    const cost = gridCost(r.grid);
-    msg.textContent = Object.entries(cost).map(([g, n]) => `${n} ${MATERIALS.find((m) => m.glyph === g)!.name.toLowerCase()}`).join(', ');
+    if (!r.grid) return { errors: r.errors };
+    return { recipe: { name: nameIn.value.trim() || 'Untitled', grid: r.grid, note, parent }, errors: [] };
+  };
+  const refresh = () => {
+    if (!area.value.trim()) { msg.textContent = 'Type a grid of letters, or pick a recipe from the book.'; msg.className = 'msg'; make.disabled = save.disabled = true; return; }
+    const d = readDraft();
+    if (!d.recipe) { msg.textContent = d.errors.join('; '); msg.className = 'msg bad'; make.disabled = save.disabled = true; return; }
+    const miss = player.missing(d.recipe.grid);
+    const pieces = validateGrid(d.recipe.grid).ok ? '' : ' (separate pieces)';
+    msg.replaceChildren(`Costs ${describeCost(gridCost(d.recipe.grid))}${pieces}.`,
+      Object.keys(miss).length ? h('span.bad', {}, ` Missing ${describeCost(miss)}.`) : '');
     msg.className = 'msg';
-    make.disabled = false;
-    return r.grid;
+    make.disabled = save.disabled = false;
   };
   area.addEventListener('input', refresh);
-  make.addEventListener('click', () => { const g = refresh(); if (g) game.hold(g); });
-  const chips = h('div.chips', {}, ...PRESETS.map((p) => h('span.chip', {
-    title: p.note ?? '',
-    onclick: () => { area.value = p.grid.join('\n'); const g = refresh(); if (g) game.hold(g); },
-  }, p.name)));
+  make.addEventListener('click', () => { const d = readDraft(); if (d.recipe) game.hold(d.recipe.grid); });
+  save.addEventListener('click', () => {
+    const d = readDraft();
+    if (!d.recipe) return;
+    player.keep(d.recipe);
+    drawBook();
+    toast(`Saved "${d.recipe.name}" to the book`);
+  });
   const legend = h('div.legend', {}, ...MATERIALS.filter((m) => BLUEPRINT_GLYPHS.includes(m.glyph)).flatMap((m) => [
     h('b', {}, h('span.dot', { style: { background: m.color } }), m.glyph),
     h('span', {}, `${m.name}: ${m.useful}`),
   ]));
-  const bench = h('div.panel#bench', {},
-    h('div.head', { onclick: () => bench.classList.toggle('collapsed') }, h('h2', {}, 'Workbench'), h('span.stat', {}, 'hide')),
-    h('div', { style: { height: '8px' } }),
-    area,
-    msg,
-    h('div.row', {}, make, h('span.stat', {}, 'then click in the world to drop it')),
-    h('h2', { style: { marginTop: '12px' } }, 'Recipes'),
-    chips,
-    h('details', {}, h('summary', {}, 'Materials'), legend),
+  const editor = h('div.tabbody', {},
+    nameIn, area, msg,
+    h('div.row', {}, make, save),
+    h('div.stat', { style: { marginTop: '6px' } }, 'Synthesize puts it on the hand; click in the world to drop it. Right-click an object to break it back into materials.'),
+    h('details', {}, h('summary', {}, 'What the letters mean'), legend),
   );
-  area.value = PRESETS[0].grid.join('\n');
-  refresh();
 
-  // minimap
+  // --------------------------------------------------------- recipe book
+  const list = h('div.book');
+  const io = h('textarea#io', { spellcheck: 'false', rows: 5, placeholder: 'Paste recipe text here to import' }) as HTMLTextAreaElement;
+  const drawBook = () => {
+    list.replaceChildren(...player.book.map((r) => {
+      const miss = Object.keys(player.missing(r.grid)).length > 0;
+      return h('div.entry', { title: r.note ?? '' },
+        h('div.thumb', {}, gridThumb(r.grid)),
+        h('div.meta', {},
+          h('div.name', {}, r.name),
+          h('div.stat' + (miss ? '.bad' : ''), {}, describeCost(gridCost(r.grid)) + (r.parent ? ` · from ${r.parent}` : ''))),
+        h('button', { title: 'Open in the editor', onclick: () => ui.setDraft(r) }, 'Edit'),
+        h('button.primary', { title: 'Put one on the hand', onclick: () => ui.setDraft(r, { hold: true }) }, 'Make'),
+        h('button.x', { title: 'Remove from the book', onclick: () => { player.forget(r.name); drawBook(); } }, '×'),
+      );
+    }));
+    if (!player.book.length) list.append(h('div.stat', {}, 'The book is empty. Save a draft to keep it.'));
+  };
+  const book = h('div.tabbody', {},
+    list,
+    h('div.row', {},
+      h('button', { onclick: async () => {
+        io.value = formatRecipes(player.book);
+        io.select();
+        try { await navigator.clipboard.writeText(io.value); toast('Book copied as text'); } catch { toast('Book text is selected below: copy it'); }
+      } }, 'Export as text'),
+      h('button', { onclick: () => {
+        const rs = parseRecipes(io.value);
+        const good = rs.filter((r) => validateGrid(r.grid, { allowDisconnected: true }).ok);
+        good.forEach((r) => player.keep(r));
+        drawBook();
+        toast(good.length ? `Imported ${good.length} recipe${good.length > 1 ? 's' : ''}` : 'No valid recipes found in that text');
+      } }, 'Import'),
+      h('button', { onclick: () => { PRESETS.forEach((p) => { if (!player.book.some((b) => b.name === p.name)) player.book.push({ ...p }); }); player.saveBook(); drawBook(); } }, 'Add examples'),
+    ),
+    io,
+  );
+
+  // ---------------------------------------------------------------- tabs
+  const tabs = h('div.tabs');
+  const bodies = h('div');
+  const tabMap = new Map<string, { btn: HTMLElement; body: HTMLElement }>();
+  const panel = h('div.panel#bench', {}, tabs, bodies);
+  const showTab = (id: string) => {
+    for (const [k, t] of tabMap) { t.btn.classList.toggle('on', k === id); t.body.hidden = k !== id; }
+    if (id === 'book') drawBook();
+  };
+  const addTab = (id: string, label: string, body: HTMLElement, first = false) => {
+    const btn = h('button.tab', { onclick: () => showTab(id) }, label);
+    tabMap.set(id, { btn, body });
+    if (first) { tabs.prepend(btn); bodies.prepend(body); } else { tabs.append(btn); bodies.append(body); }
+    body.hidden = true;
+  };
+  addTab('grid', 'Grid', editor);
+  addTab('book', 'Book', book);
+  showTab('grid');
+
+  // ------------------------------------------------------------- minimap
   const mm = h('canvas', { width: 600, height: 68 }) as HTMLCanvasElement;
   const mini = h('div.panel#minimap', {
     onpointerdown: (e: PointerEvent) => {
@@ -72,22 +185,47 @@ export function buildUi(game: Game, root: HTMLElement) {
     c.beginPath(); c.moveTo(0, H);
     for (let x = 0; x <= CONFIG.world.width; x += 40) c.lineTo(x * sx, H * 0.5 + (game.world.terrain.heightAt(x) - LAYOUT.groundY) * 0.3);
     c.lineTo(W, H); c.fill();
-    c.fillStyle = '#d9603b'; c.fillRect(LAYOUT.home.stashX * sx - 2, H * 0.2, 4, H * 0.3);
-    c.fillStyle = '#1c1512'; c.beginPath(); c.arc(LAYOUT.burrow.x * sx, H * 0.5, 6, 0, 7); c.fill();
+    c.fillStyle = '#7fa860';
+    for (const x of Object.values(LAYOUT.sources)) c.fillRect(x * sx - 2, H * 0.3, 4, H * 0.2);
+    c.fillStyle = '#d6336c'; c.beginPath(); c.arc(LAYOUT.home.stashX * sx, H * 0.4, 6, 0, 7); c.fill();
+    c.fillStyle = '#1c1512'; c.beginPath(); c.arc(LAYOUT.burrow.x * sx, H * 0.5, 7, 0, 7); c.fill();
     c.strokeStyle = '#2c2420'; c.lineWidth = 3;
     c.strokeRect(game.cam.x * sx, 2, game.cam.viewW * sx, H - 4);
   };
 
   const hint = h('div.panel#hint');
-  hint.innerHTML = 'Drag things with the hand &nbsp;·&nbsp; <kbd>Q</kbd> <kbd>E</kbd> rotate &nbsp;·&nbsp; <kbd>A</kbd> <kbd>D</kbd> or drag the sky to look around &nbsp;·&nbsp; <kbd>Space</kbd> pause';
+  hint.innerHTML = 'Drag with the hand &nbsp;·&nbsp; <kbd>Q</kbd> <kbd>E</kbd> rotate &nbsp;·&nbsp; <kbd>A</kbd> <kbd>D</kbd> look around &nbsp;·&nbsp; right-click breaks down &nbsp;·&nbsp; <kbd>Space</kbd> pause';
+  const toastEl = h('div.panel#toast', { hidden: true });
+  let toastT = 0;
+  const toast = (text: string) => {
+    toastEl.textContent = text; toastEl.hidden = false;
+    clearTimeout(toastT); toastT = window.setTimeout(() => { toastEl.hidden = true; }, 2600);
+  };
 
-  root.append(top, bench, mini, hint);
-  let n = 0;
+  root.append(top, panel, mini, hint, toastEl);
+  let n = 0, lastInv = '';
   game.onFrame.push(() => {
-    if (n++ % 15) return;
+    if (n++ % 10) return;
     drawMini();
     pauseBtn.textContent = game.paused ? 'Resume' : 'Pause';
-    stat.textContent = `${game.world.liveNodes} nodes · ${Math.round(game.fps)} fps · ${game.stepMs.toFixed(1)} ms/step`;
+    stat.textContent = `${Math.round(game.fps)} fps`;
+    berries.replaceChildren(h('span.dot', { style: { background: '#d6336c' } }), `${countStash(game.world)} in stash`);
+    const key = JSON.stringify(player.inventory) + player.freeBuild;
+    if (key !== lastInv) { lastInv = key; drawInv(); refresh(); if (!tabMap.get('book')!.body.hidden) drawBook(); }
   });
-  return { top, bench, hint, area, refresh };
+
+  const ui: Ui = {
+    setDraft(r, opts) {
+      nameIn.value = r.name;
+      area.value = r.grid.join('\n');
+      note = r.note; parent = r.parent;
+      refresh();
+      if (opts?.hold) game.hold(r.grid); else showTab('grid');
+    },
+    getDraft: () => readDraft().recipe ?? null,
+    addTab, showTab, topSlot, panel, toast,
+  };
+  ui.setDraft(PRESETS[0]);
+  drawInv();
+  return ui;
 }

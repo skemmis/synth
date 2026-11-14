@@ -1,5 +1,5 @@
 import { CONFIG, LAYOUT, parseGrid, spawnGrid, validateGrid, type World } from '../sim';
-import { Renderer, type Camera, type Ghost, type Scenery } from './render';
+import { Renderer, type Camera, type Floater, type Ghost, type Scenery } from './render';
 import { buildWorld } from './worldgen';
 
 export const VIEW_H = 640;
@@ -14,6 +14,9 @@ export class Game {
   keys = new Set<string>();
   ghost: Ghost | null = null;
   scenery: Scenery[] = [];
+  floaters: Floater[] = [];
+  label: { x: number; y: number; text: string } | null = null;
+  clock = 0;
   paused = false;
   speed = 1;
   seed = 1;
@@ -29,6 +32,7 @@ export class Game {
   onPlace: ((g: Game, grid: string[], body: number) => void)[] = [];
   /** return true to consume a click on empty space / a node */
   onClick: ((g: Game, node: number) => boolean)[] = [];
+  onRightClick: ((g: Game, node: number) => void)[] = [];
   canPlace: (g: Game, grid: string[]) => boolean = () => true;
 
   constructor(public canvas: HTMLCanvasElement) {
@@ -98,7 +102,12 @@ export class Game {
       c.setPointerCapture(e.pointerId);
       this.toWorld(e);
       this.cursor.down = true;
-      if (e.button === 2) { this.ghost = null; return; }
+      if (e.button === 2) {
+        if (this.ghost) { this.ghost = null; return; }
+        const n2 = this.world.nodeAt(this.cursor.x, this.cursor.y);
+        for (const f of this.onRightClick) f(this, n2);
+        return;
+      }
       if (this.ghost) { this.placeGhost(); return; }
       const node = this.world.nodeAt(this.cursor.x, this.cursor.y);
       for (const f of this.onClick) if (f(this, node)) return;
@@ -207,7 +216,13 @@ export class Game {
     if (this.acc > CONFIG.dt * 4) this.acc = 0;
   }
 
+  float(x: number, y: number, text: string, color?: string) {
+    this.floaters.push({ x, y, text, born: this.clock, color });
+    if (this.floaters.length > 40) this.floaters.shift();
+  }
+
   render(time: number) {
+    this.clock = time;
     const hover = !this.world.hand.active && !this.ghost && this.cursor.inside
       ? this.world.nodeAt(this.cursor.x, this.cursor.y) : -1;
     this.renderer.draw(this.world, this.cam, {
@@ -216,6 +231,8 @@ export class Game {
       scenery: this.scenery,
       night: this.night,
       hover,
+      floaters: this.floaters,
+      label: this.label,
       time,
     });
     for (const f of this.onFrame) f(this);

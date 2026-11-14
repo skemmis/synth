@@ -6,12 +6,16 @@ export interface Ghost { grid: string[]; x: number; y: number; angle: number; ok
 
 export interface Scenery { kind: string; x: number; label: string; stock?: number }
 
+export interface Floater { x: number; y: number; text: string; born: number; color?: string }
+
 export interface DrawExtras {
   ghost?: Ghost | null;
   cursor?: { x: number; y: number; down: boolean } | null;
   scenery?: Scenery[];
   night?: number; // 0 day .. 1 night
   hover?: number; // node under cursor
+  floaters?: Floater[];
+  label?: { x: number; y: number; text: string } | null;
   time: number;
 }
 
@@ -72,6 +76,26 @@ export class Renderer {
     this.drawNodes(world, x0, x1, ex);
     if (ex.ghost) this.drawGhost(ex.ghost);
     if (ex.cursor) this.drawHand(world, ex.cursor);
+    ctx.textAlign = 'center';
+    for (const f of ex.floaters ?? []) {
+      const age = ex.time - f.born;
+      if (age < 0 || age > 1.2) continue;
+      ctx.globalAlpha = 1 - age / 1.2;
+      ctx.font = '700 15px system-ui, sans-serif';
+      ctx.fillStyle = f.color ?? PALETTE.ink;
+      ctx.fillText(f.text, f.x, f.y - age * 34);
+    }
+    ctx.globalAlpha = 1;
+    if (ex.label) {
+      ctx.font = '600 12px system-ui, sans-serif';
+      const w = ctx.measureText(ex.label.text).width + 14;
+      ctx.fillStyle = 'rgba(44,36,32,0.82)';
+      ctx.beginPath();
+      (ctx as any).roundRect(ex.label.x - w / 2, ex.label.y - 30, w, 20, 10);
+      ctx.fill();
+      ctx.fillStyle = '#fff7ee';
+      ctx.fillText(ex.label.text, ex.label.x, ex.label.y - 16);
+    }
     if (night > 0) {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = `rgba(20,18,50,${0.28 * night})`;

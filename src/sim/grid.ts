@@ -21,7 +21,11 @@ export const EMPTY = '.';
 
 /** Turn pasted text into grid rows: trims blank edges, pads rows to equal width. */
 export function parseGrid(text: string | string[]): string[] {
-  let rows = (Array.isArray(text) ? text : text.split(/\r?\n/)).map((r) => r.replace(/\s/g, (c) => (c === ' ' ? '.' : '')));
+  let rows = Array.isArray(text) ? text.slice() : text.split(/\r?\n/);
+  // If dots are used for empty cells, spaces are just decoration (people type
+  // "W . . W"). If there are no dots at all, spaces are the empty cells.
+  const dotted = rows.some((r) => r.includes('.'));
+  rows = rows.map((r) => (dotted ? r.replace(/\s/g, '') : r.replace(/\t/g, ' ').replace(/\s+$/, '').replace(/ /g, '.')));
   rows = rows.map((r) => r.toUpperCase());
   while (rows.length && /^\.*$/.test(rows[0])) rows.shift();
   while (rows.length && /^\.*$/.test(rows[rows.length - 1])) rows.pop();
@@ -199,6 +203,55 @@ export function pourWater(world: World, x0: number, y0: number, x1: number, y1: 
       const rr = r + (((k >>> 8) % 1000) / 1000 - 0.5) * 2 * jit;
       out.push(world.addNode(Mat.Water, x, y, -1, rr));
     }
+  }
+  return out;
+}
+
+// ------------------------------------------------------------ recipe text
+
+/**
+ * Plain-text recipe format, meant to be pasted to a friend:
+ *
+ *   # Bucket
+ *   # note: holds water
+ *   # parent: Trough
+ *   W...W
+ *   WWWWW
+ *
+ * Recipes are separated by blank lines. A block with no "# name" line is
+ * still accepted and gets a default name.
+ */
+export function formatRecipe(r: Recipe): string {
+  const lines = [`# ${r.name}`];
+  if (r.note) lines.push(`# note: ${r.note.replace(/\s+/g, ' ')}`);
+  if (r.parent) lines.push(`# parent: ${r.parent}`);
+  return [...lines, ...r.grid].join('\n');
+}
+
+export function formatRecipes(rs: Recipe[]): string {
+  return rs.map(formatRecipe).join('\n\n') + '\n';
+}
+
+export function parseRecipes(text: string): Recipe[] {
+  const out: Recipe[] = [];
+  for (const block of text.replace(/\r/g, '').split(/\n\s*\n/)) {
+    const lines = block.split('\n').filter((l) => l.trim().length);
+    if (!lines.length) continue;
+    const r: Recipe = { name: '', grid: [] };
+    const rows: string[] = [];
+    for (const line of lines) {
+      const t = line.trim();
+      if (t.startsWith('#')) {
+        const body = t.slice(1).trim();
+        const kv = /^(note|parent)\s*:\s*(.*)$/i.exec(body);
+        if (kv) (r as any)[kv[1].toLowerCase()] = kv[2];
+        else if (!r.name) r.name = body;
+      } else rows.push(line);
+    }
+    r.grid = parseGrid(rows);
+    if (!r.grid.length) continue;
+    if (!r.name) r.name = `Recipe ${out.length + 1}`;
+    out.push(r);
   }
   return out;
 }
