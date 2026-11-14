@@ -46,6 +46,8 @@ export function installCycle(game: Game, player: Player, ui: Ui, sfx: (name: str
   let showQueue: Genome[] = [];
   let showLabel = '';
   let replaying = false;
+  let custom: { world: World; focus: () => { x: number; y: number }; tick: () => boolean } | null = null;
+  const closeCustom = () => { if (custom) { custom = null; inset.hidden = true; skip.textContent = 'Wake up'; } };
 
   const drawInset = (time: number) => {
     if (inset.hidden || !show) return;
@@ -88,6 +90,7 @@ export function installCycle(game: Game, player: Player, ui: Ui, sfx: (name: str
     sfx('dusk');
     game.world.release();
     game.ghost = null;
+    closeCustom();
     game.frozen = true;
     stashAtDusk = countStash(game.world);
     setPhase('dream');
@@ -211,7 +214,7 @@ export function installCycle(game: Game, player: Player, ui: Ui, sfx: (name: str
   const onDawn: (() => void)[] = [];
 
   endDay.addEventListener('click', startNight);
-  skip.addEventListener('click', () => { cancelDream = true; });
+  skip.addEventListener('click', () => { if (custom) closeCustom(); else cancelDream = true; });
 
   game.onStep.push((g) => {
     if (phase !== 'raid') return;
@@ -236,7 +239,13 @@ export function installCycle(game: Game, player: Player, ui: Ui, sfx: (name: str
     ramp += (target - ramp) * 0.04;
     g.night = ramp;
     if (phase === 'raid') label.textContent = `Night ${player.day}: raid · ${Math.max(0, Math.ceil((raiders[raiders.length - 1]?.spawnAt ?? 0) + EVO_CONFIG.raidSeconds - raidClock))}s`;
-    if (!inset.hidden) {
+    if (!inset.hidden && custom) {
+      const more = custom.tick();
+      const f = custom.focus();
+      const viewH = 260, scale = insetCanvas.height / viewH, viewW = insetCanvas.width / scale;
+      insetRenderer.draw(custom.world, { x: f.x - viewW / 2, y: f.y - viewH * 0.72, scale, viewW, viewH }, { time: g.clock, night: 0 });
+      if (!more) (bar.firstChild as HTMLElement).style.width = '100%';
+    } else if (!inset.hidden) {
       if (!show || show.done) { if (replaying && show?.done) show = startTrial(lastArena!, lastBest!.genome); else nextShow(); }
       drawInset(g.clock);
     }
@@ -256,6 +265,15 @@ export function installCycle(game: Game, player: Player, ui: Ui, sfx: (name: str
       setPhase('day');
     },
     onPhase: (f: (p: Phase) => void) => listeners.push(f),
+    /** show any small world in the inset window (used by the test bench); returns a close function */
+    showWorld(title: string, info: string, world: World, focus: () => { x: number; y: number }, tick: () => boolean) {
+      if (phase === 'dream') return () => {};
+      custom = { world, focus, tick };
+      inset.hidden = false; skip.hidden = false; skip.textContent = 'Close';
+      insetTitle.textContent = title; insetInfo.textContent = info;
+      (bar.firstChild as HTMLElement).style.width = '0%';
+      return closeCustom;
+    },
     get raiders() { return raiders; },
   };
 }

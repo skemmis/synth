@@ -19,7 +19,8 @@ game.reset(game.seed, false);
 const player = new Player();
 installPlay(game, player);
 const ui = buildUi(game, player, document.getElementById('ui')!);
-const talk = installTalk(game, player, ui);
+const bench = { showWorld: (...a: Parameters<ReturnType<typeof installCycle>['showWorld']>) => cycle.showWorld(...a) };
+const talk = installTalk(game, player, ui, bench);
 const cycle = installCycle(game, player, ui, sfx);
 
 // ---------------------------------------------------------------- saves

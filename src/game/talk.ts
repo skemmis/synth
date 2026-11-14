@@ -1,5 +1,5 @@
 import { benchReport } from '../sim/bench';
-import { gridCost, validateGrid } from '../sim';
+import { Mat, World, flatTerrain, gridCost, spawnGrid, validateGrid } from '../sim';
 import { StubProvider, Synthesizer, type Blueprint, type Provider, type Turn } from '../synth';
 import { h } from './dom';
 import type { Game } from './game';
@@ -21,7 +21,9 @@ function saveSettings(s: Settings) { try { localStorage.setItem(SETTINGS_KEY, JS
 const EXAMPLES = PRESETS.filter((p) => ['Pail with handle', 'Thorn club', 'Flail', 'Sticky foot'].includes(p.name));
 
 /** The conversation with the synthesizer: describe a need, get a draft, refine it, build it. */
-export function installTalk(game: Game, player: Player, ui: Ui) {
+export interface BenchView { showWorld(title: string, info: string, world: World, focus: () => { x: number; y: number }, tick: () => boolean): () => void }
+
+export function installTalk(game: Game, player: Player, ui: Ui, view?: BenchView) {
   const settings = loadSettings();
   const stub = new StubProvider();
   let synth = new Synthesizer(stub, EXAMPLES, settings.literal);
@@ -83,6 +85,25 @@ export function installTalk(game: Game, player: Player, ui: Ui) {
   function runBench() {
     if (!draft) return;
     const el = say('note', 'Testing in the sandbox…');
+    // a live look at the same kind of test: drop it, then pour water on it
+    if (view) {
+      const w = new World(flatTerrain(900, 600), undefined, 256, 1024);
+      const sp = spawnGrid(w, draft.grid, 450, 600 - draft.grid.length * 6 - 40);
+      let steps = 0;
+      view.showWorld(`Test bench: ${draft.name}`, 'dropped on flat ground, then 40 water particles poured on it', w,
+        () => { let x = 0, n = 0; for (const i of sp.nodes) if (w.alive[i]) { x += w.x[i]; n++; } return { x: n ? x / n : 450, y: 600 }; },
+        () => {
+          for (let k = 0; k < 2; k++) {
+            w.step(); steps++;
+            if (steps > 100 && steps <= 180 && steps % 2 === 0) {
+              let top = 600, cx = 0, n = 0;
+              for (const i of sp.nodes) if (w.alive[i]) { top = Math.min(top, w.y[i]); cx += w.x[i]; n++; }
+              w.addNode(Mat.Water, (n ? cx / n : 450) + ((steps * 7) % 21) - 10, top - 60);
+            }
+          }
+          return steps < 600;
+        });
+    }
     setTimeout(() => {
       if (!draft) return;
       try { report = benchReport(draft.grid); } catch (e) { report = `The test could not run: ${(e as Error).message}`; }
