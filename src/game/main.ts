@@ -1,5 +1,5 @@
 import './style.css';
-import { GRID_RULES, Mat, spawnGrid } from '../sim';
+import { GRID_RULES, LAYOUT, Mat, exportRegion, importRegion, spawnGrid } from '../sim';
 import { installCycle } from './cycle';
 import { h } from './dom';
 import { Game } from './game';
@@ -46,6 +46,34 @@ cycle.onPhase((p) => { if (p === 'dream') save(true); });
 ui.onNewWorld.push(() => { clearSave(); player.day = 1; cycle.reset(); });
 const mute = h('button', { onclick: () => { setMuted(!isMuted()); mute.textContent = isMuted() ? 'Sound off' : 'Sound on'; } }, 'Sound on');
 ui.menu.prepend(h('button', { onclick: () => save() }, 'Save now'), h('button', { onclick: () => load() }, 'Load last save'), mute);
+// ------------------------------------------------------ sharing a base
+const BASE_X0 = LAYOUT.home.x0 - 100, BASE_X1 = LAYOUT.ditch.x + LAYOUT.ditch.halfWidth + 30;
+const shareText = h('textarea#sharetext', { rows: 7, spellcheck: 'false', placeholder: 'Base text appears here, or paste someone else\'s here' }) as HTMLTextAreaElement;
+const shareMsg = h('div.stat', {}, 'A base is everything between your home site and the ditch: structures, berries and water.');
+const share = h('div.panel#share', { hidden: true },
+  h('h2', {}, 'Share a base'),
+  shareMsg, shareText,
+  h('div.row', {},
+    h('button.primary', { onclick: async () => {
+      shareText.value = exportRegion(game.world, BASE_X0, BASE_X1);
+      shareText.select();
+      try { await navigator.clipboard.writeText(shareText.value); shareMsg.textContent = `Copied ${Math.round(shareText.value.length / 1024)} KB of base text. Paste it to a friend.`; }
+      catch { shareMsg.textContent = 'The text is selected below: copy it.'; }
+    } }, 'Copy my base'),
+    h('button', { onclick: () => {
+      if (cycle.phase !== 'day') { shareMsg.textContent = 'Wait for day before loading a base.'; return; }
+      try {
+        const n = importRegion(game.world, shareText.value, BASE_X0, BASE_X1);
+        shareMsg.textContent = `Loaded a base of ${n} pieces. Your own base was replaced.`;
+        game.centerOn(LAYOUT.home.stashX);
+      } catch (e) { shareMsg.textContent = `Could not load that: ${(e as Error).message}`; }
+    } }, 'Replace my base with this text'),
+    h('span.spacer'),
+    h('button', { onclick: () => { share.hidden = true; } }, 'Close')),
+);
+document.getElementById('ui')!.append(share);
+ui.menu.prepend(h('button', { onclick: () => { share.hidden = false; ui.menu.hidden = true; } }, 'Share a base…'));
+
 if (load(true)) ui.toast(`Welcome back: day ${player.day}`);
 else if (!game.world.count(Mat.Berry)) spawnStash(game.world);
 

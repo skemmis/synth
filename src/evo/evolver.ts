@@ -6,20 +6,27 @@ import type { TrialResult } from './trial';
 
 export interface Elite { genome: Genome; fitness: number; result: TrialResult; niche: string; night: number }
 
-/** niche = body size class + what it is mostly made of */
-export function nicheOf(g: Genome): string {
+export type Gait = 'crawler' | 'hopper' | 'leaper';
+export function gaitOf(peak: number): Gait {
+  return peak < 3 ? 'crawler' : peak < 8 ? 'hopper' : 'leaper';
+}
+
+/**
+ * niche = how it moves (from the trial) + body size + what it is armed with.
+ * Keying on behaviour, not just materials, is what keeps raids from all
+ * being the same trick in different colours.
+ */
+export function nicheOf(g: Genome, result?: TrialResult): string {
   const n = cellCount(g.grid);
   const size = n < 9 ? 'small' : n < 18 ? 'medium' : 'large';
   const counts: Record<string, number> = {};
   for (const row of g.grid) for (const c of row) if (c !== '.' && c !== 'H') counts[c] = (counts[c] ?? 0) + 1;
   const total = Math.max(1, n - 1);
-  let kind = 'woody';
+  let kind = 'plain';
   if ((counts.T ?? 0) / total >= 0.12) kind = 'thorny';
   else if ((counts.P ?? 0) / total >= 0.12) kind = 'sticky';
   else if ((counts.S ?? 0) / total >= 0.3) kind = 'stony';
-  else if ((counts.N ?? 0) / total >= 0.5) kind = 'fleshy';
-  else if ((counts.F ?? 0) / total >= 0.3) kind = 'stringy';
-  return `${size} ${kind}`;
+  return `${size} ${kind} ${result ? gaitOf(result.peak) : 'crawler'}`;
 }
 
 export interface EvolverState { archive: Elite[]; rngState: number; night: number; trials: number }
@@ -63,7 +70,7 @@ export class Evolver {
 
   report(genome: Genome, result: TrialResult): boolean {
     this.trials++;
-    const niche = nicheOf(genome);
+    const niche = nicheOf(genome, result);
     const cur = this.archive.get(niche);
     const h = this.history.length - 1;
     if (h >= 0 && result.fitness > this.history[h]) this.history[h] = result.fitness;
@@ -74,9 +81,17 @@ export class Evolver {
     return false;
   }
 
-  /** the best n elites, each from a different niche */
+  /** the best n elites, preferring ones that move differently from those already picked */
   best(n: number): Elite[] {
-    return [...this.archive.values()].sort((a, b) => b.fitness - a.fitness).slice(0, n);
+    const sorted = [...this.archive.values()].sort((a, b) => b.fitness - a.fitness);
+    const out: Elite[] = [];
+    const gaits = new Set<string>();
+    for (const e of sorted) {
+      const gait = e.niche.split(' ')[2];
+      if (out.length < n && !gaits.has(gait)) { out.push(e); gaits.add(gait); }
+    }
+    for (const e of sorted) if (out.length < n && !out.includes(e)) out.push(e);
+    return out.sort((a, b) => b.fitness - a.fitness);
   }
 
   get bestFitness(): number {

@@ -101,9 +101,10 @@ export class World {
   hand: Hand = { active: false, x: 0, y: 0, angle: 0, grip: [], ox: [], oy: [] };
 
   // spatial hash scratch (not part of state)
-  private bucketStart!: Int32Array;
-  private entries!: Int32Array;
-  private nodeBucket!: Int32Array;
+  private bucketHead!: Int32Array;
+  private bucketStamp!: Int32Array;
+  private nextInBucket!: Int32Array;
+  private stamp = 0;
   private mask = 0;
 
   constructor(public terrain: Terrain, public cfg: Config = CONFIG, cap = 1024, bcap = 4096) {
@@ -114,14 +115,17 @@ export class World {
     this.sizeHash();
   }
 
-  /** the collision table scales with capacity, so small arenas stay cheap to step */
+  /**
+   * Collision lookup: a hashed grid of linked lists, validated by a stamp so
+   * nothing is cleared between builds. Its size is fixed, so a world and a
+   * copy of it visit neighbours in exactly the same order.
+   */
   private sizeHash() {
-    const bits = Math.min(this.cfg.hash.tableBits, Math.max(6, Math.ceil(Math.log2(this.cap)) + 1));
-    const size = 1 << bits;
+    const size = 1 << this.cfg.hash.tableBits;
     this.mask = size - 1;
-    this.bucketStart = new Int32Array(size + 1);
-    this.entries = new Int32Array(this.cap);
-    this.nodeBucket = new Int32Array(this.cap);
+    this.bucketHead = new Int32Array(size);
+    this.bucketStamp = new Int32Array(size);
+    this.nextInBucket = new Int32Array(this.cap);
   }
 
   // ---------------------------------------------------------------- storage
@@ -147,7 +151,7 @@ export class World {
     this.trC = grow(this.trC, Int32Array, 4);
     this.trS = grow(this.trS, Float32Array, 4);
     this.cap = cap;
-    if (this.bucketStart) this.sizeHash();
+    if (this.bucketHead) this.nextInBucket = new Int32Array(cap);
   }
 
   private allocBonds(bcap: number) {
@@ -484,25 +488,16 @@ export class World {
   }
 
   private buildHash() {
-    const { x, y, alive, bucketStart, entries, nodeBucket } = this;
+    const { x, y, alive, bucketHead, bucketStamp, nextInBucket } = this;
     const inv = 1 / this.cfg.hash.cell;
-    bucketStart.fill(0);
-    let total = 0;
-    for (let i = 0; i < this.n; i++) {
-      if (!alive[i]) continue;
-      const b = this.bucketOf(Math.floor(x[i] * inv), Math.floor(y[i] * inv));
-      nodeBucket[i] = b;
-      bucketStart[b]++;
-      total++;
-    }
-    const size = this.mask + 1;
-    for (let b = 1; b < size; b++) bucketStart[b] += bucketStart[b - 1];
-    bucketStart[size] = total;
-    // fill from the end so each bucket lists nodes in ascending index order;
-    // afterwards bucket b spans bucketStart[b] .. bucketStart[b + 1]
+    const stamp = ++this.stamp;
+    // insert from the end so each bucket lists nodes in ascending index order
     for (let i = this.n - 1; i >= 0; i--) {
       if (!alive[i]) continue;
-      entries[--bucketStart[nodeBucket[i]]] = i;
+      const b = this.bucketOf(Math.floor(x[i] * inv), Math.floor(y[i] * inv));
+      if (bucketStamp[b] !== stamp) { bucketStamp[b] = stamp; bucketHead[b] = -1; }
+      nextInBucket[i] = bucketHead[b];
+      bucketHead[b] = i;
     }
   }
 
@@ -562,7 +557,8 @@ export class World {
 
   private solveContacts(h: number) {
     const cfg = this.cfg;
-    const { x, y, px, py, rad, invM, mat, alive, bucketStart, entries, accX, accY, head } = this;
+    const { x, y, px, py, rad, invM, mat, alive, bucketHead, bucketStamp, nextInBucket, accX, accY, head } = this;
+    const stamp = this.stamp;
     const inv = 1 / cfg.hash.cell;
     const range = cfg.water.range;
     const dragF = Math.min(1, cfg.water.drag * h);
@@ -585,9 +581,8 @@ export class World {
           for (let s = 0; s < ns; s++) if (seen[s] === b) { dup = true; break; }
           if (dup) continue;
           seen[ns++] = b;
-          const end = bucketStart[b + 1];
-          for (let e = bucketStart[b]; e < end; e++) {
-            const j = entries[e];
+          if (bucketStamp[b] !== stamp) continue;
+          for (let j = bucketHead[b]; j >= 0; j = nextInBucket[j]) {
             if (j <= i || !alive[j]) continue;
             let dx = x[j] - x[i], dy = y[j] - y[i];
             const rs = rad[i] + rad[j];
@@ -799,19 +794,57 @@ export class World {
    */
   extract(x0: number, x1: number): World {
     const w = new World(this.terrain, this.cfg, 512, 2048);
-    const map = new Int32Array(this.n).fill(-1);
     w.time = this.time; w.tick = this.tick; w.subTick = this.subTick;
     w.nextBody = this.nextBody;
     w.bodyKind = this.bodyKind.slice(); w.bodyDamage = this.bodyDamage.slice();
     w.bodyEaten = this.bodyEaten.slice(); w.bodyHeart = this.bodyHeart.map(() => -1);
+    this.copyInto(w, (i) => this.x[i] >= x0 && this.x[i] <= x1, false);
+    return w;
+  }
+
+  /**
+   * Switch off everything outside [x0, x1] in place: nodes keep their index
+   * and nothing is returned to the free lists, so a new body spawned into
+   * this copy gets exactly the node and bond numbers it would get in the
+   * original. That is what makes a dream trial match the raid step for step.
+   */
+  maskOutside(x0: number, x1: number): this {
+    const out = new Uint8Array(this.n);
     for (let i = 0; i < this.n; i++) {
-      if (!this.alive[i] || this.x[i] < x0 || this.x[i] > x1) continue;
-      const j = w.addNode(this.mat[i], this.x[i], this.y[i], this.body[i], this.rad[i]);
+      if (this.alive[i] && (this.x[i] < x0 || this.x[i] > x1)) out[i] = 1;
+    }
+    for (let k = 0; k < this.bn; k++) {
+      if (!this.balive[k]) continue;
+      const a = out[this.ba[k]], b = out[this.bb[k]];
+      if (a && b) this.balive[k] = 0;        // wholly outside: just stop solving it
+      else if (a || b) this.removeBond(k);   // straddles the edge: cut it properly
+    }
+    for (let i = 0; i < this.n; i++) if (out[i]) { this.alive[i] = 0; this.anch[i] = 0; }
+    this.hand.active = false;
+    return this;
+  }
+
+  /** Add every node of another world to this one (bodies get fresh ids). Used to load a shared base. */
+  absorb(src: World) {
+    src.copyInto(this, () => true, true);
+  }
+
+  private copyInto(w: World, keep: (i: number) => boolean, newBodies: boolean) {
+    const map = new Int32Array(this.n).fill(-1);
+    const bodyMap = new Map<number, number>();
+    for (let i = 0; i < this.n; i++) {
+      if (!this.alive[i] || !keep(i)) continue;
+      let body = this.body[i];
+      if (newBodies && body >= 0) {
+        if (!bodyMap.has(body)) bodyMap.set(body, w.newBody(this.bodyKind[body] ?? 0));
+        body = bodyMap.get(body)!;
+      }
+      const j = w.addNode(this.mat[i], this.x[i], this.y[i], body, this.rad[i]);
       map[i] = j;
       w.px[j] = this.px[i]; w.py[j] = this.py[i];
       w.hp[j] = this.hp[i]; w.head[j] = this.head[i]; w.wn[j] = this.wn[i];
       w.anch[j] = this.anch[i]; w.ax[j] = this.ax[i]; w.ay[j] = this.ay[i];
-      w.stickCd[j] = this.stickCd[i]; w.hurtCd[j] = this.hurtCd[i];
+      if (!newBodies) { w.stickCd[j] = this.stickCd[i]; w.hurtCd[j] = this.hurtCd[i]; }
     }
     for (let k = 0; k < this.bn; k++) {
       if (!this.balive[k]) continue;
@@ -833,7 +866,6 @@ export class World {
         if (map[a] >= 0 && map[c] >= 0) w.addBrace(map[a], j, map[c], this.trS[i * 4 + s]);
       }
     }
-    return w;
   }
 
   /** FNV-1a over positions of live nodes; used by the determinism test */

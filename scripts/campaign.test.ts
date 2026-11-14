@@ -38,7 +38,7 @@ test('campaign', async () => {
       const t0 = performance.now();
       const elites = await runNight(evo, makeArena(world), pool, { batch: 8 });
       const r = runRaid(world, elites);
-      rows.push(`  night ${night}: dream best ${evo.history[night - 1].toFixed(0).padStart(5)}  raid ate ${r.eaten}, ${r.killed} killed, ${r.survivors} home, ${r.berriesLeft} left   [${elites.map((e) => nicheOf(e.genome) + ' ' + e.genome.grid.join('/')).join(' | ')}]  (${((performance.now() - t0) / 1000).toFixed(0)}s)`);
+      rows.push(`  night ${night}: dream best ${evo.history[night - 1].toFixed(0).padStart(5)}  raid ate ${r.eaten}, ${r.killed} killed, ${r.survivors} home, ${r.berriesLeft} left   [${elites.map((e) => e.niche + ' ' + e.genome.grid.join('/')).join(' | ')}]  (${((performance.now() - t0) / 1000).toFixed(0)}s)`);
       if (r.berriesLeft === 0) break;
     }
     appendFileSync(OUT, `${kind}\n${rows.join('\n')}\n\n`);

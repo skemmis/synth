@@ -1,2 +1,12 @@
 Campaign: 8 nights, 400 trials a night, 12 berries, no rebuilding between nights
 
+open
+  night 1: dream best    46  raid ate 0, 2 killed, 1 home, 12 left   [small fleshy .H./WNN/NFN | small stringy .H.F/WFN./NFN. | small woody .HW/WFN/NFN]  (22s)
+  night 2: dream best   984  raid ate 0, 0 killed, 3 home, 12 left   [small woody .H./WNN/.FN/.W./.W. | small stringy .H.F/WFN./NFN. | medium stringy ..HW/.WFN/FNFN]  (31s)
+  night 3: dream best  1183  raid ate 0, 0 killed, 3 home, 12 left   [small woody .H./WNN/.FN/.W./.W. | medium fleshy ..H./NWNN/..FN/..W./..W. | small sticky .H./WNP/.FN/.W./.W.]  (28s)
+  night 4: dream best   683  raid ate 0, 0 killed, 3 home, 12 left   [small woody ..HW/.WFN/W.FN | medium fleshy ..H./.WFN/WNFN/.N.. | medium sticky ..HW/.WFN/FPFN]  (29s)
+  night 5: dream best   383  raid ate 0, 0 killed, 3 home, 12 left   [small woody .HW/WFN/NFN | medium fleshy ..HW/.WFN/NNFN | small thorny ..HW/.WFN/T.FN]  (28s)
+  night 6: dream best   483  raid ate 0, 0 killed, 3 home, 12 left   [small woody .HW/WFN/NFN | medium stringy ..HW./.WFNF/W.FN./...N. | medium woody NHWW/WFNW/NFN.]  (28s)
+  night 7: dream best   783  raid ate 0, 0 killed, 3 home, 12 left   [medium fleshy ...H./..WNN/SN.FN/.N.../.N... | small woody .HW/WFN/NFN | medium stringy ..HW./.WFNF/W.FN./...N.]  (30s)
+  night 8: dream best   284  raid ate 0, 0 killed, 3 home, 12 left   [small fleshy ...H./..WNN/NW.FN | medium fleshy ..WH./..WNN/NW.FN | medium stringy ..HW./WWFNF/W.FN./...N.]  (28s)
+

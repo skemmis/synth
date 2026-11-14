@@ -187,3 +187,40 @@ the hammer hits too softly (see above); the lid let stones in. Passing at the th
 ### Gate
 "Sam plays five nights and wants a sixth": **pending Sam.** Scripted playtests cover a paid first day,
 three nights against a caged base, and save and reload.
+
+## After milestone 5: what playtesting changed
+
+### The dream did not predict the raid (fixed)
+A headless campaign (fixed bases, eight nights) showed the burrow's best dream body "eating" ten berries
+while the real raids ate none, night after night. Three causes, three changes:
+
+1. **Every seed got stuck in the dry ditch.** It was 70 deep with sides at about 60 degrees, which is a
+   pit, not a ditch. Now 58 deep with sides at about 40 degrees. A moat is still possible and still needs
+   carried water.
+2. **Evolution was selecting lucky hops.** Crossing the ditch was a knife-edge event, and a body that
+   managed it from one exact start position scored as a success. Each body is now tried from two start
+   positions 30 units apart and scored on the worse run. This halves the number of bodies per night for
+   the same step budget.
+3. **The arena was not the live world.** Cutting the arena out as a compact copy renumbered the nodes,
+   and the collision table size depended on world size, so the same body took a slightly different path
+   in the raid. The arena is now a copy of the live world with everything far from the raid route
+   switched off in place (`World.maskOutside`), and the collision table is a fixed-size stamped hash. A
+   test asserts that a body in the arena and the same body in the live world have identical heart
+   positions after 600 steps. `World.extract` remains for sharing bases.
+
+The first raider out of the burrow now does exactly what the dream showed, provided the base is not touched
+in between. The second and third leave 4 and 8 seconds later, so their muscle phase differs from the
+dream; that is an accepted difference.
+
+### Niches now include behaviour
+A niche is size class, armament (plain, stony, thorny, sticky) and gait: crawler, hopper or leaper, by how
+high the heart got in the trial. Raids pick bodies with different gaits first. This is aimed at the
+failed half of the milestone 4 gate (only one breach strategy).
+
+### Added beyond the PRD's proof-of-concept scope
+- **Sharing a base as text** (Menu → Share a base): everything from the home site to the ditch, about
+  4 KB for a small base. Round-trip tested.
+- **Live test bench**: the Test button also drops the draft and pours water on it in a small window.
+- **Variants** (`VITE_VARIANT`): `garden` (no raids, no costs) and `tame` (open question 3: hearts can be
+  taken from the burrow, two a day, and built into creatures of your own; they stay at dawn, and they eat
+  berries they touch, including yours).
