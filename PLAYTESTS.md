@@ -171,3 +171,19 @@ Saved games (09) with gathering changed. Click-and-wait is gone. Each dawn every
 - Pocketing works anywhere, so nothing has to be carried home. Hauling (a cart, a raft across the pond) would be the physical version; it is not tried here.
 - First attempt scattered the logs at random angles, some inside each other, and they burst into single nodes on spawn. Now laid out in rows.
 - Pitch pieces glue themselves to the ground where they land. You can still pick them up; it looks odd.
+
+## 11 Haul it home (`play/11-haul-it-home.html`)
+
+Daily crop (10) with one rule changed: X only works at home, marked by a yellow strip on the ground. Crop has to be carried there. Dead raiders have to be dragged there to be salvaged. The book starts with a pail and a raft, and you start with just enough wood for the pail.
+
+**What worked**
+- Distance is now a cost. Scripted: one log carried by hand from the tree to home took 6.6 seconds. The tree's eight logs are 53 seconds of a 100 second day, before stone, thorn or pitch. You cannot bring everything home, so you choose.
+- Containers do carry. Headless (`scripts/haul.ts`), pulled 1,500 units by the handle: the bucket brought home everything that was inside it, the pail 4 of 9 log nodes at walking pace and 7 of 9 at a run. So a pail is worth two or three trips by hand.
+- X at the tree does nothing and says "carry it home first".
+
+**What did not**
+- Loading a container is fiddly. In the scripted run the logs dropped onto the pail's rim and handle, not into it, and none arrived. The pail's rope handle sits across its own mouth. A person may do better; the recipe should make it easy and does not.
+- A basket with a tall rope handle carried nothing home: it swings and tips everything out.
+- The bucket's centre post splits it into two slots only two nodes wide, so three-node logs do not lie flat in it.
+- The sources stand 220 apart and each drops crop 100 either side, so there is no clear ground to set a container down next to the tree.
+- No raft run was tried. The pond is between nothing and nothing in this layout, so a raft has no job.
