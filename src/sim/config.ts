@@ -26,8 +26,9 @@ export const CONFIG = {
   damage: {
     /** damage = sharpness * speed * sharpScale - hardness */
     sharpScale: 0.03,
-    /** damage = reducedMass * approachSpeed * crushScale - hardness */
-    crushScale: 0.006,
+    /** damage = reducedMass * approachSpeed * crushScale - hardness, where each side's mass
+     *  is the node plus what is bonded directly to it */
+    crushScale: 0.002,
     /** contacts slower than this never hurt */
     minSpeed: 10,
     /** a node can be hurt at most once per this many seconds */
@@ -46,10 +47,18 @@ export const CONFIG = {
     radiusJitter: 0.5,
     /** water-solid pairs closer than (r1+r2)*range exchange buoyancy and drag */
     range: 1.25,
-    /** number of touching water particles that count as fully submerged */
-    fullContacts: 8,
+    /** gain on hydrostatic pressure (1 = a submerged cell is lifted by one cell of water) */
+    lift: 1,
+    /** deepest a particle can count as being, in world units */
+    maxDepth: 150,
+    /** water particles closer than (r1+r2)*touch belong to the same body of water */
+    touch: 1.2,
+    /** speed of the random jiggle that keeps packed water from jamming, units/s */
+    jiggle: 40,
+    /** how fast a particle's idea of the surface level sinks when nothing holds it up, units/s */
+    headRise: 40,
     /** per second velocity exchange between a node and touching water */
-    drag: 3.0,
+    drag: 0.3,
   },
 
   sinew: { frequency: 1.4 },

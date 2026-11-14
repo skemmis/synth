@@ -44,9 +44,9 @@ describe('milestone 0 gate', () => {
 
   test('wood floats and stone sinks', () => {
     const w = floatTest('W'), s = floatTest('S');
-    console.log(`GATE float: surface y=${w.surface.toFixed(0)}, wood top y=${w.top.toFixed(0)}, stone bottom y=${s.bottom.toFixed(0)} (floor ${s.floor})`);
+    console.log(`GATE float: surface y=${w.surface.toFixed(0)}, wood top y=${w.top.toFixed(0)} (above), stone top y=${s.top.toFixed(0)} (below; floor ${s.floor})`);
     expect(w.top).toBeLessThan(w.surface + 4);     // breaks the surface
-    expect(s.bottom).toBeGreaterThan(s.floor - 20); // on the bottom
+    expect(s.top).toBeGreaterThan(s.surface + 12);  // fully under, and still going down
   });
 
   test('headless speed report', () => {

@@ -78,3 +78,15 @@ export function flatTerrain(width: number, y: number): Terrain {
   const n = Math.ceil(width / 8) + 1;
   return new Terrain(width, new Float32Array(n).fill(y));
 }
+
+/** A basin with sloped sides, for float tests: floor at y between x0 and x1, banks `depth` higher. */
+export function tankTerrain(width: number, x0: number, x1: number, y: number, depth: number): Terrain {
+  const n = Math.ceil(width / 8) + 1;
+  const h = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = i * 8;
+    const out = Math.max(x0 - x, x - x1, 0);
+    h[i] = y - Math.min(depth, out * 1.2);
+  }
+  return new Terrain(width, h);
+}

@@ -38,7 +38,7 @@ export interface BondOpts {
   freq?: number;
 }
 
-const NODE_F64 = ['x', 'y', 'px', 'py', 'rad', 'invM', 'accX', 'accY', 'ax', 'ay', 'stickCd', 'hurtCd'] as const;
+const NODE_F64 = ['x', 'y', 'px', 'py', 'rad', 'invM', 'accX', 'accY', 'ax', 'ay', 'stickCd', 'hurtCd', 'head'] as const;
 const BOND_F32 = ['bstiff', 'blimit', 'bamp', 'bphase', 'bfreq'] as const;
 
 /**
@@ -53,11 +53,15 @@ export class World {
   rad!: Float64Array; invM!: Float64Array;
   accX!: Float64Array; accY!: Float64Array;
   ax!: Float64Array; ay!: Float64Array; stickCd!: Float64Array;
+  /** water only: y of the free surface of the body of water this particle belongs to */
+  head!: Float64Array;
   /** time until this node can be hurt again */
   hurtCd!: Float64Array;
   hp!: Float32Array;
   mat!: Uint8Array; alive!: Uint8Array; anch!: Uint8Array; stickN!: Uint8Array;
-  wcount!: Uint8Array; adjN!: Uint8Array;
+  adjN!: Uint8Array;
+  /** water only: touching water neighbours seen in the last contact pass */
+  wn!: Uint8Array;
   body!: Int32Array; adj!: Int32Array;
   /** braces: for node i, slots i*4..i*4+3 hold the two ends of a straight run through it */
   trA!: Int32Array; trC!: Int32Array; trS!: Float32Array;
@@ -73,6 +77,7 @@ export class World {
   freeBonds: number[] = [];
 
   tick = 0;
+  subTick = 0;
   time = 0;
   nextBody = 0;
   /** per body: 0 = object, 1 = creature */
@@ -118,8 +123,8 @@ export class World {
     this.alive = grow(this.alive, Uint8Array);
     this.anch = grow(this.anch, Uint8Array);
     this.stickN = grow(this.stickN, Uint8Array);
-    this.wcount = grow(this.wcount, Uint8Array);
     this.adjN = grow(this.adjN, Uint8Array);
+    this.wn = grow(this.wn, Uint8Array);
     this.body = grow(this.body, Int32Array);
     this.adj = grow(this.adj, Int32Array, ADJ);
     this.trA = grow(this.trA, Int32Array, 4);
@@ -172,12 +177,12 @@ export class World {
     this.accX[i] = this.accY[i] = 0;
     this.stickCd[i] = 0;
     this.hurtCd[i] = 0;
+    this.head[i] = y;
     this.hp[i] = m.hitPoints;
     this.mat[i] = mat;
     this.alive[i] = 1;
     this.anch[i] = 0;
     this.stickN[i] = 0;
-    this.wcount[i] = 0;
     this.adjN[i] = 0;
     for (let a = 0; a < 4; a++) this.trA[i * 4 + a] = -1;
     this.body[i] = body;
@@ -312,6 +317,17 @@ export class World {
     return out;
   }
 
+  /** mass of a node plus the nodes bonded directly to it */
+  clusterMass(i: number): number {
+    let m = 1 / this.invM[i];
+    const base = i * ADJ;
+    for (let s = this.adjN[i] - 1; s >= 0; s--) {
+      const k = this.adj[base + s];
+      m += 1 / this.invM[this.ba[k] === i ? this.bb[k] : this.ba[k]];
+    }
+    return m;
+  }
+
   damage(i: number, amount: number) {
     if (amount <= 0 || !this.alive[i] || this.hurtCd[i] > this.time) return;
     this.hurtCd[i] = this.time + this.cfg.damage.cooldown;
@@ -383,7 +399,7 @@ export class World {
   private integrate(h: number) {
     const cfg = this.cfg;
     const h2 = h * h;
-    const { x, y, px, py, accX, accY, alive, wcount, invM } = this;
+    const { x, y, px, py, accX, accY, alive, invM } = this;
     // The hand: a spring on the gripped nodes, with a cap on total force.
     const hand = this.hand;
     if (hand.active && hand.grip.length) {
@@ -411,13 +427,14 @@ export class World {
     const damp = 1 - cfg.airDamping * h;
     const maxD = cfg.maxSpeed * h;
     const gh2 = cfg.gravity * h2;
-    const full = cfg.water.fullContacts;
+    const rise = cfg.water.headRise * h;
+    const jig = cfg.water.jiggle * h;
+    const sub = this.subTick++;
+    const { head, mat } = this;
     for (let i = 0; i < this.n; i++) {
       if (!alive[i]) continue;
-      let bs = h2;
-      if (wcount[i] > full) bs *= full / wcount[i];
-      let vx = (x[i] - px[i]) * damp + accX[i] * bs;
-      let vy = (y[i] - py[i]) * damp + accY[i] * bs + gh2;
+      let vx = (x[i] - px[i]) * damp + accX[i] * h2;
+      let vy = (y[i] - py[i]) * damp + accY[i] * h2 + gh2;
       const v2 = vx * vx + vy * vy;
       if (v2 > maxD * maxD) {
         const f = maxD / Math.sqrt(v2);
@@ -425,7 +442,25 @@ export class World {
       }
       px[i] = x[i]; py[i] = y[i];
       x[i] += vx; y[i] += vy;
-      accX[i] = 0; accY[i] = 0; wcount[i] = 0;
+      accX[i] = 0; accY[i] = 0;
+      if (mat[i] === WATER) {
+        // Thermal jiggle: packed circles jam like sand, and a little seeded
+        // noise is what lets them flow like a liquid. Only below the surface layer,
+        // so a full bucket does not shed its top row.
+        if (this.wn[i] && y[i] - head[i] > 9) {
+          let r = Math.imul(i + 1, 0x9e3779b1) ^ Math.imul(sub, 0x85ebca6b);
+          r = Math.imul(r ^ (r >>> 15), 0x2c1b3c6d);
+          r ^= r >>> 12;
+          // moved without momentum: position and previous position shift together
+          const jx = (((r & 0xffff) / 32768) - 1) * jig, jy = ((((r >>> 16) & 0xffff) / 32768) - 1) * jig;
+          x[i] += jx; px[i] += jx; y[i] += jy; py[i] += jy;
+        }
+        // the surface estimate drifts down each step and is pulled back up by neighbours
+        // a lone droplet is its own surface
+        const hd = this.wn[i] ? head[i] + rise : y[i];
+        head[i] = hd < y[i] ? hd : y[i];
+        this.wn[i] = 0;
+      }
     }
   }
 
@@ -512,11 +547,14 @@ export class World {
 
   private solveContacts(h: number) {
     const cfg = this.cfg;
-    const { x, y, px, py, rad, invM, mat, alive, bucketStart, entries, accY, wcount } = this;
+    const { x, y, px, py, rad, invM, mat, alive, bucketStart, entries, accX, accY, head } = this;
     const inv = 1 / cfg.hash.cell;
     const range = cfg.water.range;
     const dragF = Math.min(1, cfg.water.drag * h);
-    const buoy = cfg.gravity / cfg.water.fullContacts;
+    // pressure per unit depth on one particle's worth of surface, in mass x acceleration
+    const pressK = (cfg.gravity / 144) * 7.2 * cfg.water.lift;
+    const maxDepth = cfg.water.maxDepth;
+    const touch = cfg.water.touch;
     const minSp = cfg.damage.minSpeed * h;
     const sharpK = cfg.damage.sharpScale / h;
     const crushK = cfg.damage.crushScale / h;
@@ -541,24 +579,35 @@ export class World {
             const mi = mat[i], mj = mat[j];
             const wi = mi === WATER, wj = mj === WATER;
             const mixed = wi !== wj;
-            const reach = mixed ? rs * range : rs;
+            const reach = mixed ? rs * range : wi ? rs * touch : rs;
             const d2 = dx * dx + dy * dy;
             if (d2 >= reach * reach) continue;
             const im = invM[i], jm = invM[j];
             const wsum = im + jm;
             if (mixed) {
-              // rule 6: buoyancy and drag, exchanged pairwise so momentum is conserved
+              // rule 6: water pushes on what it touches, harder the deeper it is, and
+              // is pushed back equally (so momentum is conserved); plus drag
               const sN = wi ? j : i, wN = wi ? i : j;
-              const rr = rad[sN] / 6;
-              const F = buoy * rr * rr; // weight of displaced water / fullContacts
-              accY[sN] -= F * invM[sN];
-              accY[wN] += F * invM[wN];
-              if (wcount[sN] < 255) wcount[sN]++;
+              let depth = y[wN] - head[wN];
+              if (depth > 0) {
+                if (depth > maxDepth) depth = maxDepth;
+                const dd = Math.sqrt(d2) || 1e-9;
+                const sgn = wi ? 1 : -1; // normal from the water particle to the node
+                const F = pressK * depth;
+                const fx = (dx / dd) * sgn * F, fy = (dy / dd) * sgn * F;
+                accX[sN] += fx * invM[sN]; accY[sN] += fy * invM[sN];
+                accX[wN] -= fx * invM[wN]; accY[wN] -= fy * invM[wN];
+              }
               const dvx = (x[j] - px[j]) - (x[i] - px[i]);
               const dvy = (y[j] - py[j]) - (y[i] - py[i]);
               const ex = dvx * dragF / wsum, ey = dvy * dragF / wsum;
               px[i] -= ex * im; py[i] -= ey * im;
               px[j] += ex * jm; py[j] += ey * jm;
+              if (d2 >= rs * rs) continue;
+            } else if (wi) {
+              // touching water shares one surface level: the highest point of the body
+              if (head[i] < head[j]) head[j] = head[i]; else head[i] = head[j];
+              this.wn[i] = 1; this.wn[j] = 1;
               if (d2 >= rs * rs) continue;
             }
             let frictionless = wi || wj;
@@ -581,7 +630,8 @@ export class World {
                   let di = M_SHARP[mj] * sp * sharpK - M_HARD[mi];
                   let dj = M_SHARP[mi] * sp * sharpK - M_HARD[mj];
                   if (vn > 0) {
-                    const J = (vn / wsum) * crushK;
+                    // a node hits with the weight of what is bonded behind it
+                    const J = (vn / (1 / this.clusterMass(i) + 1 / this.clusterMass(j))) * crushK;
                     if (J - M_HARD[mi] > di) di = J - M_HARD[mi];
                     if (J - M_HARD[mj] > dj) dj = J - M_HARD[mj];
                   }
@@ -682,11 +732,11 @@ export class World {
   clone(terrain: Terrain = this.terrain): World {
     const w = new World(terrain, this.cfg, this.cap, this.bcap);
     const self = this as any, o = w as any;
-    for (const k of [...NODE_F64, 'hp', 'mat', 'alive', 'anch', 'stickN', 'wcount', 'adjN', 'body', 'adj',
+    for (const k of [...NODE_F64, 'hp', 'mat', 'alive', 'anch', 'stickN', 'adjN', 'wn', 'body', 'adj',
       'ba', 'bb', 'brest', 'trA', 'trC', 'trS', ...BOND_F32, 'bflag', 'balive']) o[k].set(self[k]);
     w.n = this.n; w.bn = this.bn;
     w.freeNodes = this.freeNodes.slice(); w.freeBonds = this.freeBonds.slice();
-    w.tick = this.tick; w.time = this.time; w.nextBody = this.nextBody;
+    w.tick = this.tick; w.subTick = this.subTick; w.time = this.time; w.nextBody = this.nextBody;
     w.bodyKind = this.bodyKind.slice(); w.bodyDamage = this.bodyDamage.slice();
     w.bodyEaten = this.bodyEaten.slice(); w.bodyHeart = this.bodyHeart.slice();
     w.berriesEaten = this.berriesEaten;

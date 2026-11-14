@@ -3,7 +3,7 @@
 import { CONFIG } from './config';
 import { parseGrid, pourWater, spawnGrid } from './grid';
 import { Mat, NODE_RADIUS } from './materials';
-import { LAYOUT, Terrain, flatTerrain, makeTerrain } from './terrain';
+import { LAYOUT, flatTerrain, makeTerrain, tankTerrain } from './terrain';
 import { World } from './world';
 
 const D = NODE_RADIUS * 2;
@@ -173,8 +173,7 @@ export function tugBlock(grid: string[], pull = 70, seconds = 1.0) {
 
 /** Drop a single-material block into deep water; where does it settle relative to the surface? */
 export function floatTest(glyph: string) {
-  const ter = new Terrain(400, new Float32Array(51).map((_, i) => (i < 6 || i > 44 ? 300 : 520)));
-  const world = new World(ter);
+  const world = new World(tankTerrain(400, 50, 350, 520, 220));
   pourWater(world, 50, 380, 350, 520);
   run(world, 2);
   const grid = parseGrid(`${glyph}${glyph}\n${glyph}${glyph}`);
