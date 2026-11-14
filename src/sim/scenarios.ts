@@ -87,14 +87,19 @@ export function bucketCarry(grid: string[] = BUCKET, seed = 1) {
   run(world, 1.2, () => { turn(1.25); moveHand(world, px + 40, dipY, 140); });
   run(world, 1.0, () => { turn(0); moveHand(world, px + 90, dipY - 10, 140); });
   run(world, 2.5, () => { turn(0); moveHand(world, px + 90, gy - 40, 90); });
+  // let any heap above the rim slide off before counting what was scooped
   run(world, 1.0);
+  run(world, 0.5, () => moveHand(world, px + 110, gy - 40, 120));
+  run(world, 1.5);
   const scooped = waterInside(world, sp.nodes);
   // carry to the ditch at a brisk but steady pace
   const dx = LAYOUT.ditch.x;
   const carryY = LAYOUT.groundY - 130;
   let t = 0;
   while (Math.abs(world.hand.x - dx) > 1 && t < 40) {
-    moveHand(world, dx, carryY, 260);
+    // ease in and out, as a person carrying something full would
+    const ease = Math.min(1, t / 1.2, Math.abs(world.hand.x - dx) / 200 + 0.15);
+    moveHand(world, dx, carryY, 260 * ease);
     world.step();
     observer.fn?.(world);
     t += world.cfg.dt;

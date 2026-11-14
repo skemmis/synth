@@ -1,0 +1,12 @@
+// 127.0 diameters in 15 s
+{"grid":[".HW",".FN","PWW","N.."],"freq":1.319,"cells":{"2,1":{"phase":3.039,"amp":0.299},"0,3":{"phase":0.681,"amp":0.161}}}
+// 126.5 diameters in 15 s
+{"grid":["N.TN.",".HW..",".SNFS",".FFN."],"freq":1.814,"cells":{"0,0":{"phase":4.939,"amp":0.236},"3,0":{"phase":3.531,"amp":0.252},"2,2":{"phase":0.387,"amp":0.282},"3,3":{"phase":5.852,"amp":0.277}}}
+// 61.5 diameters in 15 s
+{"grid":["N.FWF","WHNN."],"freq":1.868,"cells":{"0,0":{"phase":3.54,"amp":0.155},"2,1":{"phase":1.372,"amp":0.318},"3,1":{"phase":1.964,"amp":0.269}}}
+// 127.3 diameters in 15 s
+{"grid":["..W...","..W.PN",".WFNN.","N.HNF."],"freq":1.215,"cells":{"5,1":{"phase":1.564,"amp":0.244},"3,2":{"phase":3.218,"amp":0.188},"4,2":{"phase":4.573,"amp":0.175},"0,3":{"phase":3.011,"amp":0.196},"3,3":{"phase":3.621,"amp":0.336}}}
+// 130.9 diameters in 15 s
+{"grid":["NHW","FNN"],"freq":1.914,"cells":{"0,0":{"phase":5.392,"amp":0.08},"1,1":{"phase":2.438,"amp":0.328},"2,1":{"phase":0.475,"amp":0.265}}}
+// 70.7 diameters in 15 s
+{"grid":["WWNN.",".F...","N.T..",".HNSW"],"freq":2.6,"cells":{"2,0":{"phase":4.593,"amp":0.34},"3,0":{"phase":0.659,"amp":0.112},"0,2":{"phase":5.49,"amp":0.351},"2,3":{"phase":2.879,"amp":0.358}}}

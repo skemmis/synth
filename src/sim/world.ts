@@ -38,8 +38,18 @@ export interface BondOpts {
   freq?: number;
 }
 
+export interface WorldSnapshot {
+  n: number; bn: number;
+  nodes: Record<string, ArrayLike<number>>; bonds: Record<string, ArrayLike<number>>;
+  freeNodes: number[]; freeBonds: number[];
+  tick: number; subTick: number; time: number; nextBody: number;
+  bodyKind: number[]; bodyDamage: number[]; bodyEaten: number[]; bodyHeart: number[]; berriesEaten: number;
+}
+
 const NODE_F64 = ['x', 'y', 'px', 'py', 'rad', 'invM', 'accX', 'accY', 'ax', 'ay', 'stickCd', 'hurtCd', 'head'] as const;
 const BOND_F32 = ['bstiff', 'blimit', 'bamp', 'bphase', 'bfreq'] as const;
+const SNAP_NODE = [...NODE_F64, 'hp', 'mat', 'alive', 'anch', 'stickN', 'adjN', 'wn', 'body', 'adj', 'trA', 'trC', 'trS'];
+const SNAP_BOND = ['ba', 'bb', 'brest', ...BOND_F32, 'bflag', 'balive'];
 
 /**
  * The whole simulation state. Nodes are circles, bonds are distance
@@ -91,21 +101,27 @@ export class World {
   hand: Hand = { active: false, x: 0, y: 0, angle: 0, grip: [], ox: [], oy: [] };
 
   // spatial hash scratch (not part of state)
-  private bucketStart: Int32Array;
-  private entries: Int32Array;
-  private nodeBucket: Int32Array;
-  private mask: number;
+  private bucketStart!: Int32Array;
+  private entries!: Int32Array;
+  private nodeBucket!: Int32Array;
+  private mask = 0;
 
   constructor(public terrain: Terrain, public cfg: Config = CONFIG, cap = 1024, bcap = 4096) {
     this.cap = cap;
     this.bcap = bcap;
     this.allocNodes(cap);
     this.allocBonds(bcap);
-    const size = 1 << cfg.hash.tableBits;
+    this.sizeHash();
+  }
+
+  /** the collision table scales with capacity, so small arenas stay cheap to step */
+  private sizeHash() {
+    const bits = Math.min(this.cfg.hash.tableBits, Math.max(6, Math.ceil(Math.log2(this.cap)) + 1));
+    const size = 1 << bits;
     this.mask = size - 1;
     this.bucketStart = new Int32Array(size + 1);
-    this.entries = new Int32Array(cap);
-    this.nodeBucket = new Int32Array(cap);
+    this.entries = new Int32Array(this.cap);
+    this.nodeBucket = new Int32Array(this.cap);
   }
 
   // ---------------------------------------------------------------- storage
@@ -130,9 +146,8 @@ export class World {
     this.trA = grow(this.trA, Int32Array, 4);
     this.trC = grow(this.trC, Int32Array, 4);
     this.trS = grow(this.trS, Float32Array, 4);
-    this.entries = new Int32Array(cap);
-    this.nodeBucket = new Int32Array(cap);
     this.cap = cap;
+    if (this.bucketStart) this.sizeHash();
   }
 
   private allocBonds(bcap: number) {
@@ -740,6 +755,84 @@ export class World {
     w.bodyKind = this.bodyKind.slice(); w.bodyDamage = this.bodyDamage.slice();
     w.bodyEaten = this.bodyEaten.slice(); w.bodyHeart = this.bodyHeart.slice();
     w.berriesEaten = this.berriesEaten;
+    return w;
+  }
+
+  /** Everything needed to rebuild this world (typed arrays are copied, trimmed to what is in use). */
+  snapshot(): WorldSnapshot {
+    const self = this as any;
+    const nodes: Record<string, ArrayLike<number>> = {};
+    for (const k of SNAP_NODE) nodes[k] = self[k].slice(0, this.n * (k === 'adj' ? ADJ : k.startsWith('tr') ? 4 : 1));
+    const bonds: Record<string, ArrayLike<number>> = {};
+    for (const k of SNAP_BOND) bonds[k] = self[k].slice(0, this.bn);
+    return {
+      n: this.n, bn: this.bn, nodes, bonds,
+      freeNodes: this.freeNodes.slice(), freeBonds: this.freeBonds.slice(),
+      tick: this.tick, subTick: this.subTick, time: this.time, nextBody: this.nextBody,
+      bodyKind: this.bodyKind.slice(), bodyDamage: this.bodyDamage.slice(),
+      bodyEaten: this.bodyEaten.slice(), bodyHeart: this.bodyHeart.slice(), berriesEaten: this.berriesEaten,
+    };
+  }
+
+  static restore(s: WorldSnapshot, terrain: Terrain, cfg: Config = CONFIG): World {
+    let cap = 256, bcap = 512;
+    while (cap < s.n + 64) cap *= 2;
+    while (bcap < s.bn + 128) bcap *= 2;
+    const w = new World(terrain, cfg, cap, bcap);
+    const o = w as any;
+    for (const k of SNAP_NODE) o[k].set(s.nodes[k]);
+    for (const k of SNAP_BOND) o[k].set(s.bonds[k]);
+    // slots beyond n must read as "no brace"
+    w.trA.fill(-1, s.n * 4);
+    w.n = s.n; w.bn = s.bn;
+    w.freeNodes = s.freeNodes.slice(); w.freeBonds = s.freeBonds.slice();
+    w.tick = s.tick; w.subTick = s.subTick; w.time = s.time; w.nextBody = s.nextBody;
+    w.bodyKind = s.bodyKind.slice(); w.bodyDamage = s.bodyDamage.slice();
+    w.bodyEaten = s.bodyEaten.slice(); w.bodyHeart = s.bodyHeart.slice(); w.berriesEaten = s.berriesEaten;
+    return w;
+  }
+
+  /**
+   * A new world holding only the nodes with x in [x0, x1] (and the bonds,
+   * braces and anchors among them). Used to cut an arena out of the live
+   * world so overnight trials do not pay for the pond.
+   */
+  extract(x0: number, x1: number): World {
+    const w = new World(this.terrain, this.cfg, 512, 2048);
+    const map = new Int32Array(this.n).fill(-1);
+    w.time = this.time; w.tick = this.tick; w.subTick = this.subTick;
+    w.nextBody = this.nextBody;
+    w.bodyKind = this.bodyKind.slice(); w.bodyDamage = this.bodyDamage.slice();
+    w.bodyEaten = this.bodyEaten.slice(); w.bodyHeart = this.bodyHeart.map(() => -1);
+    for (let i = 0; i < this.n; i++) {
+      if (!this.alive[i] || this.x[i] < x0 || this.x[i] > x1) continue;
+      const j = w.addNode(this.mat[i], this.x[i], this.y[i], this.body[i], this.rad[i]);
+      map[i] = j;
+      w.px[j] = this.px[i]; w.py[j] = this.py[i];
+      w.hp[j] = this.hp[i]; w.head[j] = this.head[i]; w.wn[j] = this.wn[i];
+      w.anch[j] = this.anch[i]; w.ax[j] = this.ax[i]; w.ay[j] = this.ay[i];
+      w.stickCd[j] = this.stickCd[i]; w.hurtCd[j] = this.hurtCd[i];
+    }
+    for (let k = 0; k < this.bn; k++) {
+      if (!this.balive[k]) continue;
+      const a = map[this.ba[k]], b = map[this.bb[k]];
+      if (a < 0 || b < 0) continue;
+      const nk = w.addBond(a, b, this.brest[k], {
+        flags: this.bflag[k], stiffness: this.bstiff[k], limit: this.blimit[k],
+        amp: this.bamp[k], phase: this.bphase[k], freq: this.bfreq[k],
+      });
+      if (nk >= 0 && this.bflag[k] & B_STICKY) w.stickN[a]++;
+    }
+    for (let i = 0; i < this.n; i++) {
+      const j = map[i];
+      if (j < 0) continue;
+      for (let s = 0; s < 4; s++) {
+        const a = this.trA[i * 4 + s];
+        if (a < 0) continue;
+        const c = this.trC[i * 4 + s];
+        if (map[a] >= 0 && map[c] >= 0) w.addBrace(map[a], j, map[c], this.trS[i * 4 + s]);
+      }
+    }
     return w;
   }
 

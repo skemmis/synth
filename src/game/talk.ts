@@ -5,6 +5,7 @@ import { h } from './dom';
 import type { Game } from './game';
 import { PRESETS } from './presets';
 import { describeCost, type Player } from './state';
+import { sfx } from './sound';
 import { gridThumb, type Ui } from './ui';
 
 const SETTINGS_KEY = 'synth.settings.v1';
@@ -97,6 +98,7 @@ export function installTalk(game: Game, player: Player, ui: Ui) {
     busy = true; send.disabled = true;
     input.value = '';
     say('you', message);
+    sfx('ask');
     const thinking = say('synth', 'Thinking…');
     let p = await synth.proposeBlueprint({ message, history, draft, inventory: { ...player.inventory }, testReport: report });
     if (!p.ok && synth.provider !== stub && /reach|key was rejected/i.test(p.error ?? '')) {
@@ -120,6 +122,7 @@ export function installTalk(game: Game, player: Player, ui: Ui) {
       thinking.textContent = p.error ?? 'Something went wrong.';
     }
     drawDraft();
+    sfx('answer');
     busy = false; send.disabled = false;
     log.scrollTop = log.scrollHeight;
   }
@@ -158,6 +161,10 @@ export function installTalk(game: Game, player: Player, ui: Ui) {
   ui.addTab('talk', 'Talk', body, true);
   ui.showTab('talk');
   say('synth', 'Tell me what you need and I will draw up a blueprint from the materials that exist here. The world decides whether it works.');
+  say('note', h('b', {}, 'First steps'), h('div', {}, '1. Hold the mouse on the tree, rocks, vines or bramble to gather.'),
+    h('div', {}, '2. Ask for something: a wall, a cage, a spike strip, a bucket.'),
+    h('div', {}, '3. Press Synthesize, then click in the world to place it.'),
+    h('div', {}, '4. Your berries are at the flag. Press End day when the base is ready: the burrow to the right dreams up bodies to get at them, then sends the best three.'));
   refreshProvider();
   let last = '';
   game.onFrame.push(() => {

@@ -29,11 +29,14 @@ export interface Ui {
   addTab(id: string, label: string, body: HTMLElement, first?: boolean): void;
   showTab(id: string): void;
   topSlot: HTMLElement;
+  onNewWorld: (() => void)[];
+  redraw(): void;
   panel: HTMLElement;
   toast(text: string): void;
 }
 
 export function buildUi(game: Game, player: Player, root: HTMLElement): Ui {
+  const onNewWorld: (() => void)[] = [];
   // ------------------------------------------------------------- top bar
   const stat = h('span.stat');
   const inv = h('div.inv');
@@ -50,10 +53,11 @@ export function buildUi(game: Game, player: Player, root: HTMLElement): Ui {
     h('label.stat', { for: 'free', title: 'Build without spending materials' }, free, ' free build'),
     pauseBtn,
     h('button', { onclick: () => {
-      game.reset(game.seed, false);
+      game.reset(game.seed + 1, false);
       spawnStash(game.world);
       for (const k of Object.keys(player.inventory)) player.inventory[k] = 0;
       drawInv();
+      for (const f of onNewWorld) f();
     } }, 'New world'),
     stat,
   );
@@ -223,7 +227,8 @@ export function buildUi(game: Game, player: Player, root: HTMLElement): Ui {
       if (opts?.hold) game.hold(r.grid); else showTab('grid');
     },
     getDraft: () => readDraft().recipe ?? null,
-    addTab, showTab, topSlot, panel, toast,
+    addTab, showTab, topSlot, panel, toast, onNewWorld,
+    redraw() { drawInv(); refresh(); drawBook(); },
   };
   ui.setDraft(PRESETS[0]);
   drawInv();

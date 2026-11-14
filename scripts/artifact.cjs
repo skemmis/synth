@@ -9,5 +9,6 @@ const scripts = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map((m)
 const body = /<body[^>]*>([\s\S]*?)<\/body>/.exec(html)[1].replace(/<script[\s\S]*?<\/script>/g, '').trim();
 const page = `<title>${title}</title>\n<style>\n${styles}\n</style>\n${body}\n${scripts.map((s) => `<script type="module">${s}</script>`).join('\n')}\n`;
 fs.mkdirSync(require('path').dirname(out), { recursive: true });
-fs.writeFileSync(out, page);
+// the publisher rejects a literal replacement character; inside JS an escape is equivalent
+fs.writeFileSync(out, page.replace(/\uFFFD/g, '\\uFFFD'));
 console.log(out, (page.length / 1024).toFixed(0) + ' KB');

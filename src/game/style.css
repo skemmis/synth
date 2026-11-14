@@ -84,3 +84,15 @@ button.tab.on { background: #fffaf0; border-color: var(--line); color: var(--ink
 .form label { font-size: 12px; color: var(--ink-soft); }
 select { font: inherit; font-size: 13px; padding: 6px; border-radius: 8px; border: 1.5px solid var(--line); background: #fffaf0; color: var(--ink); }
 #bench { width: 320px; }
+.slot { display: inline-flex; gap: 8px; align-items: center; }
+.phase { font-weight: 800; font-size: 13px; }
+#inset { right: 16px; bottom: 16px; width: 380px; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+#inset canvas { width: 100%; border-radius: 8px; display: block; background: #2a2748; }
+.insettitle { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--ink-soft); }
+.bar { height: 6px; border-radius: 3px; background: var(--paper-2); overflow: hidden; }
+.bar .fill { height: 100%; width: 0; background: var(--accent); transition: width 0.3s; }
+#inset .row { margin: 0; flex-wrap: nowrap; }
+.spacer { flex: 1; }
+#report { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(440px, calc(100% - 32px)); padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+#report .big { font-size: 20px; font-weight: 800; }
+#report .entry { grid-template-columns: 56px 1fr auto; }

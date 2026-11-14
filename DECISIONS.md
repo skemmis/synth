@@ -114,3 +114,56 @@ Claude agent given only the generated system prompt and the user messages (repli
 `tests/fixtures/m2-responses.json`, no retries, no hand fixes): **10/10 valid grids, 6/10 pass** (needs 9
 and 6). Failures: the spike strip was all wood and got dragged along; the cage was shoved off the berry;
 the hammer hits too softly (see above); the lid let stones in. Passing at the threshold, not comfortably.
+
+## Milestone 3: creatures
+
+### Defaults chosen
+- **Genome**: a grid of at most 9 by 9 with 4 to 40 cells and exactly one heart; one frequency for the
+  body (0.6 to 2.2 beats a second); a phase and an amplitude (8% to 32%) per sinew cell. A bond's phase is
+  its sinew cell's phase plus the direction the bond points, so the bonds around one sinew cell fire in
+  rotation.
+- **Muscle strength**: sinew bonds are soft (stiffness 0.4, was 0.8). A position-based bond otherwise
+  reaches its new length whatever the load, which is an infinitely strong muscle.
+- **Seed crawlers** were found by a search script (`scripts/find-seeds.test.ts`), then frozen in
+  `src/evo/seeds.ts` and proven by the gate test. They are **hoppers, not crawlers**: the fastest way
+  across flat ground under these rules is to kick off it. They cover 40 to 165 cells in 15 s against a
+  gate of 30. Worth a look by Sam: fast fleas change what a good defence is (roofs and cages matter more
+  than low walls).
+- **Corpses twitch**: sinew keeps beating after the heart is destroyed (rule 7 has no exception).
+  A corpse cannot eat. Right-click breaks it down; that is the only source of sinew.
+- Hearts and sinew are soft (hardness 1, 10 to 12 hit points), so thorns at walking speed do hurt them.
+
+## Milestone 4: evolution
+
+### Defaults chosen
+- **Arena**: nodes between 120 units left of the home site and 180 right of the burrow are copied into a
+  small world (`World.extract`), so trials do not pay for the pond. The live world is frozen while the
+  burrow dreams.
+- **Trial**: 20 s (the PRD said about 15; the stash is about 90 cells from the burrow). Fitness is
+  `100 x berries eaten + cells closer to the nearest berry (best reached) - 0.15 x damage taken`.
+- **Niches**: three size classes by six material mixes (woody, stony, thorny, sticky, fleshy, stringy).
+  The best per niche is kept. Each night re-tests last night's elites first, because the base may have
+  changed, then mutates.
+- **Budget**: 200 trials' worth of steps a night (240,000 steps). On four workers that is about six
+  seconds, so there is room to raise it a lot; left at the PRD's starting point.
+- **Workers**: an inlined module worker pool; trials are drawn and reported in batch order so a night is
+  deterministic regardless of which worker finishes first. If workers are unavailable the night runs on
+  the main thread with a quarter of the budget.
+- **Raid**: the best three from different niches leave the burrow four seconds apart and run for 45 s.
+  The hand works during a raid.
+- **Dawn**: raiders with a living heart leave; corpses stay; the report lists each raider, lets its body
+  plan be kept in the recipe book (heart replaced by wood), and replays the best one's dream trial.
+
+### Gate result: half passed
+`npm run gate:m4` (five seeds, five nights, 120 trials a night, fixed base of 12 berries behind a loose
+2-wide, 3-high wooden wall):
+- **Best fitness rose in 5 of 5 seeds** (needs 3). In three seeds the best raider ended up eating 4, 6 and
+  10 of the 12 berries.
+- **Only one breach strategy appeared (needs 2).** Every raider that got through did it by knocking the
+  wall over; none went over a standing wall or broke it. Two reasons: the gate's wall weighs 3.6 and is not
+  fixed to anything, and every winner descends from the same seed (the Flea), so the niches differ in
+  material mix but not in behaviour. Left as an expected-failure test. Ideas, none tried: niches keyed on
+  behaviour (how high the heart got, whether the barrier moved) instead of materials; a penalty for
+  resembling the current best; a sturdier reference wall.
+- Headless arena speed: 18 nodes at about 20,000 steps/s (340x real time) on one thread; target was 20x
+  for 400 nodes. The 400-node figure from milestone 0 is 24x.

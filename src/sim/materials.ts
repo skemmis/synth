@@ -64,7 +64,7 @@ export const MATERIALS: Material[] = [
     'Sharp: deals damage on contact, scaled by relative speed'),
   row(4, 'P', 'Pitch', 'Resin tree', 1.2, 6, 0.35, 'rigid', 0.3, 0.5, 1, 14, 0, 3, 1.0, 0, true, false, '#3c3430',
     'Sticky: forms a breakable bond with anything it touches, including the ground'),
-  row(5, 'N', 'Sinew', 'Creature corpses only', 0.9, 6, 0.8, 'rigid', 0, 0.6, 1, 12, 0, 0, 0.7, 0.28, true, false, '#e0736d',
+  row(5, 'N', 'Sinew', 'Creature corpses only', 0.9, 6, 0.4, 'rigid', 0, 0.6, 1, 12, 0, 0, 0.7, 0.28, true, false, '#e0736d',
     'Any bond touching it contracts and relaxes rhythmically (the only actuator)'),
   row(6, 'B', 'Berry', 'Bush', 0.8, 6, 0.3, 'rigid', 0, 0.5, 0.5, 5, 0, 0, 0.7, 0, true, false, '#d6336c',
     'Food. Soft. What enemies want. Also bait'),

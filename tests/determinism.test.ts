@@ -26,3 +26,22 @@ test('a clone evolves identically to the original', () => {
   run(a, 2); run(b, 2);
   expect(b.stateHash()).toBe(a.stateHash());
 });
+
+test('snapshot and restore reproduce the world exactly', () => {
+  const a = scene(5);
+  a.release();
+  const b = World.restore(JSON.parse(JSON.stringify(a.snapshot(), (_k, v) => (ArrayBuffer.isView(v) ? Array.from(v as any) : v))), a.terrain);
+  expect(b.stateHash()).toBe(a.stateHash());
+  run(a, 2); run(b, 2);
+  expect(b.stateHash()).toBe(a.stateHash());
+});
+
+test('an extracted arena behaves like the same region of the full world', () => {
+  const w = new World(makeTerrain(CONFIG.world.width, 2));
+  spawnGrid(w, BUCKET, 2200, 500);
+  spawnGrid(w, ['SS', 'PP'], 2300, 480);
+  const arena = w.extract(2000, 2600);
+  run(w, 3); run(arena, 3);
+  expect(arena.liveNodes).toBe(w.liveNodes);
+  expect(arena.stateHash()).toBe(w.stateHash());
+});

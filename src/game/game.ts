@@ -18,6 +18,8 @@ export class Game {
   label: { x: number; y: number; text: string } | null = null;
   clock = 0;
   paused = false;
+  /** the live world stands still (during the dream) but the screen keeps drawing */
+  frozen = false;
   speed = 1;
   seed = 1;
   night = 0;
@@ -197,7 +199,7 @@ export class Game {
       this.ghost.angle += rot * CONFIG.hand.rotateSpeed * dt;
       this.ghost.ok = this.ghostFits(this.ghost);
     }
-    if (this.paused) return;
+    if (this.paused || this.frozen) return;
     this.acc += dt * this.speed;
     let steps = 0;
     const t0 = performance.now();

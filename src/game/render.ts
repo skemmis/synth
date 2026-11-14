@@ -31,7 +31,7 @@ const LIGHT = MATERIALS.map((m) => shade(m.color, 0.35));
 export const PALETTE = {
   skyTop: '#f6e7c8', skyBottom: '#f3d6b3', nightTop: '#1d2140', nightBottom: '#3b3560',
   hillFar: '#e2c79c', hillNear: '#cfae82', soil: '#5d4a3c', soilDeep: '#463629', grass: '#8aa35b',
-  water: '#4f9fdc', waterLight: '#9fd0f2', ink: '#2c2420',
+  water: '#4f9fdc', waterLight: '#9fd0f2', waterEdge: '#2f6fae', ink: '#2c2420',
 };
 
 export class Renderer {
@@ -130,26 +130,22 @@ export class Renderer {
   private drawWater(world: World, x0: number, x1: number) {
     const ctx = this.ctx;
     const { x, y, rad, mat, alive } = world;
-    ctx.fillStyle = PALETTE.water;
-    ctx.globalAlpha = 0.85;
-    ctx.beginPath();
-    for (let i = 0; i < world.n; i++) {
-      if (!alive[i] || mat[i] !== Mat.Water || x[i] < x0 || x[i] > x1) continue;
-      const r = rad[i] * 1.55;
-      ctx.moveTo(x[i] + r, y[i]);
-      ctx.arc(x[i], y[i], r, 0, 6.2832);
+    // three stacked passes of overlapping discs read as one soft body:
+    // a dark rim, the body colour, then a lighter core
+    const passes: [number, string, number][] = [[1.9, PALETTE.waterEdge, 1], [1.62, PALETTE.water, 1]];
+    for (const [grow, col, alpha] of passes) {
+      ctx.fillStyle = col;
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      for (let i = 0; i < world.n; i++) {
+        if (!alive[i] || mat[i] !== Mat.Water || x[i] < x0 || x[i] > x1) continue;
+        const r = rad[i] * grow;
+        const oy = grow < 1 ? -1.5 : 0;
+        ctx.moveTo(x[i] + r, y[i] + oy);
+        ctx.arc(x[i], y[i] + oy, r, 0, 6.2832);
+      }
+      ctx.fill();
     }
-    ctx.fill();
-    ctx.globalAlpha = 0.5;
-    ctx.fillStyle = PALETTE.waterLight;
-    ctx.beginPath();
-    for (let i = 0; i < world.n; i++) {
-      if (!alive[i] || mat[i] !== Mat.Water || x[i] < x0 || x[i] > x1) continue;
-      const r = rad[i] * 0.55;
-      ctx.moveTo(x[i] - 1 + r, y[i] - 1.2);
-      ctx.arc(x[i] - 1, y[i] - 1.2, r, 0, 6.2832);
-    }
-    ctx.fill();
     ctx.globalAlpha = 1;
   }
 

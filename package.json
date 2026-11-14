@@ -7,7 +7,9 @@
     "build": "tsc && vite build",
     "build:single": "SINGLE=1 vite build",
     "test": "vitest run",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "gate:m4": "GATES=1 vitest run tests/m4 --reporter=verbose",
+    "gate:live": "SYNTH_LIVE=1 vitest run tests/m2 --reporter=verbose"
   },
   "repository": {
     "type": "git",
