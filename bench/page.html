@@ -1,0 +1,264 @@
+<title>Swim Test Speed Bench</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one narrow lab sheet. Controls on top, a single results table with bars drawn to one scale, then the agreement checks and a copyable report. */
+:root {
+  --bg: #f3f6f7; --panel: #ffffff; --ink: #14242b; --muted: #5b6d75; --line: #d5dee2;
+  --water: #0b7a8c; --water-soft: #cfe6ea; --ref: #8a98a0; --ok: #1d7a46; --warn: #a15c00;
+  --display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --body: Inter, "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e171b; --panel: #15222a; --ink: #e4eef1; --muted: #93a7b0; --line: #2a3b44;
+  --water: #4fc3d6; --water-soft: #1d4650; --ref: #6f838c; --ok: #5fd08f; --warn: #f0b354; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0e171b; --panel: #15222a; --ink: #e4eef1; --muted: #93a7b0; --line: #2a3b44;
+  --water: #4fc3d6; --water-soft: #1d4650; --ref: #6f838c; --ok: #5fd08f; --warn: #f0b354; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--body); }
+main { max-width: 760px; margin: 0 auto; padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 22px; }
+h1 { font: 600 26px/1.2 var(--display); margin: 0; text-wrap: balance; }
+h2 { font: 600 16px/1.3 var(--display); margin: 0 0 8px; }
+p { margin: 0; max-width: 65ch; }
+.lede { color: var(--muted); margin-top: 6px; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+button { font: 600 15px var(--body); color: var(--bg); background: var(--water); border: 0; border-radius: 6px; padding: 10px 18px; cursor: pointer; }
+button:disabled { opacity: .5; cursor: default; }
+button.quiet { background: transparent; color: var(--water); border: 1px solid var(--water); padding: 6px 12px; font-size: 13px; }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--water); outline-offset: 2px; }
+label { color: var(--muted); font-size: 13px; display: flex; gap: 6px; align-items: center; }
+select { font: 14px var(--body); padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+#status { font: 13px var(--mono); color: var(--muted); min-height: 1.5em; }
+.sheet { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; }
+.rows { display: grid; grid-template-columns: minmax(120px, 1.3fr) auto minmax(60px, 2fr) auto; gap: 10px 14px; align-items: center; }
+.rows .name small { display: block; color: var(--muted); font-size: 12px; }
+.rows .num { font: 600 15px var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.rows .x { font: 13px var(--mono); color: var(--muted); text-align: right; white-space: nowrap; }
+.bar { height: 10px; background: var(--water-soft); border-radius: 2px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--water); transition: width .4s; }
+.bar.ref i { background: var(--ref); }
+.head { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.checks div { display: flex; gap: 8px; }
+.checks b { font-weight: 600; }
+.ok { color: var(--ok); } .warn { color: var(--warn); }
+pre { font: 12.5px/1.5 var(--mono); margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); }
+.reportHead { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
+.note { color: var(--muted); font-size: 13px; }
+@media (max-width: 520px) { .rows { grid-template-columns: 1fr auto; } .rows .bar { grid-column: 1 / -1; order: 0; } .rows .x { display: none; } .rows .head.b, .rows .head.c { display: none; } }
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+<main>
+  <header>
+    <h1>Swim test speed bench</h1>
+    <p class="lede">Runs the same 4,000 seeded swim-test trials the swimmer search uses, on this machine's processor and then on its graphics card, and compares the speed with the cloud sandbox where the searches run today.</p>
+  </header>
+
+  <div class="controls">
+    <button id="run">Run benchmark</button>
+    <label for="batch">GPU batch
+      <select id="batch">
+        <option value="4096">4,096 trials</option>
+        <option value="16384" selected>16,384 trials</option>
+        <option value="65536">65,536 trials</option>
+      </select>
+    </label>
+  </div>
+  <div id="status" role="status">Takes about half a minute. Keep this tab in front while it runs.</div>
+
+  <section class="sheet">
+    <div class="rows" id="rows">
+      <div class="head">Where</div><div class="head" style="text-align:right">Trials / second</div><div class="head b"></div><div class="head c" style="text-align:right">vs cloud</div>
+    </div>
+  </section>
+
+  <section class="sheet">
+    <h2>Do the answers match?</h2>
+    <div class="checks" id="checks"><div class="note">Run the benchmark to compare this machine's results with the cloud run.</div></div>
+  </section>
+
+  <section class="sheet">
+    <div class="reportHead"><h2 style="margin:0">Report to paste back</h2><button class="quiet" id="copy">Copy</button></div>
+    <pre id="report">Nothing measured yet.</pre>
+  </section>
+
+  <p class="note">One trial is a random set of physics rules and a random body of 3 to 16 atoms, stepped 4,000 times in still water and scored for sustained swimming. The processor runs the search's own code in 64-bit arithmetic. The graphics card runs the same steps in the same order in 32-bit arithmetic, one trial per GPU thread.</p>
+</main>
+
+<script id="lib">
+/*__LIB__*/
+</script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const C = SB.CLOUD, N = C.trials;
+  const WORKER = $('lib').textContent + `
+    let trials = null;
+    onmessage = (e) => { const m = e.data;
+      if (m[0] === 'init') { trials = SB.makeTrials(m[1]); for (let i = 0; i < m[2]; i++) SB.runTrial(trials[i]); postMessage('ready'); }
+      else { const a = m[1], b = m[2], out = new Float64Array(b - a); for (let i = a; i < b; i++) out[i - a] = SB.runTrial(trials[i]); postMessage({ a, out }); } };`;
+  const fmt = (v) => v >= 100 ? Math.round(v).toLocaleString('en-US') : v.toFixed(1);
+  const status = (t) => { $('status').textContent = t; };
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+
+  // ---- result rows
+  const rows = [
+    { id: 'c1', name: 'Cloud sandbox', sub: '1 thread', v: C.single, ref: true },
+    { id: 'c4', name: 'Cloud sandbox', sub: C.threads + ' threads, how searches run today', v: C.multi, ref: true },
+    { id: 'm1', name: 'This machine', sub: '1 thread', v: null },
+    { id: 'mN', name: 'This machine', sub: 'all threads', v: null },
+    { id: 'gpu', name: 'This machine', sub: 'graphics card (WebGPU)', v: null },
+  ];
+  function render() {
+    const host = $('rows'); while (host.children.length > 4) host.lastChild.remove();
+    const max = Math.max(...rows.map((r) => r.v || 0));
+    for (const r of rows) {
+      const add = (cls, html) => { const d = document.createElement('div'); d.className = cls; d.innerHTML = html; host.appendChild(d); return d; };
+      add('name', `${r.name}<small>${r.sub}</small>`);
+      add('num', r.v ? fmt(r.v) : (r.note || '–'));
+      add('bar' + (r.ref ? ' ref' : ''), `<i style="width:${r.v ? Math.max(1, 100 * r.v / max) : 0}%"></i>`);
+      add('x', r.v && !r.ref ? (r.v / C.multi).toFixed(r.v / C.multi < 10 ? 2 : 1) + '×' : r.id === 'c4' ? '1.00×' : r.id === 'c1' ? (C.single / C.multi).toFixed(2) + '×' : '');
+    }
+  }
+  const row = (id) => rows.find((r) => r.id === id);
+  render();
+
+  // ---- CPU
+  function cpuWorkers(count, nt, warm, onProgress) {
+    return new Promise((resolve, reject) => {
+      let url; const ws = [];
+      const fail = (e) => { ws.forEach((w) => w.terminate()); reject(e instanceof Error ? e : new Error('worker failed')); };
+      try { url = URL.createObjectURL(new Blob([WORKER], { type: 'text/javascript' })); } catch (e) { return reject(e); }
+      const fits = new Float64Array(count), CH = 25; let next = 0, done = 0, ready = 0, t0 = 0;
+      const give = (w) => { if (next < count) { const a = next; next = Math.min(count, a + CH); w.postMessage(['run', a, next]); } };
+      for (let k = 0; k < nt; k++) {
+        let w; try { w = new Worker(url); } catch (e) { return fail(e); }
+        ws.push(w); w.onerror = fail;
+        w.onmessage = (ev) => {
+          const m = ev.data;
+          if (m === 'ready') { if (++ready === nt) { t0 = performance.now(); ws.forEach(give); } return; }
+          fits.set(m.out, m.a); done += m.out.length; onProgress(done / count);
+          if (done === count) { const sec = (performance.now() - t0) / 1000; ws.forEach((x) => x.terminate()); URL.revokeObjectURL(url); resolve({ fits, sec }); }
+          else give(w);
+        };
+        w.postMessage(['init', count, warm]);
+      }
+    });
+  }
+  async function cpuInline(count, onProgress) { // used only where the browser refuses workers
+    const trials = SB.makeTrials(count), fits = new Float64Array(count);
+    for (let i = 0; i < 200; i++) SB.runTrial(trials[i]);
+    let busy = 0;
+    for (let i = 0; i < count; i += 20) {
+      const a = performance.now();
+      for (let j = i; j < Math.min(count, i + 20); j++) fits[j] = SB.runTrial(trials[j]);
+      busy += performance.now() - a; onProgress(i / count); await tick();
+    }
+    return { fits, sec: busy / 1000 };
+  }
+
+  // ---- GPU
+  async function gpuBench(batch, cpuFits, R) {
+    if (!navigator.gpu) { R.gpuNote = 'WebGPU is not available in this browser'; return; }
+    const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
+    if (!adapter) { R.gpuNote = 'the browser offered no graphics adapter'; return; }
+    const info = adapter.info || {};
+    R.gpuName = [info.vendor, info.architecture, info.device, info.description].filter(Boolean).join(' ') || 'unnamed adapter';
+    R.software = !!adapter.isFallbackAdapter || /swiftshader|llvmpipe|software|basic render/i.test(R.gpuName);
+    const device = await adapter.requestDevice();
+    let lost = null; device.lost.then((l) => { lost = l.message || 'device lost'; });
+    status('Graphics card: compiling the simulator…');
+    const t0 = performance.now();
+    device.pushErrorScope('validation');
+    const module = device.createShaderModule({ code: SB.WGSL });
+    const pipeline = await device.createComputePipelineAsync({ layout: 'auto', compute: { module, entryPoint: 'main' } });
+    const err = await device.popErrorScope(); if (err) throw new Error(err.message);
+    R.gpuCompile = (performance.now() - t0) / 1000;
+
+    // Early check: after 100 steps rounding has had little time to grow, so positions should agree closely.
+    status('Graphics card: checking the first 100 steps against the processor…');
+    const trials = SB.makeTrials(batch), few = trials.slice(0, 256);
+    const early = await SB.gpuRun(device, pipeline, few, { stopAt: 100, keepSnaps: true });
+    let worst = [], bondsSame = 0;
+    for (let t = 0; t < few.length; t++) {
+      const c = SB.cpuSnapshots(few[t], 100), g = early.snaps[t]; let d = 0;
+      for (let i = 0; i < c.n; i++) d = Math.max(d, Math.abs(c.x2[i] - g.x2[i]), Math.abs(c.y2[i] - g.y2[i]));
+      worst.push(d); if (c.nbonds === g.nbonds && c.formed === g.formed) bondsSame++;
+    }
+    worst.sort((a, b) => a - b);
+    R.early = { median: worst[worst.length >> 1], p90: worst[Math.floor(worst.length * 0.9)], max: worst[worst.length - 1], bondsSame: bondsSame / few.length, close: worst.filter((d) => d < 1e-2).length / few.length };
+
+    const full = await SB.gpuRun(device, pipeline, trials, { onProgress: (f) => status(`Graphics card: ${batch.toLocaleString('en-US')} trials, ${Math.round(100 * f)}%`) });
+    if (lost) throw new Error(lost);
+    R.gpu = batch / full.sec; R.gpuSec = full.sec; R.gpuBatch = batch; R.gpuChunk = full.chunk;
+    R.gpuSummary = SB.summarize(full.fits.subarray(0, N));
+    if (cpuFits) R.agree = SB.compareFits(cpuFits, full.fits.subarray(0, N));
+    device.destroy();
+  }
+
+  // ---- report
+  function report(R) {
+    const L = [`Swim test speed bench, seed ${SB.SEED}, ${N} trials of ${SB.STEPS} steps`];
+    L.push(`Machine: ${navigator.platform || '?'}, ${navigator.hardwareConcurrency || '?'} threads, ${navigator.userAgent.replace(/^Mozilla\/5\.0 /, '')}`);
+    if (R.single) L.push(`CPU 1 thread: ${fmt(R.single)} trials/s (${(R.single / C.single).toFixed(2)}x one cloud thread)${R.inline ? ' [no workers, measured on the page thread]' : ''}`);
+    if (R.multi) L.push(`CPU ${R.threads} threads: ${fmt(R.multi)} trials/s (${(R.multi / C.multi).toFixed(2)}x the cloud's ${C.threads} threads)`);
+    if (R.sum) L.push(`CPU checksum: ${R.sum} (${R.sum === C.checksum ? 'identical to the cloud run' : 'differs from the cloud run ' + C.checksum}); ${R.info.moving} moving, ${R.info.still} still, ${R.info.unstable} unstable`);
+    if (R.gpu) {
+      L.push(`GPU (${R.gpuName}${R.software ? ', SOFTWARE RENDERER' : ''}): ${fmt(R.gpu)} trials/s on ${R.gpuBatch} trials in ${R.gpuSec.toFixed(1)} s (${(R.gpu / C.multi).toFixed(1)}x the cloud's ${C.threads} threads), compile ${R.gpuCompile.toFixed(1)} s, ${R.gpuChunk} steps per dispatch`);
+      L.push(`GPU vs CPU after 100 steps: positions differ by median ${R.early.median.toExponential(1)}, 90th pct ${R.early.p90.toExponential(1)}, max ${R.early.max.toExponential(1)}; bond counts equal in ${(100 * R.early.bondsSame).toFixed(1)}%`);
+      if (R.agree) L.push(`GPU vs CPU full run: same outcome in ${(100 * R.agree.sameClass).toFixed(1)}% of ${R.agree.n} trials; ${R.gpuSummary.moving} moving on GPU vs ${R.info.moving} on CPU; of ${R.agree.bothMoving} moving on both, ${(100 * R.agree.within10pct).toFixed(0)}% score within 10%; correlation ${R.agree.corr.toFixed(3)}`);
+    } else if (R.gpuNote) L.push(`GPU: not measured (${R.gpuNote})`);
+    return L.join('\n');
+  }
+  function checks(R) {
+    const out = [];
+    const add = (ok, t) => out.push(`<div><b class="${ok ? 'ok' : 'warn'}">${ok ? '✓' : '!'}</b><span>${t}</span></div>`);
+    if (R.sum) add(R.sum === C.checksum, R.sum === C.checksum
+      ? `Processor: all ${N.toLocaleString('en-US')} results are identical to the cloud run (checksum ${R.sum}).`
+      : `Processor: checksum ${R.sum} differs from the cloud's ${C.checksum}. This browser's JavaScript engine rounds something differently from the cloud's, so compare speeds but treat results as close, not equal.`);
+    if (R.early) add(R.early.close > 0.9, `Graphics card, first 100 steps: positions match the processor to a median of ${R.early.median.toExponential(1)} atom widths, and bond counts are equal in ${(100 * R.early.bondsSame).toFixed(0)}% of 256 trials.`);
+    if (R.agree) add(R.agree.sameClass > 0.9, `Graphics card, full 4,000 steps: same outcome (moving, still or unstable) in ${(100 * R.agree.sameClass).toFixed(1)}% of trials, ${R.gpuSummary.moving} movers against the processor's ${R.info.moving}. Scores are not bit-identical because 32-bit rounding grows over a long run.`);
+    if (R.software) add(false, 'The browser gave a software renderer, not a real graphics card, so the graphics number says nothing about a GPU.');
+    if (R.gpuNote) add(false, `Graphics card not measured: ${R.gpuNote}.`);
+    $('checks').innerHTML = out.join('') || '<div class="note">Nothing to compare yet.</div>';
+  }
+
+  async function runAll(opts = {}) {
+    const R = {}, batch = opts.batch || +$('batch').value;
+    $('run').disabled = true;
+    for (const r of rows) if (!r.ref) { r.v = null; r.note = null; }
+    render();
+    try {
+      const nt = navigator.hardwareConcurrency || 4; R.threads = nt;
+      let one;
+      status('Processor, 1 thread…');
+      try { one = await cpuWorkers(N, 1, 200, (f) => status(`Processor, 1 thread: ${Math.round(100 * f)}%`)); }
+      catch (e) { R.inline = true; one = await cpuInline(N, (f) => status(`Processor, page thread: ${Math.round(100 * f)}%`)); }
+      R.single = N / one.sec; R.sum = SB.checksum(one.fits); R.info = SB.summarize(one.fits);
+      row('m1').v = R.single; render(); checks(R); $('report').textContent = report(R);
+      if (!R.inline) {
+        const all = await cpuWorkers(N, nt, 30, (f) => status(`Processor, ${nt} threads: ${Math.round(100 * f)}%`));
+        R.multi = N / all.sec; row('mN').v = R.multi; row('mN').sub = `${nt} threads`;
+      } else row('mN').note = 'no workers';
+      render(); $('report').textContent = report(R);
+      if (!opts.skipGpu) {
+        try { await gpuBench(batch, one.fits, R); } catch (e) { R.gpuNote = String(e.message || e).slice(0, 300); }
+        if (R.gpu) { row('gpu').v = R.gpu; row('gpu').sub = `graphics card, ${batch.toLocaleString('en-US')} trials at once`; } else row('gpu').note = 'n/a';
+      }
+      render(); checks(R); $('report').textContent = report(R);
+      status('Done. Copy the report and paste it back into the thread.');
+    } catch (e) { status('Stopped: ' + (e.message || e)); }
+    $('run').disabled = false;
+    return R;
+  }
+  window.runAll = runAll;
+  $('run').addEventListener('click', () => runAll());
+  $('copy').addEventListener('click', async () => {
+    const t = $('report').textContent;
+    try { await navigator.clipboard.writeText(t); $('copy').textContent = 'Copied'; }
+    catch (e) { const s = getSelection(), r = document.createRange(); r.selectNodeContents($('report')); s.removeAllRanges(); s.addRange(r); $('copy').textContent = 'Selected, press Ctrl+C'; }
+    setTimeout(() => { $('copy').textContent = 'Copy'; }, 2500);
+  });
+})();
+</script>
