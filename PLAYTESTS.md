@@ -259,3 +259,45 @@ Then the browser, one book wall, no rebuilding, 20 second days:
 - Nights two to five were quiet (11 to 44 hit points) between two loud ones. The wall's own wreckage seems to slow the next raid. Not chased.
 - Saving mid-day keeps the burrow as of last dawn; whatever the day shift had found so far is lost on reload.
 - If the page cannot start a worker it falls back to 200 bodies at night. Not seen in testing, so that path is only tested by reading it.
+
+## 15 Armoury (`play/15-armoury.html`)
+
+Day shift (14) with four more defences in the recipe book, each affordable from one day's crop: a thorn-faced wall (5 wood, 5 thorn, 2 pitch), a stone wall (6 stone, 2 pitch), short spikes (3 thorn, 5 wood, 5 pitch) and a nine-high tower (18 wood, 2 pitch).
+
+Headless, against the day-shift burrow (600 bodies by day, 100 at night), with the scripted defender who sets down one fresh copy every morning, ten nights:
+
+| Defence | Seed 1 | Seed 2 |
+| --- | --- | --- |
+| book wall (from 14) | lost 8 of 9 on night 8 | lost all 9 on night 3 |
+| thorn wall | held; down to 66 of 290 hit points once | held; never below 130 |
+| tower | knocked over on night 3, all 9 berries crushed, none eaten | held; down to 111 of 580 once |
+| stone wall | not run | held; never below 356 of 750 |
+| short spikes | not run | held; never below 200 of 310 |
+
+Then without the daily rebuild. Browser, one thorn wall: 21, 20, 94 and 88 hit points lost on nights one to four, and on night four the wall was gone and all nine berries were trampled with none eaten. The headless run of the same setup did the same thing on the same night.
+
+**What worked**
+- The player has real choices. Three cheap defences hold where the plain wall falls, for different reasons, and none of it is a special case: stone has more hit points and weight, thorns hurt whatever leans on them.
+- The tower is the first defence that can lose you the game by itself. It is tall enough to reach the stash when it goes over.
+- A thorn wall is only as good as its upkeep. Left alone it lasted four nights.
+
+**What did not**
+- With daily upkeep these defences are too good: ten quiet nights. The burrow never found an answer to thorns or stone at 700 bodies a day. This is the opposite problem from 13 and it is not solved.
+- "Trampled, none eaten" is a flat way to lose. I did not check whether it was the raiders' thorns or the wall's own loose thorns that did it.
+- Only one stone and one spike run each, and one seed.
+
+## 16 First days (`play/16-first-days.html`)
+
+The armoury (15) with a guide for a first sitting. Six goals: gather something, put up a defence, sleep through a raid, take a dead raider apart, ask the synthesizer for something, see a third morning with berries left. Each is ticked by the game noticing you did it, and the current one has a "Show me" button that pans to where it happens. Progress is kept in the browser.
+
+A script walked it: gathered (ticked), set down a thorn wall (ticked), slept (ticked after the raid), asked the offline helper for a wall and placed it (ticked), picked up a raider that died on night two and pressed X (ticked), reached the third morning with nine berries (ticked, closing line shown). No console errors.
+
+**What worked**
+- Every goal ticked from what happened, with no button to press to claim it.
+- "Show me" on the first goal panned to the tree.
+- Goals tick out of order. Nothing died on night one, so the salvage goal waited while asking the synthesizer was already done.
+
+**What did not**
+- When no raider dies the guide points at a goal you cannot do yet. It says thorns help, and that is all it does.
+- The wording was written by me and read by nobody. This build exists to be played by a person; that is the test it still needs.
+- Starting over keeps the ticks. Probably right for a returning player, wrong for handing the page to someone else on the same browser.

@@ -52,10 +52,10 @@ const shift = {
   worker: null as Worker | null, running: false, trials: 0, done: null as ((s: EvoState | null) => void) | null,
   init() { try { if (__WORKER_SRC__) this.worker = new Worker(URL.createObjectURL(new Blob([__WORKER_SRC__], { type: 'text/javascript' }))); } catch { this.worker = null; }
     if (!this.worker) { shiftMsg.textContent = 'No background worker here, so the burrow only breeds at night (200 bodies).'; return; }
-    this.worker.onmessage = (e) => { const m = e.data; this.trials = m.trials; if (m.type === 'done') { this.running = false; this.result = m.state; this.done?.(m.state); this.done = null; } this.paint(); };
+    this.worker.onmessage = (e) => { const m = e.data; this.trials = m.trials; if (m.type === 'done') { this.running = false; if (this.drop) { this.drop = false; this.trials = 0; this.start(cycle.real); return; } this.result = m.state; this.done?.(m.state); this.done = null; } this.paint(); };
     this.worker.onerror = () => { this.running = false; this.done?.(null); this.done = null; }; },
   result: null as EvoState | null,
-  paint() { shiftMsg.textContent = this.worker ? `Day shift: the burrow has tried ${this.trials} of ${DAY_TRIALS} bodies against the base it met last night${this.running ? '.' : ', and is resting.'}` : shiftMsg.textContent; },
+  paint() { shiftMsg.textContent = this.worker ? `Day shift: the burrow has tried ${this.trials} of ${DAY_TRIALS} bodies against ${cycle.lastDusk ? 'the base it met last night' : 'your base as it was at first light'}${this.running ? '.' : ', and is resting.'}` : shiftMsg.textContent; },
   /** Start breeding against a snapshot. The burrow's state is copied; the main thread keeps its own until dusk. */
   start(base: World) { if (!this.worker || this.running) return; this.running = true; this.trials = 0; this.result = null;
     this.worker.postMessage({ type: 'run', world: makeArena(base, ARENA_MIN_X).save(), state: JSON.parse(JSON.stringify(cycle.evo.state)), seed: 1, budget: DAY_TRIALS, spawnX: SPAWN_X, wreck: fitnessConfig.wreck, maxCells: evoConfig.maxCells, nicheBy: evoConfig.nicheBy }); this.paint(); },
@@ -63,7 +63,9 @@ const shift = {
   async collect() { if (!this.worker) return; let s = this.result;
     if (this.running) { s = await new Promise<EvoState | null>((res) => { this.done = res; this.worker!.postMessage({ type: 'stop' }); setTimeout(() => res(null), 4000); }); }
     if (s) { cycle.evo = new Evolver(1, SEEDS, s); this.got = this.trials; } else this.got = 0; this.result = null; },
-  got: 0,
+  got: 0, drop: false,
+  /** New game: throw away whatever the shift was breeding and start it again from the fresh burrow. */
+  restart() { if (!this.worker) return; this.result = null; if (this.running) { this.drop = true; this.worker.postMessage({ type: 'stop' }); } else this.start(cycle.real); },
 };
 const cycle: NightCycle = new NightCycle({
   game, zoo, seeds: SEEDS, raidSeconds: 60, rot: true, budgetFor: () => (shift.worker ? 100 : 200), beforeSleep: () => shift.collect(), state: loaded?.evo, day: loaded?.day, log: loaded?.log,
@@ -109,7 +111,7 @@ function tryMake(r: Recipe) {
   game.hold(r, (x, y, a) => { if (!canAfford(gather.inv, v.cost)) return; spend(gather.inv, v.cost); spawnRecipe(game.world, r, x, y, { angle: a }); gather.onChange(); });
 }
 const nightSec = section(side, 'Night', 'Sleep early if you are ready. The night is short: 100 bodies against your base as it stands, on top of what the day shift found.');
-const again = el('button', '', 'Start over'); again.onclick = () => { if (cycle.busy) return; cycle.reset(freshWorld()); gather.inv = { ...START }; light = DAY_STEPS; bestStash = 0; survived = 0; lostTotal = 0; over = false; overlay.hidden = true; try { localStorage.removeItem(SAVE_KEY); } catch { /* nothing to clear */ } saveMsg.textContent = 'New game. It saves itself every dawn.'; gather.onChange(); game.centerOn(LAYOUT.home[1] - 100); };
+const again = el('button', '', 'Start over'); again.onclick = () => { if (cycle.busy) return; cycle.reset(freshWorld()); gather.inv = { ...START }; light = DAY_STEPS; bestStash = 0; survived = 0; lostTotal = 0; over = false; overlay.hidden = true; try { localStorage.removeItem(SAVE_KEY); } catch { /* nothing to clear */ } saveMsg.textContent = 'New game. It saves itself every dawn.'; shift.restart(); gather.onChange(); game.centerOn(LAYOUT.home[1] - 100); };
 const WRECK = 4; fitnessConfig.wreck = loaded ? loaded.wreck : WRECK;
 const lever = el('div', 'seg'); lever.setAttribute('role', 'group'); lever.setAttribute('aria-label', 'What raiders are bred for');
 const paint = () => { for (const b of Array.from(lever.children) as HTMLButtonElement[]) b.classList.toggle('on', (b.dataset.v === 'on') === fitnessConfig.wreck > 0); };
