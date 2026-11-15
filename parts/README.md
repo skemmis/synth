@@ -44,3 +44,16 @@ node parts/playtest.cjs            # scripted browser playtest (run from parts/)
   (kick 14; at kick 8 only 3 of 12 went).
 - Not good yet: the ladder barely bends, so there is still no real cilium. Nothing steers. The flypaper
   catches the worm only sometimes.
+
+**2026-11-15, build search.** `search/builds.mjs` grows builds the way the sandbox does (place an atom
+near the build, link it to its one or two nearest atoms) and keeps the fastest swimmer in each bin of
+size, elongation, bending and jitter count. Four seeds, 480,000 builds, hidden numbers fixed.
+- Top speed is about 1.1 widths/s whatever the size, so the ceiling is set by the hidden numbers, not by
+  cleverness of the build. Five atoms already reach it.
+- 69 bins hold builds that are both long (3 or more times longer than wide) and bend as they go. The best,
+  "Whip", is five atoms using spring, rope and rod together and swims at 1.05 widths/s. It flexes; it
+  does not ripple like a real cilium.
+- Three finds are in the sandbox as starters (Whip, Eel, Dart). In the browser the whip and dart cross
+  about 23 widths in 6 s, against 15 for the hand-built worm.
+- Sticky atoms and fuses almost never appear in good swimmers. They need their own goals (catching,
+  launching) to earn a place.

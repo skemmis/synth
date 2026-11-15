@@ -5,7 +5,7 @@ const { chromium } = require('playwright');
   const errs = []; p.on('pageerror', e => errs.push(String(e))); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
   await p.goto('file://' + require('path').resolve(process.argv[2] || 'play/sandbox.html'));
   const cen = () => p.evaluate(() => { let x = 0, y = 0, n = 0; for (let i = 0; i < w.n; i++) if (w.kind[i] !== 3) { x += w.x[i]; y += w.y[i]; n++; } return [x / n, y / n, n, w.nb, w.stat.eaten, w.stat.snapped, w.stat.glued]; });
-  for (const id of ['worm', 'tadpole', 'ladder', 'paper']) { await p.click('#s-' + id); const a = await cen(); await p.waitForTimeout(6000); const c = await cen(); console.log(id, 'moved', Math.hypot(c[0] - a[0], c[1] - a[1]).toFixed(1), 'in 6 s; eaten', c[4], 'snapped', c[5], 'glued', c[6]); await p.locator('#pond').screenshot({ path: `results/pt-${id}.png` }); }
+  for (const id of ['worm', 'tadpole', 'ladder', 'whip', 'eel', 'dart', 'paper']) { await p.click('#s-' + id); const a = await cen(); await p.waitForTimeout(6000); const c = await cen(); console.log(id, 'moved', Math.hypot(c[0] - a[0], c[1] - a[1]).toFixed(1), 'in 6 s; eaten', c[4], 'snapped', c[5], 'glued', c[6]); await p.locator('#pond').screenshot({ path: `results/pt-${id}.png` }); }
   // bomb: grab and yank
   await p.click('#s-bomb'); await p.click('#tGrab'); const box = await p.locator('#cv').boundingBox();
   const sx = (x) => box.x + x / 48 * box.width, sy = (y) => box.y + y / 30 * box.height;

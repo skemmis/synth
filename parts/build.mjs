@@ -9,10 +9,14 @@ const params = JSON.parse(fs.readFileSync(path.join(here, 'params.json'), 'utf8'
 const hex = (kind, link) => { const atoms = [[kind, 0, 0]], links = []; for (let k = 0; k < 6; k++) { atoms.push([kind, 1.05 * Math.cos(k * Math.PI / 3), 1.05 * Math.sin(k * Math.PI / 3)]); links.push([0, k + 1, link]); links.push([k + 1, (k + 1) % 6 + 1, link]); } return { atoms, links }; };
 const paper = (() => { const atoms = [], links = []; for (let k = 0; k < 9; k++) { atoms.push([k % 2 ? STICKY : BEAD, 0, (k - 4) * 1.3]); if (k) links.push([k - 1, k, ROPE]); } return { atoms, links }; })();
 const merge = (a, b, dx, dy) => ({ atoms: [...a.atoms, ...b.atoms.map(q => [q[0], q[1] + dx, q[2] + dy])], links: [...a.links, ...b.links.map(l => [l[0] + a.atoms.length, l[1] + a.atoms.length, l[2]])] });
+const found = JSON.parse(fs.readFileSync(path.join(here, 'found.json'), 'utf8'));
 const STARTERS = [
   { id: 'worm', name: 'Worm', build: BUILDS.worm, x: 10, y: 15, tip: 'Two jitters on springs with a bead at each end. They fire one after the other, and that is enough to swim.' },
   { id: 'tadpole', name: 'Tadpole', build: BUILDS.tadpole, x: 24, y: 8, tip: 'A solid triangle of rods. One corner is a jitter, tugging a bead on a spring.' },
   { id: 'ladder', name: 'Ladder', build: BUILDS.ladder, x: 20, y: 12, tip: 'Rods on one side, springs with jitters on the other. A first try at something that bends.' },
+  { id: 'whip', name: 'Whip (found)', build: found.whip.build, x: 12, y: 15, tip: `Found by the search, not designed: ${found.whip.n} atoms that bend as they swim. It uses spring, rope and rod together.` },
+  { id: 'eel', name: 'Eel (found)', build: found.eel.build, x: 12, y: 10, tip: `Another search find: ${found.eel.n} atoms, the bendiest swimmer so far.` },
+  { id: 'dart', name: 'Dart (found)', build: found.dart.build, x: 12, y: 20, tip: `The fastest build the search found with these parts: ${found.dart.n} atoms in a line.` },
   { id: 'bomb', name: 'Fuse cluster', build: hex(BEAD, FUSE), pellets: 0, tip: 'Seven beads held by fuses. Nothing happens until you pick Grab and yank one.' },
   { id: 'paper', name: 'Flypaper', build: merge(paper, BUILDS.worm, -14, 0), x: 30, y: 15, pellets: 0, tip: 'A rope strung with sticky atoms, and a worm heading for it.' },
   { id: 'empty', name: 'Empty pond', run: false, tip: 'Empty pond, paused. Place a few atoms, then press Run.' },
