@@ -73,4 +73,8 @@ energy when one atom is struck.
   can exist?
 - Energy currently recharges by itself at each type's rate. For the game, recharge would come from
   pellets, which would make every beat a spend.
-- Calm cells and bombs under one rule set: the poke test is written, the survey is not yet analysed.
+- Calm cells and bombs under one rule set. A second survey of 2,221 random bonded universes struck one atom hard
+  in each settled soup. 88% of the soups were calm, but only 0.3% of all universes were calm and also gave back more
+  than 1.5 times the energy of the strike, and only 0.2% did so with a chain of ten or more bonds breaking. The best
+  gave back 6 times with 55 bonds breaking. So bombs can live in a calm universe, but random rules almost never
+  put them there; they need a search aimed at them.
