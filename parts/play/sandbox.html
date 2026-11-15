@@ -1,0 +1,381 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}[hidden]{display:none!important}</style></head><body><title>Goo Parts Sandbox</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: the pond fills the width; one toolbar above it (pieces, links, tools), a legend and starter builds below. */
+:root {
+  --bg: #eef2f6; --panel: #ffffff; --ink: #16202b; --muted: #5b6878; --line: #cdd6e1; --pond: #dcebf5; --pond-dot: #c3d8e8;
+  --accent: #1c5fd6; --accent-ink: #ffffff;
+  --bead: #5b7186; --jitter: #e8731c; --sticky: #2f9e54; --pellet: #d9a700;
+  --rod: #26323f; --spring: #1c5fd6; --rope: #8a6a3c; --fuse: #d1352b; --glue: #2f9e54;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif; --body: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0d1218; --panel: #151c25; --ink: #e6edf5; --muted: #93a1b3; --line: #273342; --pond: #0b1a27; --pond-dot: #14283a;
+  --accent: #6aa5ff; --accent-ink: #071326;
+  --bead: #9fb3c8; --jitter: #ff9340; --sticky: #58cf80; --pellet: #ffd23f;
+  --rod: #dfe7f0; --spring: #6aa5ff; --rope: #c9a66f; --fuse: #ff6257; --glue: #58cf80; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0d1218; --panel: #151c25; --ink: #e6edf5; --muted: #93a1b3; --line: #273342; --pond: #0b1a27; --pond-dot: #14283a;
+  --accent: #6aa5ff; --accent-ink: #071326;
+  --bead: #9fb3c8; --jitter: #ff9340; --sticky: #58cf80; --pellet: #ffd23f;
+  --rod: #dfe7f0; --spring: #6aa5ff; --rope: #c9a66f; --fuse: #ff6257; --glue: #58cf80; color-scheme: dark }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px 28px; }
+main { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+h1 { font-family: var(--display); font-size: 24px; line-height: 1.1; margin: 0; }
+h2 { font-family: var(--display); font-size: 16px; margin: 0 0 6px; }
+.lede { color: var(--muted); margin: 4px 0 0; max-width: 70ch; }
+.bar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.grp { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.lab { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-right: 2px; }
+button { font: inherit; font-size: 13px; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 6px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; font-weight: 600; }
+button.go { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sw { width: 14px; height: 14px; border-radius: 50%; flex: none; display: inline-block; }
+.ln { width: 20px; height: 0; border-top: 3px solid; flex: none; display: inline-block; }
+.pond { position: relative; background: var(--pond); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; aspect-ratio: 8 / 5; max-width: 100%; touch-action: none; }
+@media (max-width: 600px) { .pond { aspect-ratio: 4 / 5; } }
+canvas { width: 100%; height: 100%; display: block; }
+.hud { position: absolute; left: 10px; bottom: 8px; font-size: 12px; color: var(--muted); pointer-events: none; font-variant-numeric: tabular-nums; }
+.tip { position: absolute; right: 10px; top: 8px; font-size: 12px; color: var(--muted); pointer-events: none; text-align: right; max-width: 60%; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+.card ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.card li { display: flex; gap: 8px; align-items: baseline; } .card li b { font-weight: 600; }
+.card li .sw, .card li .ln { position: relative; top: 2px; } .card li .ln { top: -3px; }
+.starters { display: flex; flex-wrap: wrap; gap: 6px; }
+.note { color: var(--muted); font-size: 12.5px; margin: 8px 0 0; }
+</style>
+<main>
+  <header>
+    <h1>Goo parts sandbox</h1>
+    <p class="lede">Four kinds of atom and four kinds of link. Each does one plain thing. Build something, press Run, and see what it does in the water.</p>
+  </header>
+  <div class="bar">
+    <div class="grp"><span class="lab">Tool</span>
+      <button id="tBuild" aria-pressed="true">Build</button><button id="tGrab" aria-pressed="false">Grab</button><button id="tErase" aria-pressed="false">Erase</button></div>
+    <div class="grp" id="atoms"><span class="lab">Atom</span></div>
+    <div class="grp" id="links"><span class="lab">Link</span></div>
+    <div class="grp"><button id="bRun" class="go">Pause</button><button id="bClear">Clear</button><button id="bFeed">Scatter pellets</button></div>
+  </div>
+  <div class="pond" id="pond"><canvas id="cv"></canvas><div class="tip" id="tip"></div><div class="hud" id="hud"></div></div>
+  <div class="cols">
+    <section class="card"><h2>Atoms</h2><ul>
+      <li><span class="sw" style="background:var(--bead)"></span><span><b>Bead</b> does nothing. It is weight and something to push water with.</span></li>
+      <li><span class="sw" style="background:var(--jitter)"></span><span><b>Jitter</b> tugs every spring and rope it holds, a quick pull then a slow release. Jitters fire one after another in the order you placed them. Each beat spends energy; the ring around it is what's left.</span></li>
+      <li><span class="sw" style="background:var(--sticky)"></span><span><b>Sticky</b> glues itself to anything it touches, up to three things.</span></li>
+      <li><span class="sw" style="background:var(--pellet)"></span><span><b>Pellet</b> is loose energy. Touch one with any build that has a jitter in it and the jitters are fed.</span></li>
+    </ul></section>
+    <section class="card"><h2>Links</h2><ul>
+      <li><span class="ln" style="border-color:var(--rod)"></span><span><b>Rod</b> keeps its length. Three in a triangle make something solid.</span></li>
+      <li><span class="ln" style="border-color:var(--spring)"></span><span><b>Spring</b> stretches a long way and pulls back.</span></li>
+      <li><span class="ln" style="border-color:var(--rope)"></span><span><b>Rope</b> pulls when taut and goes slack when not.</span></li>
+      <li><span class="ln" style="border-color:var(--fuse);border-top-style:dashed"></span><span><b>Fuse</b> is stiff until it is stretched a little, then it snaps and kicks its two ends apart.</span></li>
+    </ul><p class="note">Every link keeps the length you built it at.</p></section>
+    <section class="card"><h2>Starter builds</h2><div class="starters" id="starters"></div>
+      <p class="note"><b>Build:</b> click the water to place an atom; it links to the nearest atoms within reach (the faint lines show which). Drag from one atom to another to add a link between them. <b>Grab:</b> drag things around. <b>Erase:</b> click an atom or a link.</p></section>
+  </div>
+</main>
+<script>
+// Parts: a small building physics with named pieces. Deterministic (only + - * / sqrt in the step).
+//
+// Atoms: BEAD (plain), JITTER (tugs its springs and ropes in rhythm, spends energy), STICKY (grabs what it
+// touches), PELLET (loose energy; eaten on touching a build that has a jitter in it).
+// Links: ROD (stiff), SPRING (soft, stretchy), ROPE (pulls, never pushes), FUSE (stiff, snaps under a
+// small stretch and kicks its ends apart), GLUE (what a sticky atom makes).
+// A link remembers the length it was built at. The numbers below are hidden from the player and are
+// what the search tunes.
+
+const BEAD = 0, JITTER = 1, STICKY = 2, PELLET = 3;
+const ROD = 0, SPRING = 1, ROPE = 2, FUSE = 3, GLUE = 4;
+const KCORE = 120, SH0 = 1.2, SH1 = 1.8, VCAP = 60;
+
+const DEFAULTS = {
+  dt: 0.02,
+  // water (from the universe search: without splash or slipstream nothing can swim)
+  g1: 0.6, g2: 0.3, shadow: 0.8, T: 0.02,
+  mass: [1, 1.5, 1, 0.5], drag: [1, 1, 1.6, 1],
+  // links: stiffness, stretch at which it breaks (fraction of built length), internal damping
+  k: [400, 30, 150, 300, 80], snap: [0.6, 2.5, 0.6, 0.12, 0.6], damp: [3, 0.6, 1.5, 3, 1.5],
+  fuseKick: 8,
+  // jitter: beats per second, how hard it tugs its springs and ropes, share of the beat spent pulling,
+  // delay between jitters in the order they were placed (fraction of a beat), energy per beat per link
+  jitHz: 1.2, jitForce: 60, // (two jitters on one link tug as one)
+  jitDuty: 0.2, jitLag: 0.25, jitCost: 0.01, jitShake: 0,
+  stickyReach: 1.15, stickyMax: 3, pelletEnergy: 0.5,
+};
+
+function rng32(seed) {
+  let s = (seed >>> 0) || 1;
+  return function () {
+    s = (s + 0x6D2B79F5) >>> 0; let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+class Parts {
+  // opts: { W, H, cap, seed, walls (default true), freeEnergy (jitters never run out) }
+  constructor(params = {}, opts = {}) {
+    this.p = { ...DEFAULTS, ...params };
+    this.W = opts.W || 48; this.H = opts.H || 30; this.walls = opts.walls !== false;
+    this.freeEnergy = !!opts.freeEnergy;
+    const cap = this.cap = opts.cap || 1200;
+    this.rand = rng32(opts.seed === undefined ? 1 : opts.seed);
+    this.n = 0;
+    this.x = new Float64Array(cap); this.y = new Float64Array(cap); this.vx = new Float64Array(cap); this.vy = new Float64Array(cap);
+    this.fx = new Float64Array(cap); this.fy = new Float64Array(cap);
+    this.sw = new Float64Array(cap); this.sxx = new Float64Array(cap); this.sxy = new Float64Array(cap); this.syy = new Float64Array(cap);
+    this.kind = new Uint8Array(cap); this.e = new Float64Array(cap); this.order = new Int32Array(cap); this.glue = new Uint8Array(cap);
+    this.capB = cap * 4; this.nb = 0;
+    this.ba = new Int32Array(this.capB); this.bb = new Int32Array(this.capB); this.bk = new Uint8Array(this.capB); this.bl = new Float64Array(this.capB);
+    this.time = 0; this.steps = 0; this.jitters = 0;
+    this.stat = { snapped: 0, fuses: 0, eaten: 0, capHits: 0, glued: 0 };
+    const cs = SH1; this.nx = Math.max(1, Math.floor(this.W / cs)); this.ny = Math.max(1, Math.floor(this.H / cs));
+    this.cw = this.W / this.nx; this.ch = this.H / this.ny;
+    this.head = new Int32Array(this.nx * this.ny); this.next = new Int32Array(cap);
+    this.eatQ = [];
+  }
+  add(kind, x, y) {
+    if (this.n >= this.cap) return -1;
+    const i = this.n++;
+    this.kind[i] = kind; this.x[i] = x; this.y[i] = y; this.vx[i] = 0; this.vy[i] = 0; this.e[i] = 1; this.glue[i] = 0;
+    this.order[i] = kind === JITTER ? this.jitters++ : 0;
+    return i;
+  }
+  linked(i, j) { for (let b = 0; b < this.nb; b++) if ((this.ba[b] === i && this.bb[b] === j) || (this.ba[b] === j && this.bb[b] === i)) return true; return false; }
+  link(i, j, kind, len) {
+    if (i === j || i < 0 || j < 0 || this.nb >= this.capB || this.linked(i, j)) return -1;
+    const b = this.nb++; this.ba[b] = i; this.bb[b] = j; this.bk[b] = kind;
+    this.bl[b] = len !== undefined ? len : Math.sqrt((this.x[i] - this.x[j]) ** 2 + (this.y[i] - this.y[j]) ** 2);
+    return b;
+  }
+  unlink(b) {
+    if (this.bk[b] === GLUE) { if (this.kind[this.ba[b]] === STICKY) this.glue[this.ba[b]]--; if (this.kind[this.bb[b]] === STICKY) this.glue[this.bb[b]]--; }
+    const l = --this.nb; this.ba[b] = this.ba[l]; this.bb[b] = this.bb[l]; this.bk[b] = this.bk[l]; this.bl[b] = this.bl[l];
+  }
+  remove(i) {
+    for (let b = this.nb - 1; b >= 0; b--) if (this.ba[b] === i || this.bb[b] === i) this.unlink(b);
+    const l = --this.n; if (i === l) return;
+    for (const a of [this.x, this.y, this.vx, this.vy, this.e, this.kind, this.order, this.glue]) a[i] = a[l];
+    for (let b = 0; b < this.nb; b++) { if (this.ba[b] === l) this.ba[b] = i; if (this.bb[b] === l) this.bb[b] = i; }
+  }
+  // is this jitter tugging right now? 1 during the short pull at the start of each beat, else 0
+  pulse(i) {
+    const p = this.p; let ph = this.time * p.jitHz - this.order[i] * p.jitLag; ph -= Math.floor(ph);
+    return ph < p.jitDuty ? 1 : 0;
+  }
+  _pair(i, j) {
+    const dx = this.x[j] - this.x[i], dy = this.y[j] - this.y[i], r2 = dx * dx + dy * dy;
+    if (r2 >= SH1 * SH1 || r2 < 1e-18) return;
+    const r = Math.sqrt(r2), ux = dx / r, uy = dy / r, p = this.p;
+    if (r < 1) { const f = KCORE * (1 - r); this.fx[i] -= f * ux; this.fy[i] -= f * uy; this.fx[j] += f * ux; this.fy[j] += f * uy; }
+    if (p.shadow > 0) {
+      const w = r < SH0 ? 1 : (SH1 - r) / (SH1 - SH0), xx = w * ux * ux, xy = w * ux * uy, yy = w * uy * uy;
+      this.sw[i] += w; this.sxx[i] += xx; this.sxy[i] += xy; this.syy[i] += yy;
+      this.sw[j] += w; this.sxx[j] += xx; this.sxy[j] += xy; this.syy[j] += yy;
+    }
+    const ki = this.kind[i], kj = this.kind[j];
+    if (r < p.stickyReach) {
+      if (ki === PELLET || kj === PELLET) { if (ki !== kj) this.eatQ.push(ki === PELLET ? i : j, ki === PELLET ? j : i); }
+      else if ((ki === STICKY && this.glue[i] < p.stickyMax) || (kj === STICKY && this.glue[j] < p.stickyMax)) this.eatQ.push(-1 - i, j);
+    }
+  }
+  // atoms joined to `start` through links
+  component(start) {
+    const seen = new Uint8Array(this.n), out = [start]; seen[start] = 1;
+    for (let q = 0; q < out.length; q++) { const a = out[q]; for (let b = 0; b < this.nb; b++) { const o = this.ba[b] === a ? this.bb[b] : this.bb[b] === a ? this.ba[b] : -1; if (o >= 0 && !seen[o]) { seen[o] = 1; out.push(o); } } }
+    return out;
+  }
+  step() {
+    const n = this.n, p = this.p, dt = p.dt, x = this.x, y = this.y, vx = this.vx, vy = this.vy, fx = this.fx, fy = this.fy;
+    fx.fill(0, 0, n); fy.fill(0, 0, n);
+    if (p.shadow > 0) { this.sw.fill(0, 0, n); this.sxx.fill(0, 0, n); this.sxy.fill(0, 0, n); this.syy.fill(0, 0, n); }
+    const nx = this.nx, ny = this.ny, head = this.head, next = this.next;
+    head.fill(-1);
+    for (let i = n - 1; i >= 0; i--) {
+      let cx = Math.floor(x[i] / this.cw), cy = Math.floor(y[i] / this.ch);
+      if (cx < 0) cx = 0; else if (cx >= nx) cx = nx - 1; if (cy < 0) cy = 0; else if (cy >= ny) cy = ny - 1;
+      const c = cy * nx + cx; next[i] = head[c]; head[c] = i;
+    }
+    this.eatQ.length = 0;
+    for (let cy = 0; cy < ny; cy++) for (let cx = 0; cx < nx; cx++) {
+      for (let i = head[cy * nx + cx]; i >= 0; i = next[i]) {
+        for (let j = next[i]; j >= 0; j = next[j]) this._pair(i, j);
+        for (let s = 0; s < 4; s++) {
+          const c2x = cx + (s === 0 ? 1 : s - 2), c2y = cy + (s === 0 ? 0 : 1);
+          if (c2x < 0 || c2x >= nx || c2y >= ny) continue;
+          for (let j = head[c2y * nx + c2x]; j >= 0; j = next[j]) this._pair(i, j);
+        }
+      }
+    }
+    // links
+    for (let b = this.nb - 1; b >= 0; b--) {
+      const i = this.ba[b], j = this.bb[b], k = this.bk[b];
+      const dx = x[j] - x[i], dy = y[j] - y[i], r = Math.sqrt(dx * dx + dy * dy) || 1e-9, ux = dx / r, uy = dy / r;
+      const L = this.bl[b];
+      let tug = 0;
+      if (k === SPRING || k === ROPE) { // a jitter with energy tugs the springs and ropes it holds
+        if (this.kind[i] === JITTER && this.e[i] > 0) tug += this.pulse(i);
+        if (this.kind[j] === JITTER && this.e[j] > 0) tug += this.pulse(j);
+        if (tug > 0) { // the tug fades out as the link nears 60% of its built length, so it cannot crush
+          const room = (r - 0.6 * L) / (0.4 * L), f = p.jitForce * (room <= 0 ? 0 : room > 1 ? 1 : room); fx[i] += f * ux; fy[i] += f * uy; fx[j] -= f * ux; fy[j] -= f * uy; }
+      }
+      if (r > this.bl[b] * (1 + p.snap[k])) {
+        if (k === FUSE) { const f = p.fuseKick / dt; fx[i] -= f * ux; fy[i] -= f * uy; fx[j] += f * ux; fy[j] += f * uy; this.stat.fuses++; }
+        this.stat.snapped++; this.unlink(b); continue;
+      }
+      let f = p.k[k] * (r - L);
+      if (k === ROPE && f < 0) continue; // a rope goes slack
+      f += p.damp[k] * ((vx[j] - vx[i]) * ux + (vy[j] - vy[i]) * uy);
+      fx[i] += f * ux; fy[i] += f * uy; fx[j] -= f * ux; fy[j] -= f * uy;
+    }
+    // sticky grabs and pellets eaten (in a fixed order: by atom index)
+    const q = this.eatQ; let dead = null;
+    for (let a = 0; a < q.length; a += 2) {
+      if (q[a] < 0) { const i = -1 - q[a], j = q[a + 1];
+        const si = this.kind[i] === STICKY && this.glue[i] < p.stickyMax, sj = this.kind[j] === STICKY && this.glue[j] < p.stickyMax;
+        if ((si || sj) && this.link(i, j, GLUE, 1) >= 0) { if (this.kind[i] === STICKY) this.glue[i]++; if (this.kind[j] === STICKY) this.glue[j]++; this.stat.glued++; }
+      } else { const pel = q[a], eater = q[a + 1]; if (dead && dead.includes(pel)) continue;
+        const js = this.component(eater).filter(o => this.kind[o] === JITTER); if (!js.length) continue;
+        for (const o of js) { const v = this.e[o] + p.pelletEnergy / js.length; this.e[o] = v > 1 ? 1 : v; }
+        (dead = dead || []).push(pel); this.stat.eaten++;
+      }
+    }
+    // integrate
+    const g1 = p.g1, g2 = p.g2, sh = p.shadow, T = p.T, rand = this.rand, cost = this.freeEnergy ? 0 : p.jitCost * p.jitHz * dt;
+    for (let i = 0; i < n; i++) {
+      const kd = this.kind[i], m = p.mass[kd], g = g1 * p.drag[kd];
+      let u = vx[i], v = vy[i], dxv = u, dyv = v;
+      if (sh > 0 && this.sw[i] > 0) { const c = sh / (this.sw[i] > 1 ? this.sw[i] : 1); dxv = u - c * (this.sxx[i] * u + this.sxy[i] * v); dyv = v - c * (this.sxy[i] * u + this.syy[i] * v); }
+      u += (fx[i] - g * dxv) / m * dt; v += (fy[i] - g * dyv) / m * dt;
+      let amp = T > 0 ? Math.sqrt(6 * g * T * dt) / m : 0;
+      if (kd === JITTER && p.jitShake > 0 && this.e[i] > 0) amp += p.jitShake * Math.sqrt(dt) / m;
+      if (amp > 0) { u += amp * (2 * rand() - 1); v += amp * (2 * rand() - 1); }
+      if (g2 > 0) { const k = 1 / (1 + g2 * p.drag[kd] * Math.sqrt(u * u + v * v) * dt / m); u *= k; v *= k; }
+      const s2 = u * u + v * v; if (s2 > VCAP * VCAP) { const k = VCAP / Math.sqrt(s2); u *= k; v *= k; this.stat.capHits++; }
+      vx[i] = u; vy[i] = v; x[i] += u * dt; y[i] += v * dt;
+      if (kd === JITTER && cost > 0 && this.e[i] > 0) { this.e[i] -= cost; if (this.e[i] < 0) this.e[i] = 0; }
+      if (this.walls) {
+        if (x[i] < 0.5) { x[i] = 0.5; if (vx[i] < 0) vx[i] *= -0.5; } else if (x[i] > this.W - 0.5) { x[i] = this.W - 0.5; if (vx[i] > 0) vx[i] *= -0.5; }
+        if (y[i] < 0.5) { y[i] = 0.5; if (vy[i] < 0) vy[i] *= -0.5; } else if (y[i] > this.H - 0.5) { y[i] = this.H - 0.5; if (vy[i] > 0) vy[i] *= -0.5; }
+      }
+    }
+    if (dead) { dead.sort((a, b) => b - a); for (const i of dead) this.remove(i); }
+    this.time += dt; this.steps++;
+  }
+  // a build is plain data: { atoms: [[kind, x, y], ...], links: [[i, j, kind], ...] }
+  load(build, ox = 0, oy = 0) {
+    const base = this.n; for (const a of build.atoms) this.add(a[0], a[1] + ox, a[2] + oy);
+    for (const l of build.links) this.link(base + l[0], base + l[1], l[2]);
+    return base;
+  }
+  save() {
+    const atoms = [], links = [];
+    for (let i = 0; i < this.n; i++) atoms.push([this.kind[i], +this.x[i].toFixed(3), +this.y[i].toFixed(3)]);
+    for (let b = 0; b < this.nb; b++) links.push([this.ba[b], this.bb[b], this.bk[b]]);
+    return { atoms, links };
+  }
+}
+
+const PARAMS = {"g1":0.107,"g2":0.716,"shadow":0.95,"mass":[0.5,3,1,0.5],"drag":[1.401,0.308,1.6,1],"k":[400,33.695,40,300,80],"damp":[3,0.717,1.5,3,1.5],"jitHz":1.744,"jitForce":150,"jitDuty":0.106,"jitLag":0.242,"jitCost":0.02,"fuseKick":14};
+const STARTERS = [{"id":"worm","name":"Worm","build":{"atoms":[[0,0,0],[1,1.2,0],[1,2.4,0],[0,3.6,0]],"links":[[0,1,1],[1,2,1],[2,3,1]]},"x":10,"y":15,"tip":"Two jitters on springs with a bead at each end. They fire one after the other, and that is enough to swim."},{"id":"tadpole","name":"Tadpole","build":{"atoms":[[0,0,0],[0,1,0],[1,0.5,0.866],[0,0.5,2.266]],"links":[[0,1,0],[1,2,0],[0,2,0],[2,3,1]]},"x":24,"y":8,"tip":"A solid triangle of rods. One corner is a jitter, tugging a bead on a spring."},{"id":"ladder","name":"Ladder","build":{"atoms":[[0,0,0],[0,1.1,0],[1,0,1.1],[0,1.1,1.1],[0,0,2.2],[0,1.1,2.2],[1,0,3.3000000000000003],[0,1.1,3.3000000000000003],[0,0,4.4],[0,1.1,4.4]],"links":[[0,1,0],[2,3,0],[1,3,0],[0,2,1],[0,3,0],[4,5,0],[3,5,0],[2,4,1],[2,5,0],[6,7,0],[5,7,0],[4,6,1],[4,7,0],[8,9,0],[7,9,0],[6,8,1],[6,9,0]]},"x":20,"y":12,"tip":"Rods on one side, springs with jitters on the other. A first try at something that bends."},{"id":"bomb","name":"Fuse cluster","build":{"atoms":[[0,0,0],[0,1.05,0],[0,0.5250000000000001,0.9093266739736605],[0,-0.5249999999999998,0.9093266739736606],[0,-1.05,1.285879139104721e-16],[0,-0.5250000000000005,-0.9093266739736604],[0,0.5250000000000001,-0.9093266739736605]],"links":[[0,1,3],[1,2,3],[0,2,3],[2,3,3],[0,3,3],[3,4,3],[0,4,3],[4,5,3],[0,5,3],[5,6,3],[0,6,3],[6,1,3]]},"pellets":0,"tip":"Seven beads held by fuses. Nothing happens until you pick Grab and yank one."},{"id":"paper","name":"Flypaper","build":{"atoms":[[0,0,-5.2],[2,0,-3.9000000000000004],[0,0,-2.6],[2,0,-1.3],[0,0,0],[2,0,1.3],[0,0,2.6],[2,0,3.9000000000000004],[0,0,5.2],[0,-14,0],[1,-12.8,0],[1,-11.6,0],[0,-10.4,0]],"links":[[0,1,2],[1,2,2],[2,3,2],[3,4,2],[4,5,2],[5,6,2],[6,7,2],[7,8,2],[9,10,1],[10,11,1],[11,12,1]]},"x":30,"y":15,"pellets":0,"tip":"A rope strung with sticky atoms, and a worm heading for it."},{"id":"empty","name":"Empty pond","run":false,"tip":"Empty pond, paused. Place a few atoms, then press Run."}];
+const $ = (id) => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d');
+const W = 48, H = 30;
+let w, running = true, tool = 'build', atomKind = BEAD, linkKind = ROD, css = {}, hover = null, dragFrom = -1, grab = -1, mx = 0, my = 0, startC = null;
+const ATOMS = [['Bead', 'bead'], ['Jitter', 'jitter'], ['Sticky', 'sticky'], ['Pellet', 'pellet']], LINKS = [['Rod', 'rod'], ['Spring', 'spring'], ['Rope', 'rope'], ['Fuse', 'fuse']];
+const REACH = 2.1;
+function readCss() { const s = getComputedStyle(document.documentElement); for (const k of ['pond', 'pond-dot', 'bead', 'jitter', 'sticky', 'pellet', 'rod', 'spring', 'rope', 'fuse', 'glue', 'ink', 'muted', 'accent']) css[k] = s.getPropertyValue('--' + k).trim(); }
+function fresh() { w = new Parts(PARAMS, { W, H, seed: 5 }); startC = null; }
+function scatter(n = 14) { for (let k = 0; k < n; k++) w.add(PELLET, 1 + w.rand() * (W - 2), 1 + w.rand() * (H - 2)); }
+function loadStarter(s) { fresh(); if (s.build) w.load(s.build, s.x !== undefined ? s.x : W / 2, s.y !== undefined ? s.y : H / 2); if (s.pellets !== 0) scatter(s.pellets || 14); setRun(s.run !== false); $('tip').textContent = s.tip || ''; try { localStorage.setItem('goo-starter', s.id); } catch (e) {} }
+function setRun(v) { running = v; $('bRun').textContent = v ? 'Pause' : 'Run'; }
+function setTool(t) { tool = t; for (const k of ['Build', 'Grab', 'Erase']) $('t' + k).setAttribute('aria-pressed', t === k.toLowerCase()); }
+function palette() {
+  ATOMS.forEach(([name, c], k) => { const b = document.createElement('button'); b.id = 'a' + k; b.innerHTML = `<span class="sw" style="background:var(--${c})"></span>${name}`; b.onclick = () => { atomKind = k; setTool('build'); sync(); }; $('atoms').appendChild(b); });
+  LINKS.forEach(([name, c], k) => { const b = document.createElement('button'); b.id = 'l' + k; b.innerHTML = `<span class="ln" style="border-color:var(--${c})${k === 3 ? ';border-top-style:dashed' : ''}"></span>${name}`; b.onclick = () => { linkKind = k; setTool('build'); sync(); }; $('links').appendChild(b); });
+  for (const s of STARTERS) { const b = document.createElement('button'); b.id = 's-' + s.id; b.textContent = s.name; b.onclick = () => loadStarter(s); $('starters').appendChild(b); }
+  sync();
+}
+function sync() { ATOMS.forEach((_, k) => $('a' + k).setAttribute('aria-pressed', k === atomKind)); LINKS.forEach((_, k) => $('l' + k).setAttribute('aria-pressed', k === linkKind)); }
+function resize() { const r = cv.getBoundingClientRect(), d = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d); }
+// the pond is always fully visible: fit W x H into the canvas
+function view() { const z = Math.min(cv.width / W, cv.height / H); return { z, ox: (cv.width - W * z) / 2, oy: (cv.height - H * z) / 2 }; }
+function toWorld(ev) { const r = cv.getBoundingClientRect(), v = view(), d = cv.width / r.width; return [((ev.clientX - r.left) * d - v.ox) / v.z, ((ev.clientY - r.top) * d - v.oy) / v.z]; }
+function pickAtom(x, y, rad = 0.75) { let best = -1, bd = rad; for (let i = 0; i < w.n; i++) { const d = Math.hypot(w.x[i] - x, w.y[i] - y); if (d < bd) { bd = d; best = i; } } return best; }
+function pickLink(x, y) { let best = -1, bd = 0.35; for (let b = 0; b < w.nb; b++) { const ax = w.x[w.ba[b]], ay = w.y[w.ba[b]], bx = w.x[w.bb[b]], by = w.y[w.bb[b]]; const dx = bx - ax, dy = by - ay, t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1))); const d = Math.hypot(ax + t * dx - x, ay + t * dy - y); if (d < bd) { bd = d; best = b; } } return best; }
+// which atoms a new atom at (x, y) would link to: the two nearest within reach, never pellets
+function autoLinks(x, y) { const c = []; for (let i = 0; i < w.n; i++) { if (w.kind[i] === PELLET) continue; const d = Math.hypot(w.x[i] - x, w.y[i] - y); if (d < REACH && d > 0.6) c.push([d, i]); } c.sort((a, b) => a[0] - b[0]); return c.slice(0, 2).map(e => e[1]); }
+cv.addEventListener('pointerdown', (ev) => {
+  const [x, y] = toWorld(ev); mx = x; my = y; cv.setPointerCapture(ev.pointerId);
+  const a = pickAtom(x, y);
+  if (tool === 'erase' || ev.button === 2) { if (a >= 0) w.remove(a); else { const b = pickLink(x, y); if (b >= 0) w.unlink(b); } return; }
+  if (tool === 'grab') { grab = a; return; }
+  if (a >= 0) { dragFrom = a; return; }
+  if (x < 0.5 || y < 0.5 || x > W - 0.5 || y > H - 0.5 || pickAtom(x, y, 0.9) >= 0) return;
+  const near = atomKind === PELLET ? [] : autoLinks(x, y), i = w.add(atomKind, x, y);
+  for (const j of near) w.link(i, j, linkKind);
+});
+cv.addEventListener('pointermove', (ev) => { const [x, y] = toWorld(ev); mx = x; my = y; hover = [x, y]; });
+cv.addEventListener('pointerleave', () => { hover = null; });
+const up = () => { if (dragFrom >= 0) { const b = pickAtom(mx, my); if (b >= 0 && b !== dragFrom && w.kind[b] !== PELLET && w.kind[dragFrom] !== PELLET) w.link(dragFrom, b, linkKind); } dragFrom = -1; grab = -1; };
+cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+cv.addEventListener('contextmenu', (ev) => ev.preventDefault());
+function tick() {
+  if (running) for (let s = 0; s < 3; s++) {
+    if (grab >= 0 && grab < w.n) { w.vx[grab] += ((mx - w.x[grab]) * 60 - w.vx[grab] * 8) * w.p.dt; w.vy[grab] += ((my - w.y[grab]) * 60 - w.vy[grab] * 8) * w.p.dt; }
+    w.step();
+  } else if (grab >= 0 && grab < w.n) { w.x[grab] = mx; w.y[grab] = my; }
+  draw(); requestAnimationFrame(tick);
+}
+function linkPath(b, v) {
+  const i = w.ba[b], j = w.bb[b], k = w.bk[b], X = (q) => v.ox + w.x[q] * v.z, Y = (q) => v.oy + w.y[q] * v.z;
+  const x0 = X(i), y0 = Y(i), x1 = X(j), y1 = Y(j), dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+  ctx.beginPath(); ctx.setLineDash([]);
+  if (k === SPRING) { const n = 8, a = v.z * 0.22; ctx.moveTo(x0, y0); for (let s = 1; s < n; s++) { const t = s / n, o = (s % 2 ? a : -a); ctx.lineTo(x0 + dx * t + nx * o, y0 + dy * t + ny * o); } ctx.lineTo(x1, y1); ctx.strokeStyle = css.spring; ctx.lineWidth = v.z * 0.1; }
+  else if (k === ROPE) { const slack = Math.max(0, w.bl[b] * v.z - len); ctx.moveTo(x0, y0); ctx.quadraticCurveTo((x0 + x1) / 2 + nx * slack, (y0 + y1) / 2 + ny * slack, x1, y1); ctx.strokeStyle = css.rope; ctx.lineWidth = v.z * 0.12; }
+  else { ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); if (k === FUSE) { ctx.setLineDash([v.z * 0.25, v.z * 0.15]); ctx.strokeStyle = css.fuse; ctx.lineWidth = v.z * 0.2; } else if (k === GLUE) { ctx.strokeStyle = css.glue; ctx.lineWidth = v.z * 0.14; } else { ctx.strokeStyle = css.rod; ctx.lineWidth = v.z * 0.24; } }
+  ctx.stroke(); ctx.setLineDash([]);
+}
+function draw() {
+  const v = view(), z = v.z;
+  ctx.fillStyle = css.pond; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = css['pond-dot']; for (let gx = 2; gx < W; gx += 2) for (let gy = 2; gy < H; gy += 2) { ctx.beginPath(); ctx.arc(v.ox + gx * z, v.oy + gy * z, Math.max(1, z * 0.06), 0, 6.3); ctx.fill(); }
+  ctx.lineCap = 'round';
+  for (let b = 0; b < w.nb; b++) linkPath(b, v);
+  const cols = [css.bead, css.jitter, css.sticky, css.pellet];
+  for (let i = 0; i < w.n; i++) {
+    const k = w.kind[i], px = v.ox + w.x[i] * z, py = v.oy + w.y[i] * z, r = z * (k === PELLET ? 0.32 : 0.5);
+    ctx.fillStyle = cols[k]; ctx.beginPath(); ctx.arc(px, py, r, 0, 6.3); ctx.fill();
+    if (k === JITTER) { // energy ring, and a core that swells with the tug
+      ctx.strokeStyle = css.ink; ctx.lineWidth = z * 0.1; ctx.beginPath(); ctx.arc(px, py, r * 1.25, -1.57, -1.57 + 6.283 * w.e[i]); ctx.stroke();
+      ctx.fillStyle = css.pond; ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.arc(px, py, r * (0.15 + 0.4 * (w.e[i] > 0 ? w.pulse(i) : 0)), 0, 6.3); ctx.fill(); ctx.globalAlpha = 1;
+    } else if (k === STICKY) { ctx.fillStyle = css.pond; for (let s = 0; s < 3; s++) { ctx.beginPath(); ctx.arc(px + r * 0.45 * Math.cos(s * 2.094), py + r * 0.45 * Math.sin(s * 2.094), r * 0.16, 0, 6.3); ctx.fill(); } }
+  }
+  // build preview
+  if (tool === 'build' && hover && dragFrom < 0 && pickAtom(hover[0], hover[1], 0.9) < 0) {
+    const px = v.ox + hover[0] * z, py = v.oy + hover[1] * z; ctx.globalAlpha = 0.45;
+    if (atomKind !== PELLET) for (const j of autoLinks(hover[0], hover[1])) { ctx.strokeStyle = css[LINKS[linkKind][1]]; ctx.lineWidth = z * 0.14; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(v.ox + w.x[j] * z, v.oy + w.y[j] * z); ctx.stroke(); }
+    ctx.fillStyle = cols[atomKind]; ctx.beginPath(); ctx.arc(px, py, z * (atomKind === PELLET ? 0.32 : 0.5), 0, 6.3); ctx.fill(); ctx.globalAlpha = 1;
+  }
+  if (dragFrom >= 0 && dragFrom < w.n) { ctx.strokeStyle = css[LINKS[linkKind][1]]; ctx.globalAlpha = 0.6; ctx.lineWidth = z * 0.16; ctx.beginPath(); ctx.moveTo(v.ox + w.x[dragFrom] * z, v.oy + w.y[dragFrom] * z); ctx.lineTo(v.ox + mx * z, v.oy + my * z); ctx.stroke(); ctx.globalAlpha = 1; }
+  let pel = 0, jit = 0; for (let i = 0; i < w.n; i++) { if (w.kind[i] === PELLET) pel++; else if (w.kind[i] === JITTER) jit++; }
+  $('hud').textContent = `${running ? '' : 'paused · '}${w.n - pel} atoms · ${w.nb} links · ${pel} pellets left · ${w.stat.eaten} eaten`;
+}
+$('tBuild').onclick = () => setTool('build'); $('tGrab').onclick = () => setTool('grab'); $('tErase').onclick = () => setTool('erase');
+$('bRun').onclick = () => setRun(!running);
+$('bClear').onclick = () => { fresh(); setRun(false); $('tip').textContent = 'Empty pond, paused. Place a few atoms, then press Run.'; };
+$('bFeed').onclick = () => scatter(14);
+window.addEventListener('resize', resize);
+new MutationObserver(readCss).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readCss);
+readCss(); palette(); resize();
+let first = STARTERS[0]; try { first = STARTERS.find(s => s.id === localStorage.getItem('goo-starter')) || first; } catch (e) {}
+loadStarter(first); requestAnimationFrame(tick);
+</script>
+</body></html>
