@@ -19,9 +19,12 @@ const buoy = { atoms: [[BEAD, 0, 0], [BEAD, 1, 0], [BEAD, 0.5, 0.87], [FLOAT, 0.
 const sling = { atoms: [[ROCK, 0, -3.2], [ROCK, 0, 3.2], [BEAD, 0.5, 0], [JITTER, 1.6, 0]], links: [[0, 2, SPRING], [1, 2, SPRING], [2, 3, FUSE]] };
 // a worm on a rope leash from a rock
 const leash = (() => { const w = BUILDS.worm; return { atoms: [[ROCK, 0, 0], ...w.atoms.map(q => [q[0], q[1] + 3.2, q[2]])], links: [[0, 1, ROPE], ...w.links.map(l => [l[0] + 1, l[1] + 1, l[2]])] }; })();
+// a worm stood on its tail with a float roped above it: the float keeps it pointed up, so it climbs
+const climber = { atoms: [[BEAD, 0, 0], [JITTER, 0, -1.2], [JITTER, 0, -2.4], [BEAD, 0, -3.6], [FLOAT, 0, -4.8]], links: [[0, 1, SPRING], [1, 2, SPRING], [2, 3, SPRING], [3, 4, ROPE]] };
 const STARTERS = [
   { id: 'posts', name: 'Pond with posts', rocks: [...POSTS, ...WALL], run: false, tool: 'build', pellets: 20, tip: 'Things sink slowly, and the rich pellets are up top. Build up from a rock or a ledge, or hang a float on your build. The water holds still until you press Run.' },
   { id: 'buoy', name: 'Buoy', build: buoy, x: 14, y: 26, pellets: 20, tip: 'Three beads and one float. It rises slowly and stays upright. It has no jitter, so it cannot eat. What would you add?' },
+  { id: 'climber', name: 'Climber', build: climber, x: 24, y: 26, pellets: 40, tip: 'A worm with one float roped to its nose. The float keeps it pointed up, so it swims to the rich pellets instead of sinking. Erase the float and watch the difference.' },
   { id: 'leash', name: 'Worm on a leash', build: leash, x: 24, y: 15, pellets: 40, tip: 'The worm from before, roped to a rock. It can only circle, so it sweeps the pellets near its post.' },
   { id: 'worm', name: 'Worm', build: BUILDS.worm, x: 10, y: 15, tip: 'Two jitters on springs with a bead at each end. They fire one after the other, and that is enough to swim.' },
   { id: 'tadpole', name: 'Tadpole', build: BUILDS.tadpole, x: 24, y: 8, tip: 'A solid triangle of rods. One corner is a jitter, tugging a bead on a spring.' },

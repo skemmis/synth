@@ -7,6 +7,7 @@ const { chromium } = require('playwright');
   const gv = process.argv[4] || '0'; await p.evaluate((g) => { document.getElementById('grav').value = g; setGravity(); }, gv); console.log('gravity', gv);
   const cen = () => p.evaluate(() => { let x = 0, y = 0, n = 0; for (let i = 0; i < w.n; i++) if (w.kind[i] !== 3) { x += w.x[i]; y += w.y[i]; n++; } return [x / n, y / n, n, w.nb, w.stat.eaten, w.stat.snapped, w.stat.glued]; });
   for (const id of ['worm', 'tadpole', 'ladder', 'whip', 'eel', 'dart', 'paper', 'leash']) { await p.click('#s-' + id); const a = await cen(); await p.waitForTimeout(6000); const c = await cen(); console.log(id, 'moved', Math.hypot(c[0] - a[0], c[1] - a[1]).toFixed(1), 'in 6 s; eaten', c[4], 'snapped', c[5], 'glued', c[6]); await p.locator('#pond').screenshot({ path: `results/pt-${id}.png` }); }
+  await p.click('#s-climber'); { const a = await cen(); await p.waitForTimeout(20000); const c = await cen(); console.log('climber rose', (a[1] - c[1]).toFixed(1), 'in 20 s; eaten', c[4], 'rich', await p.evaluate(() => w.stat.rich)); await p.locator('#pond').screenshot({ path: 'results/pt-climber.png' }); }
   await p.click('#s-buoy'); const by0 = await p.evaluate(() => w.y[0]); await p.waitForTimeout(5000); console.log('buoy rose', (by0 - await p.evaluate(() => w.y[0])).toFixed(1), 'in 5 s');
   // bomb: grab and yank
   await p.click('#s-bomb'); await p.click('#tGrab'); const box = await p.locator('#cv').boundingBox();

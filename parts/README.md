@@ -104,3 +104,9 @@ minutes at most.
   and released (`search/sling.mjs`), and a light bead dies within 2 widths whatever you do. So it is a
   handling problem (how the player loads it), not a physics one. The starter was removed until that is
   solved.
+
+### Playtest: Climber (float on the nose)
+
+Question from the last round: swimmers could climb against gravity but none stayed pointed up. Quick check in `search/climb.mjs` (8 builds, 60 s each, a few seconds to run): a worm stood on its tail with one float roped above it gains 18.9 pond units; the same worm with no float gains 8.2 and peaks then falls; the worm drawn the other way up sinks. Rope and spring both work for the float, a rod is worse (12.2). In the browser the Climber starter rose 21.9 units in 20 s and ate 3 rich pellets.
+
+What worked: one extra readable part (a float) turns a swimmer into a climber, and erasing the float shows why. What did not: it climbs straight up and then just bumps along the ceiling; it cannot steer sideways to more pellets.
