@@ -1,0 +1,138 @@
+<title>Brood</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* layout: one column. stage on top, controls under it, notes last. one dark look: a dish under a night microscope */
+:root{--bg:#0f1b26;--well:#0a141c;--panel:#172836;--line:#2a4052;--fg:#e4edf2;--dim:#93a9b8;--pellet:#ffb648;--a:#5fd0c5;--b:#f2787a;--c:#b79cf5;--d:#6aa8ff;--e:#e7e3d4;color-scheme:dark;--display:'Space Grotesk',system-ui,sans-serif;--body:'Inter',system-ui,sans-serif}
+html,body{background:var(--bg);color:var(--fg);font-family:var(--body);line-height:1.45}
+.wrap{max-width:1000px;margin:0 auto;padding-block:18px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:12px}
+h1{font-family:var(--display);font-size:1.6rem;margin:0;letter-spacing:-.01em}
+.src{color:var(--dim);margin:0;max-width:68ch}
+.stage{position:relative;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--well)}
+canvas{display:block;width:100%;touch-action:none}
+.hud{position:absolute;left:10px;top:8px;right:10px;font:600 13px var(--display);pointer-events:none;text-shadow:0 1px 3px #000,0 0 2px #000;font-variant-numeric:tabular-nums;white-space:pre-line}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,select{font:500 14px var(--body);color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--dim)}
+button[aria-pressed=true]{background:var(--a);color:#062422;border-color:var(--a)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--pellet);outline-offset:1px}
+label{color:var(--dim);display:flex;gap:6px;align-items:center;font-size:14px}
+input[type=range]{accent-color:var(--a);width:120px}
+.try{color:var(--dim);max-width:72ch}
+.try summary{color:var(--fg);font-family:var(--display);font-weight:600;cursor:pointer}
+.try ul{margin:8px 0 0;padding-left:20px}
+.try li{margin:5px 0}
+.try b{color:var(--fg);font-weight:600}
+.pel{color:var(--pellet)}
+
+.brain{display:grid;grid-template-columns:minmax(0,1fr) 92px 92px;gap:4px 6px;max-width:440px;align-items:center}
+.brain span{font-size:13px;color:var(--dim);min-width:0}
+.brain .h{font:600 13px var(--display);color:var(--fg);text-align:center}
+.brain .v{font:600 13px var(--display);text-align:center;padding:6px 0;border-radius:6px;border:1px solid var(--line);font-variant-numeric:tabular-nums;color:var(--fg)}
+.cols{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
+.cols>*{min-width:0;flex:1 1 320px}
+.cap{color:var(--dim);font-size:13px;margin:0 0 6px}
+</style>
+<main class="wrap">
+  <header>
+    <h1>Brood</h1>
+    <p class="src">Cribbed from The Bibites and other artificial life ponds, using Wirehead's swimmers. Nobody wires anything here. A swimmer that eats enough <span class="pel">pellets</span> splits in two, and each half gets a slightly miscopied wiring. One that runs out of energy dies. You are the weather: you decide where food falls and where the poison sits, and the pond rewires itself around what you do.</p>
+  </header>
+  <div class="stage"><canvas id="c"></canvas><div class="hud" id="hud"></div></div>
+  <div class="controls">
+    <button id="tFood">Scatter pellets</button>
+    <button id="tTox">Place poison</button>
+    <button id="tClear">Remove poison</button>
+    <button id="pause">Pause</button>
+    <button id="reset">Fresh pond</button>
+    <label>Rain <input type="range" id="rain" min="0" max="10" value="4"></label>
+    <label>Speed <select id="speed"><option value="1">1x</option><option value="4" selected>4x</option><option value="12">12x</option></select></label>
+  </div>
+  <div class="cols">
+    <div>
+      <p class="cap">The average wiring of everything alive right now. It starts as noise.</p>
+      <div class="brain" id="brain"></div>
+    </div>
+    <details class="try" open>
+      <summary>What to try</summary>
+      <ul>
+        <li><b>Leave it at 4x for two minutes</b> and watch the table. The crossed pellet wires usually turn green by themselves.</li>
+        <li><b>Turn the rain to zero</b> and feed by hand in one corner only. See how long it takes the pond to learn where the corner is, and what it does when you move.</li>
+        <li><b>Put poison on the food.</b> Feed only inside a poison cloud and see whether anything learns to dash in and out.</li>
+        <li><b>Colour is family.</b> Each miscopy shifts the hue a little, so a pond of one colour is one lineage that won.</li>
+      </ul>
+    </details>
+  </div>
+</main>
+<script>
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const $=id=>document.getElementById(id);
+function makeStage(canvas,W,H){const ctx=canvas.getContext('2d');let s=1;canvas.style.aspectRatio=W+'/'+H;
+  function fit(){const r=canvas.getBoundingClientRect();const dpr=Math.min(window.devicePixelRatio||1,2);const w=Math.max(1,Math.round(r.width*dpr));if(w===canvas.width)return;canvas.width=w;canvas.height=Math.round(w*H/W);s=w/W}
+  if(window.ResizeObserver)new ResizeObserver(fit).observe(canvas);fit();
+  return{ctx,W,H,begin(){fit();s=canvas.width/W;ctx.setTransform(s,0,0,s,0,0)},pos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}}}
+function onPointer(canvas,stage,h){let down=false;
+  canvas.addEventListener('pointerdown',e=>{down=true;try{canvas.setPointerCapture(e.pointerId)}catch(_){}h.down&&h.down(stage.pos(e),e);e.preventDefault()});
+  canvas.addEventListener('pointermove',e=>{h.move&&h.move(stage.pos(e),down,e)});
+  const up=e=>{if(down){down=false;h.up&&h.up(stage.pos(e),e)}};canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',up);
+  canvas.addEventListener('pointerleave',e=>{h.leave&&h.leave()});
+  canvas.addEventListener('contextmenu',e=>e.preventDefault())}
+function runLoop(o){let paused=false,speed=o.speed||1;const pb=$('pause');
+  if(pb)pb.onclick=()=>{paused=!paused;pb.textContent=paused?'Play':'Pause'};
+  function frame(){if(!paused)for(let i=0;i<speed;i++)o.step();o.draw();requestAnimationFrame(frame)}
+  requestAnimationFrame(frame);
+  return{setSpeed(v){speed=v},get paused(){return paused},set paused(v){paused=v;if(pb)pb.textContent=paused?'Play':'Pause'}}}
+function toolbar(ids,onPick){let cur=ids[0];ids.forEach(id=>{const b=$(id);b.setAttribute('aria-pressed',id===cur);b.onclick=()=>{cur=id;ids.forEach(j=>$(j).setAttribute('aria-pressed',j===id));onPick&&onPick(id)}});return()=>cur}
+
+</script>
+<script>
+const W=900,H=560,NS=6,CAP=110;
+const SENSE=['Left antenna smells pellet','Right antenna smells pellet','Left antenna smells poison','Right antenna smells poison','Slow pulse','Always on'];
+const stage=makeStage($('c'),W,H),ctx=stage.ctx;
+let R=mulberry(9),seedN=9,cr=[],pel=[],tox=[],tick=0,births=0,deaths=0,gen=0,rain=4,hist=[];
+function randG(){const g=new Float32Array(12);for(let i=0;i<12;i++)g[i]=(R()*2-1)*.6;g[10]+=.5;g[11]+=.5;return g}
+function mk(x,y,g,hue,gn){return{x,y,th:R()*6.28,e:.8,L:0,R:0,ph:R()*6.28,inp:new Float32Array(NS),g,hue,gn}}
+function reset(){R=mulberry(seedN++);cr=[];pel=[];tox=[];tick=0;births=0;deaths=0;gen=0;hist=[];
+  for(let i=0;i<30;i++)cr.push(mk(40+R()*(W-80),40+R()*(H-80),randG(),R()*360,0));
+  for(let i=0;i<60;i++)pel.push({x:20+R()*(W-40),y:20+R()*(H-40)});
+  for(let i=0;i<3;i++)tox.push({x:150+R()*(W-300),y:100+R()*(H-200),r:45+R()*25})}
+function smellF(x,y){let s=0;for(const p of pel){const dx=p.x-x,dy=p.y-y;s+=1/(1+(dx*dx+dy*dy)/625)}return s>1?1:s}
+function smellT(x,y){let s=0;for(const t of tox){const d=Math.hypot(t.x-x,t.y-y)-t.r;s+=d<=0?1:Math.exp(-d/28)}return s>1?1:s}
+function step(){tick++;
+  if(pel.length<160&&R()<rain*.035)pel.push({x:20+R()*(W-40),y:20+R()*(H-40)});
+  const born=[];
+  for(let k=cr.length-1;k>=0;k--){const c=cr[k],G=c.g,I=c.inp;
+    const lx=c.x+Math.cos(c.th-.6)*22,ly=c.y+Math.sin(c.th-.6)*22,rx=c.x+Math.cos(c.th+.6)*22,ry=c.y+Math.sin(c.th+.6)*22;
+    I[0]=smellF(lx,ly);I[1]=smellF(rx,ry);I[2]=smellT(lx,ly);I[3]=smellT(rx,ry);I[4]=(Math.sin(tick*.07+c.ph)+1)/2;I[5]=1;
+    let L=0,Rr=0;for(let i=0;i<NS;i++){L+=G[i*2]*I[i];Rr+=G[i*2+1]*I[i]}L=L<0?0:L>1?1:L;Rr=Rr<0?0:Rr>1?1:Rr;c.L=L;c.R=Rr;
+    let inTox=0;for(const t of tox)if(Math.hypot(t.x-c.x,t.y-c.y)<t.r)inTox=1;
+    const sp=2.3*(L+Rr)/2*(inTox?.6:1);c.th+=.085*(L-Rr);c.x+=Math.cos(c.th)*sp;c.y+=Math.sin(c.th)*sp;
+    if(c.x<12||c.x>W-12||c.y<12||c.y>H-12){c.x=Math.max(12,Math.min(W-12,c.x));c.y=Math.max(12,Math.min(H-12,c.y));c.th+=.12}
+    c.e-=.0007+.0006*(L+Rr)/2+(inTox?.006:0);
+    for(let j=pel.length-1;j>=0;j--){const p=pel[j];if(Math.abs(p.x-c.x)<15&&Math.abs(p.y-c.y)<15&&Math.hypot(p.x-c.x,p.y-c.y)<15){pel.splice(j,1);c.e+=.3}}
+    if(c.e<=0){cr.splice(k,1);deaths++;continue}
+    if(c.e>=1.5&&cr.length+born.length<CAP){c.e=.7;const g=Float32Array.from(c.g);let h=c.hue;for(let i=0;i<12;i++)if(R()<.25){g[i]+=(R()+R()+R()-1.5)*.35;g[i]=Math.max(-1.5,Math.min(1.5,g[i]));h+=(R()-.5)*30}
+      const b=mk(c.x+(R()-.5)*20,c.y+(R()-.5)*20,g,(h+360)%360,c.gn+1);b.e=.7;born.push(b);births++;if(b.gn>gen)gen=b.gn}}
+  for(const b of born)cr.push(b);
+  if(cr.length===0){for(let i=0;i<20;i++)cr.push(mk(40+R()*(W-80),40+R()*(H-80),randG(),R()*360,0))}
+  if(tick%60===0){hist.push(cr.length);if(hist.length>200)hist.shift();if(tick%120===0)showBrain()}
+  if(paint)apply(paint)}
+function mean(){const m=new Float32Array(12);for(const c of cr)for(let i=0;i<12;i++)m[i]+=c.g[i]/cr.length;return m}
+function showBrain(){const m=mean();for(let i=0;i<12;i++){const b=$('v'+i),v=m[i],a=Math.min(1,Math.abs(v));b.textContent=(v>=0?'+':'−')+Math.abs(v).toFixed(2);b.style.background=Math.abs(v)<.08?'':(v>0?'rgba(95,208,197,'+(.15+.6*a)+')':'rgba(242,120,122,'+(.15+.6*a)+')')}}
+(function(){const g=$('brain');g.innerHTML='<span></span><span class="h">Left cilium</span><span class="h">Right cilium</span>';for(let i=0;i<NS;i++){const s=document.createElement('span');s.textContent=SENSE[i];g.appendChild(s);for(let j=0;j<2;j++){const b=document.createElement('span');b.className='v';b.id='v'+(i*2+j);g.appendChild(b)}}})();
+let paint=null;const tool=toolbar(['tFood','tTox','tClear']);
+function apply(p){if(tool()==='tFood'&&tick%2===0&&pel.length<220)pel.push({x:p.x+(R()-.5)*50,y:p.y+(R()-.5)*50})}
+onPointer($('c'),stage,{down:p=>{const t=tool();if(t==='tTox'){if(tox.length<8)tox.push({x:p.x,y:p.y,r:55})}else if(t==='tClear'){tox=tox.filter(q=>Math.hypot(q.x-p.x,q.y-p.y)>q.r)}else paint=p},move:(p,d)=>{if(d&&paint)paint=p},up:()=>paint=null});
+function draw(){stage.begin();ctx.fillStyle='#0a141c';ctx.fillRect(0,0,W,H);
+  for(const t of tox){const g=ctx.createRadialGradient(t.x,t.y,t.r*.2,t.x,t.y,t.r+26);g.addColorStop(0,'rgba(183,156,245,.5)');g.addColorStop(t.r/(t.r+26),'rgba(183,156,245,.28)');g.addColorStop(1,'rgba(183,156,245,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(t.x,t.y,t.r+26,0,7);ctx.fill()}
+  ctx.fillStyle='#ffb648';for(const p of pel){ctx.beginPath();ctx.arc(p.x,p.y,4.5,0,7);ctx.fill()}
+  ctx.lineCap='round';for(const c of cr){ctx.save();ctx.translate(c.x,c.y);ctx.rotate(c.th);const col='hsl('+c.hue+' 65% 68%)';
+    ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();for(const s of[-1,1]){const act=s<0?c.L:c.R;ctx.moveTo(-7,s*4);ctx.lineTo(-12-act*8,s*4+Math.sin(tick*.8+s)*act*4)}ctx.stroke();
+    ctx.strokeStyle='#93a9b8';ctx.lineWidth=1.2;ctx.beginPath();for(const s of[-1,1]){ctx.moveTo(Math.cos(s*.6)*8,Math.sin(s*.6)*8);ctx.lineTo(Math.cos(s*.6)*17,Math.sin(s*.6)*17)}ctx.stroke();
+    ctx.globalAlpha=.35+.5*Math.min(1,c.e);ctx.fillStyle=col;ctx.beginPath();ctx.arc(0,0,5+3*Math.min(1.5,c.e),0,7);ctx.fill();ctx.globalAlpha=1;ctx.restore()}
+  if(hist.length>1){ctx.strokeStyle='rgba(231,227,212,.7)';ctx.lineWidth=1.5;ctx.beginPath();hist.forEach((v,i)=>{const x=W-210+i,y=44-v/CAP*34;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke()}
+  $('hud').textContent='Swimmers '+cr.length+'   ·   Deepest family tree '+gen+' splits   ·   Born '+births+'   ·   Died '+deaths}
+$('reset').onclick=()=>{reset();showBrain()};$('rain').oninput=()=>rain=+$('rain').value;
+reset();showBrain();const loop=runLoop({step,draw,speed:4});$('speed').onchange=()=>loop.setSpeed(+$('speed').value);
+window.__t={step,stats:()=>({n:cr.length,gen,births,deaths,pel:pel.length,g:Array.from(mean(),v=>+v.toFixed(2))}),reset,setRain(v){rain=v},feed(x,y,n){for(let i=0;i<n;i++)pel.push({x:x+(R()-.5)*60,y:y+(R()-.5)*60})}};
+</script>

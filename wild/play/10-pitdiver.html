@@ -1,0 +1,178 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0;font-size:14px}[hidden]{display:none!important}</style></head><body>
+<title>Pitdiver</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* layout: one column. stage on top, controls under it, notes last. one dark look: a dish under a night microscope */
+:root{--bg:#0f1b26;--well:#0a141c;--panel:#172836;--line:#2a4052;--fg:#e4edf2;--dim:#93a9b8;--pellet:#ffb648;--a:#5fd0c5;--b:#f2787a;--c:#b79cf5;--d:#6aa8ff;--e:#e7e3d4;color-scheme:dark;--display:'Space Grotesk',system-ui,sans-serif;--body:'Inter',system-ui,sans-serif}
+html,body{background:var(--bg);color:var(--fg);font-family:var(--body);line-height:1.45}
+.wrap{max-width:1000px;margin:0 auto;padding-block:18px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:12px}
+h1{font-family:var(--display);font-size:1.6rem;margin:0;letter-spacing:-.01em}
+.src{color:var(--dim);margin:0;max-width:68ch}
+.stage{position:relative;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--well)}
+canvas{display:block;width:100%;touch-action:none}
+.hud{position:absolute;left:10px;top:8px;right:10px;font:600 13px var(--display);pointer-events:none;text-shadow:0 1px 3px #000,0 0 2px #000;font-variant-numeric:tabular-nums;white-space:pre-line}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,select{font:500 14px var(--body);color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--dim)}
+button[aria-pressed=true]{background:var(--a);color:#062422;border-color:var(--a)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--pellet);outline-offset:1px}
+label{color:var(--dim);display:flex;gap:6px;align-items:center;font-size:14px}
+input[type=range]{accent-color:var(--a);width:120px}
+.try{color:var(--dim);max-width:72ch}
+.try summary{color:var(--fg);font-family:var(--display);font-weight:600;cursor:pointer}
+.try ul{margin:8px 0 0;padding-left:20px}
+.try li{margin:5px 0}
+.try b{color:var(--fg);font-weight:600}
+.pel{color:var(--pellet)}
+
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+</style>
+<main class="wrap">
+  <header>
+    <h1>Pitdiver</h1>
+    <p class="src">Gulp's soft cell dropped into Cinderpit's grain world. The same grains, the same two or three rules each, but now you are inside it and soft. You cannot pour from the sky. You squirt one material from your own membrane, toward the pointer, out of a small store of juice that <span class="pel">pellets</span> refill. Fire and acid leak you. A blast throws you.</p>
+  </header>
+  <div class="stage"><canvas id="c"></canvas><div class="hud" id="hud"></div></div>
+  <div class="controls" id="tools"></div>
+  <div class="controls">
+    <button id="squirt">Hold to squirt (or press in the pit, or hold Space)</button>
+    <button id="pause">Pause</button>
+    <button id="reset">New pit</button>
+  </div>
+  <details class="try" open>
+    <summary>What to try</summary>
+    <ul>
+      <li><b>The cell follows the pointer.</b> Swim up under the chamber with the green moss plug, pick Spark, and squirt at the plug. Then get out from under what falls.</li>
+      <li><b>Squirt water into an open cup</b> from above and the pellets float up to you.</li>
+      <li><b>Bangdust is a tool and a mistake.</b> Lay a little against a stone wall, back off, and light it with one spark from as far away as your squirt reaches.</li>
+      <li><b>Acid opens a vault quietly</b> but any that drips on you costs girth.</li>
+      <li><b>Getting fat is a problem again.</b> Holes you blast are only so wide.</li>
+    </ul>
+  </details>
+</main>
+<script>
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const $=id=>document.getElementById(id);
+function makeStage(canvas,W,H){const ctx=canvas.getContext('2d');let s=1;canvas.style.aspectRatio=W+'/'+H;
+  function fit(){const r=canvas.getBoundingClientRect();const dpr=Math.min(window.devicePixelRatio||1,2);const w=Math.max(1,Math.round(r.width*dpr));if(w===canvas.width)return;canvas.width=w;canvas.height=Math.round(w*H/W);s=w/W}
+  if(window.ResizeObserver)new ResizeObserver(fit).observe(canvas);fit();
+  return{ctx,W,H,begin(){fit();s=canvas.width/W;ctx.setTransform(s,0,0,s,0,0)},pos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}}}
+function onPointer(canvas,stage,h){let down=false;
+  canvas.addEventListener('pointerdown',e=>{down=true;try{canvas.setPointerCapture(e.pointerId)}catch(_){}h.down&&h.down(stage.pos(e),e);e.preventDefault()});
+  canvas.addEventListener('pointermove',e=>{h.move&&h.move(stage.pos(e),down,e)});
+  const up=e=>{if(down){down=false;h.up&&h.up(stage.pos(e),e)}};canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',up);
+  canvas.addEventListener('pointerleave',e=>{h.leave&&h.leave()});
+  canvas.addEventListener('contextmenu',e=>e.preventDefault())}
+function runLoop(o){let paused=false,speed=o.speed||1;const pb=$('pause');
+  if(pb)pb.onclick=()=>{paused=!paused;pb.textContent=paused?'Play':'Pause'};
+  function frame(){if(!paused)for(let i=0;i<speed;i++)o.step();o.draw();requestAnimationFrame(frame)}
+  requestAnimationFrame(frame);
+  return{setSpeed(v){speed=v},get paused(){return paused},set paused(v){paused=v;if(pb)pb.textContent=paused?'Play':'Pause'}}}
+function toolbar(ids,onPick){let cur=ids[0];ids.forEach(id=>{const b=$(id);b.setAttribute('aria-pressed',id===cur);b.onclick=()=>{cur=id;ids.forEach(j=>$(j).setAttribute('aria-pressed',j===id));onPick&&onPick(id)}});return()=>cur}
+
+</script>
+<script>
+const GW=180,GH=112,CS=5,W=GW*CS,H=GH*CS,NC=GW*GH;
+const E=0,STONE=1,SAND=2,WATER=3,OIL=4,FIRE=5,POW=6,MOSS=7,ACID=8,PEL=9,STEEL=10;
+const NAME={[WATER]:'Water',[SAND]:'Sand',[OIL]:'Oil',[MOSS]:'Moss',[POW]:'Bangdust',[ACID]:'Acid',[FIRE]:'Spark'};
+const RGB={[E]:[10,20,28],[STONE]:[74,93,107],[SAND]:[201,185,138],[WATER]:[63,127,208],[OIL]:[112,78,150],[FIRE]:[255,150,60],[POW]:[190,84,80],[MOSS]:[79,174,122],[ACID]:[184,224,74],[PEL]:[255,182,72],[STEEL]:[36,51,63]};
+const stage=makeStage($('c'),W,H),ctx=stage.ctx;
+const off=document.createElement('canvas');off.width=GW;off.height=GH;const octx=off.getContext('2d');const img=octx.createImageData(GW,GH);
+const g=new Uint8Array(NC),aux=new Uint8Array(NC),stamp=new Uint8Array(NC),noise=new Uint8Array(NC);
+let R=mulberry(3),seedN=3,tick=0,home=0,total=0,used=0,pending=[],cur=FIRE,paint=null,cell=null,target={x:W/2,y:H-90},juice=60,pops=0,squirting=false,blast=[];
+const BASE=Math.PI*26*26,SUBS=5;
+for(let i=0;i<NC;i++)noise[i]=(Math.imul(i,2654435761)>>>24)%24;
+const idx=(x,y)=>y*GW+x;
+function rect(x0,y0,x1,y1,t){for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)if(x>0&&x<GW-1&&y>0&&y<GH-1)g[idx(x,y)]=t}
+function base(){g.fill(E);aux.fill(0);pending=[];tick=0;home=0;used=0;for(let x=0;x<GW;x++){g[idx(x,0)]=STEEL;g[idx(x,GH-1)]=STEEL}for(let y=0;y<GH;y++){g[idx(0,y)]=STEEL;g[idx(GW-1,y)]=STEEL}}
+function chamber(kind,x0){const y0=14,w=24,h=22,x1=x0+w,y1=y0+h;
+  if(kind===0){rect(x0,y0,x1,y1,STONE);rect(x0+2,y0+2,x1-2,y1-2,E);rect(x0+9,y1-1,x0+15,y1,MOSS);rect(x0+4,y1-6,x1-4,y1-2,PEL)}
+  if(kind===1){rect(x0,y0,x1,y1,STONE);rect(x0+3,y0+3,x1-3,y1-3,E);rect(x0+6,y1-6,x1-6,y1-3,PEL)}
+  if(kind===2){rect(x0,y0+4,x1,y1,STONE);rect(x0+2,y0+4,x1-2,y1-2,E);rect(x0+5,y1-4,x1-5,y1-2,PEL)}
+  if(kind===3){rect(x0,y0,x1,y1,STONE);rect(x0+2,y0,x1-2,y1-2,E);rect(x0+2,y1-1,x1-2,y1,MOSS);rect(x0+2,y1-9,x1-2,y1-2,SAND);rect(x0+6,y1-12,x1-6,y1-10,PEL)}
+  if(kind===4){rect(x0,y0+4,x1,y1,STONE);rect(x0+2,y0+4,x1-2,y1-2,E);rect(x0+2,y0+9,x1-2,y1-2,OIL);rect(x0+5,y1-4,x1-5,y1-2,PEL)}
+  if(kind===5){rect(x0,y0,x1,y1,STONE);rect(x0+3,y0+3,x1-3,y1-3,E);rect(x0+4,y1-5,x0+10,y1-3,PEL);rect(x0+14,y1-6,x1-4,y1-3,POW);rect(x1-8,y0-4,x1-7,y1-7,MOSS)}}
+function newCell(x,y,A0){const N=20,r=Math.sqrt(A0/Math.PI),c={px:[],py:[],vx:[],vy:[],A0,hurt:0};for(let i=0;i<N;i++){const a=i/N*6.2832;c.px.push(x+Math.cos(a)*r);c.py.push(y+Math.sin(a)*r);c.vx.push(0);c.vy.push(0)}return c}
+function carea(c){let a=0;const n=c.px.length;for(let i=0;i<n;i++){const j=(i+1)%n;a+=c.px[i]*c.py[j]-c.px[j]*c.py[i]}return a/2}
+function ccen(c){let x=0,y=0;const n=c.px.length;for(let i=0;i<n;i++){x+=c.px[i];y+=c.py[i]}return{x:x/n,y:y/n}}
+function cin(c,x,y){let s=false;const n=c.px.length;for(let i=0,j=n-1;i<n;j=i++){if((c.py[i]>y)!==(c.py[j]>y)&&x<(c.px[j]-c.px[i])*(y-c.py[i])/(c.py[j]-c.py[i])+c.px[i])s=!s}return s}
+const solidAt=(x,y)=>{const X=x/CS|0,Y=y/CS|0;if(X<0||Y<0||X>=GW||Y>=GH)return true;const t=g[Y*GW+X];return t===STONE||t===STEEL||t===SAND||t===MOSS||t===POW};
+function cellStep(){const c=cell,n=c.px.length;
+  for(let s=0;s<SUBS;s++){const L0=2*Math.sqrt(Math.PI*c.A0)/n*.96,L2=2*L0*Math.cos(Math.PI/n),A=carea(c),sg=A>=0?1:-1,pr=.9*(c.A0-Math.abs(A))/c.A0,ce=ccen(c);
+    let tx=target.x-ce.x,ty=target.y-ce.y;const td=Math.hypot(tx,ty),push=td>10?.055:0;if(td>0){tx/=td;ty/=td}
+    const fx=new Float64Array(n),fy=new Float64Array(n);
+    for(let i=0;i<n;i++){const j=(i+1)%n,k=(i+2)%n;let dx=c.px[j]-c.px[i],dy=c.py[j]-c.py[i];const d=Math.hypot(dx,dy)||1e-6,f=.32*(d-L0)/d;fx[i]+=f*dx;fy[i]+=f*dy;fx[j]-=f*dx;fy[j]-=f*dy;
+      const px=sg*dy*pr*.5,py=-sg*dx*pr*.5;fx[i]+=px;fy[i]+=py;fx[j]+=px;fy[j]+=py;
+      dx=c.px[k]-c.px[i];dy=c.py[k]-c.py[i];const d2=Math.hypot(dx,dy)||1e-6,f2=.06*(d2-L2)/d2;fx[i]+=f2*dx;fy[i]+=f2*dy;fx[k]-=f2*dx;fy[k]-=f2*dy}
+    for(let i=0;i<n;i++){let vx=(c.vx[i]+fx[i]+tx*push)*.9,vy=(c.vy[i]+fy[i]+ty*push)*.9;
+      for(const b of blast){const dx=c.px[i]-b.x,dy=c.py[i]-b.y,d=Math.hypot(dx,dy)+1;if(d<70){vx+=dx/d*2.2*(1-d/70);vy+=dy/d*2.2*(1-d/70)}}
+      let x=c.px[i]+vx,y=c.py[i]+vy;
+      if(solidAt(x,y)){if(!solidAt(x,c.py[i])){y=c.py[i];vy=0}else if(!solidAt(c.px[i],y)){x=c.px[i];vx=0}else{x=c.px[i];y=c.py[i];vx=0;vy=0;if(solidAt(x,y)){x+=(ce.x-x)*.08;y+=(ce.y-y)*.08}}}
+      c.px[i]=x;c.py[i]=y;c.vx[i]=vx;c.vy[i]=vy}
+    blast.length=0}
+  // senses of the body: burns, pellets, size
+  let burn=0;for(let i=0;i<n;i++){const X=c.px[i]/CS|0,Y=c.py[i]/CS|0,t=g[Y*GW+X];if(t===FIRE||t===ACID)burn++}
+  if(burn){c.A0-=burn*5;c.hurt=8}else if(c.hurt>0)c.hurt--;
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(let i=0;i<n;i++){x0=Math.min(x0,c.px[i]);x1=Math.max(x1,c.px[i]);y0=Math.min(y0,c.py[i]);y1=Math.max(y1,c.py[i])}
+  for(let Y=Math.max(1,y0/CS|0);Y<=Math.min(GH-2,y1/CS|0);Y++)for(let X=Math.max(1,x0/CS|0);X<=Math.min(GW-2,x1/CS|0);X++){const j=Y*GW+X;if(g[j]===PEL&&cin(c,X*CS+2.5,Y*CS+2.5)){g[j]=E;home++;c.A0+=14;juice=Math.min(120,juice+1.2)}}
+  if(c.A0<650){pops++;cell=newCell(W/2,H-60,BASE);const s=g;for(let Y=GH-18;Y<GH-6;Y++)for(let X=GW/2-8;X<GW/2+8;X++){const j=Y*GW+X;if(s[j]!==STEEL&&s[j]!==PEL)s[j]=E}return}
+  const want=Math.max(14,Math.round(2*Math.sqrt(Math.PI*c.A0)/9));
+  if(n<want){let bi=0,bd=0;for(let i=0;i<n;i++){const j=(i+1)%n,d=Math.hypot(c.px[j]-c.px[i],c.py[j]-c.py[i]);if(d>bd){bd=d;bi=i}}const j=(bi+1)%n;c.px.splice(bi+1,0,(c.px[bi]+c.px[j])/2);c.py.splice(bi+1,0,(c.py[bi]+c.py[j])/2);c.vx.splice(bi+1,0,0);c.vy.splice(bi+1,0,0)}
+  else if(n>want+1){c.px.pop();c.py.pop();c.vx.pop();c.vy.pop()}
+  if(squirting&&juice>=1){const ce=ccen(c);let tx=target.x-ce.x,ty=target.y-ce.y;const td=Math.hypot(tx,ty)||1;tx/=td;ty/=td;const r=Math.sqrt(c.A0/Math.PI);
+    for(let k=0;k<2;k++){const reach=r+10+k*6+(cur===FIRE?R()*26:0),X=(ce.x+tx*reach+(R()-.5)*8)/CS|0,Y=(ce.y+ty*reach+(R()-.5)*8)/CS|0;if(X<1||Y<1||X>=GW-1||Y>=GH-1)continue;const j=Y*GW+X;
+      if(juice<1)break;if(g[j]===E){g[j]=cur;aux[j]=cur===FIRE?12:0;juice-=1;used++}else if(cur===FIRE&&(g[j]===OIL||g[j]===MOSS)){g[j]=FIRE;aux[j]=20;juice-=1;used++}else if(cur===FIRE&&g[j]===POW){g[j]=E;explode(j);juice-=1;used++}}}
+  if(juice<20)juice+=.02}
+function reset(empty){R=mulberry(seedN++);base();
+  if(!empty){const order=[0,1,2,3,4,5];for(let i=5;i>0;i--){const j=R()*(i+1)|0;[order[i],order[j]]=[order[j],order[i]]}
+    order.forEach((k,i)=>chamber(k,5+i*29));
+    for(let k=0;k<5;k++){const x=8+R()*(GW-40)|0,y=52+R()*22|0,len=10+R()*22|0;rect(x,y,x+len,y+1,STONE)}}
+  cell=newCell(W/2,H-90,BASE);target={x:W/2,y:H-90};juice=60;pops=0;blast=[];
+  total=0;for(let i=0;i<NC;i++)if(g[i]===PEL)total++}
+const liquid=t=>t===WATER||t===OIL||t===ACID;
+function swap(i,j){const t=g[i];g[i]=g[j];g[j]=t;const a=aux[i];aux[i]=aux[j];aux[j]=a;stamp[i]=stamp[j]=tick&255}
+function explode(i){const cx=i%GW,cy=i/GW|0,r=6;blast.push({x:cx*CS,y:cy*CS});for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(dx*dx+dy*dy>r*r)continue;const x=cx+dx,y=cy+dy;if(x<1||y<1||x>=GW-1||y>=GH-1)continue;const j=idx(x,y),t=g[j];
+    if(t===STEEL||t===PEL)continue;if(t===POW&&j!==i){if(pending.length<4000)pending.push(j);continue}
+    if(t===STONE&&R()>.85)continue;g[j]=FIRE;aux[j]=4+R()*10|0}}
+function ignite(j,p,life){if(R()<p){g[j]=FIRE;aux[j]=life+R()*life|0}}
+function simTick(){tick++;const st=tick&255;
+  if(pending.length){const q=pending;pending=[];for(const j of q)if(g[j]===POW){g[j]=E;explode(j)}}
+  for(let y=GH-2;y>=1;y--){const ltr=R()<.5;for(let k=1;k<GW-1;k++){const x=ltr?k:GW-1-k,i=idx(x,y),t=g[i];
+    if(t===E||t===STONE||t===STEEL||stamp[i]===st)continue;
+    const d=i+GW,b=g[d],dir=R()<.5?-1:1;
+    if(t===SAND||t===POW){if(b===E||liquid(b)||b===FIRE){swap(i,d)}else{const a=g[d+dir],c=g[d-dir];if((a===E||liquid(a))&&g[i+dir]!==STONE)swap(i,d+dir);else if((c===E||liquid(c))&&g[i-dir]!==STONE)swap(i,d-dir)}}
+    else if(t===PEL){if(b===E||b===OIL||b===FIRE)swap(i,d);else if(g[i-GW]===WATER){if(R()<.6)swap(i,i-GW)}
+      else{const a=g[d+dir];if((a===E||a===OIL)&&(g[i+dir]===E||g[i+dir]===OIL))swap(i,d+dir);else if(b===WATER&&(g[i+dir]===E)&&R()<.5)swap(i,i+dir)}}
+    else if(liquid(t)){
+      if(t===ACID){for(const n of[d,i-1,i+1,i-GW]){const q=g[n];if((q===STONE||q===SAND||q===MOSS||q===POW)&&R()<.06){g[n]=E;g[i]=E;break}}if(g[i]===E)continue}
+      if(b===E||b===FIRE||(t!==OIL&&b===OIL)){swap(i,d);continue}
+      if(t===OIL&&g[i-GW]===WATER&&R()<.5){swap(i,i-GW);continue}
+      const a=g[d+dir];if(a===E&&g[i+dir]===E){swap(i,d+dir);continue}
+      let j=i;for(let s=0;s<5;s++){const n=g[j+dir];if(n===E||(t!==OIL&&n===OIL&&s===0))j+=dir;else break}
+      if(j!==i)swap(i,j)}
+    else if(t===FIRE){if(aux[i]<=1){g[i]=E;aux[i]=0;continue}aux[i]--;
+      for(const n of[i-1,i+1,i-GW,d]){const q=g[n];if(q===OIL)ignite(n,.3,18);else if(q===MOSS)ignite(n,.1,22);else if(q===POW){g[n]=E;explode(n)}else if(q===WATER){g[i]=E;if(R()<.3)g[n]=E;break}}
+      if(g[i]===FIRE&&g[i-GW]===E&&R()<.5)swap(i,i-GW)}
+    else if(t===MOSS){if(R()<.012){const n=[i-1,i+1,i-GW,d][R()*4|0];if(g[n]===WATER){g[n]=MOSS}}}
+  }}}
+function step(){simTick();simTick();cellStep()}
+onPointer($('c'),stage,{down:p=>{target=p;squirting=true},move:p=>{target=p},up:()=>squirting=false});
+const sq=$('squirt');sq.onpointerdown=()=>squirting=true;sq.onpointerup=sq.onpointerleave=()=>squirting=false;
+addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();squirting=true}});addEventListener('keyup',e=>{if(e.code==='Space')squirting=false});
+function draw(){const d=img.data;for(let i=0;i<NC;i++){const t=g[i],c=RGB[t],o=i*4;let n=t===E||t===STEEL?0:noise[i]-12;if(t===FIRE){n=(noise[(i+tick*7)%NC]-12)*4;d[o]=255;d[o+1]=150+n;d[o+2]=60;d[o+3]=255;continue}if(t===PEL)n=0;d[o]=c[0]+n;d[o+1]=c[1]+n;d[o+2]=c[2]+n;d[o+3]=255}
+  octx.putImageData(img,0,0);stage.begin();ctx.imageSmoothingEnabled=false;ctx.drawImage(off,0,0,W,H);
+  const c=cell,n=c.px.length,ce=ccen(c);ctx.beginPath();for(let i=0;i<n;i++){const j=(i+1)%n,mx=(c.px[i]+c.px[j])/2,my=(c.py[i]+c.py[j])/2;if(i===0)ctx.moveTo((c.px[n-1]+c.px[0])/2,(c.py[n-1]+c.py[0])/2);ctx.quadraticCurveTo(c.px[i],c.py[i],mx,my)}ctx.closePath();
+  ctx.fillStyle=c.hurt?'rgba(242,120,122,.35)':'rgba(95,208,197,.25)';ctx.fill();ctx.strokeStyle=c.hurt?'#f2787a':'#5fd0c5';ctx.lineWidth=3;ctx.stroke();
+  ctx.fillStyle='rgba(231,227,212,.85)';ctx.beginPath();ctx.arc(ce.x,ce.y,Math.sqrt(c.A0/Math.PI)*.22,0,7);ctx.fill();
+  let tx=target.x-ce.x,ty=target.y-ce.y;const td=Math.hypot(tx,ty)||1,rr=Math.sqrt(c.A0/Math.PI);ctx.fillStyle='rgb('+RGB[cur].join(',')+')';ctx.beginPath();ctx.arc(ce.x+tx/td*(rr-6),ce.y+ty/td*(rr-6),4,0,7);ctx.fill();
+  const left=total-home;$('hud').textContent='Pellets '+home+' of '+total+'   ·   Girth '+Math.round(2*rr)+'   ·   Juice '+Math.floor(juice)+(pops?'   ·   Popped '+pops+(pops>1?' times':' time'):'')}
+const order=[FIRE,WATER,POW,ACID,MOSS,OIL];
+order.forEach(t=>{const b=document.createElement('button');b.id='tool'+t;b.innerHTML='<span class="sw" style="background:rgb('+RGB[t].join(',')+')"></span>'+NAME[t];$('tools').appendChild(b)});
+toolbar(order.map(t=>'tool'+t),id=>cur=+id.slice(4));
+$('reset').onclick=()=>reset(false);
+reset(false);runLoop({step,draw});
+window.__t={step,stats:()=>{const ce=ccen(cell);return{home,total,juice:Math.floor(juice),pops,A0:Math.round(cell.A0),x:Math.round(ce.x),y:Math.round(ce.y),n:cell.px.length}},setTarget(x,y){target={x,y}},squirt(v){squirting=v},pick(t){cur=t},find(t){const o=[];for(let i=0;i<NC;i++)if(g[i]===t)o.push([i%GW,i/GW|0]);return o},reset};
+</script>
+
+</body></html>

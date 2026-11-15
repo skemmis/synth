@@ -23,6 +23,8 @@ Gallery: https://claude.ai/artifact/Kzh4XfTS9fcLXSS6xTfjcm
 | 07 | Mycel | Physarum | https://claude.ai/artifact/FzPo4YC4jkB8MU3ZPFBFvB |
 | 08 | Sprout | Cell Lab, Karl Sims | https://claude.ai/artifact/YM4pczR1N6WTBh477pcY5e |
 | 09 | Twitch | 06 Gulp crossed with 03 Wirehead | https://claude.ai/artifact/KMyfuvEMFECz2YLho6gu2m |
+| 10 | Pitdiver | 06 Gulp crossed with 05 Cinderpit | https://claude.ai/artifact/ELm6hV3vF1tZ4i9eFNeSr8 |
+| 11 | Brood | The Bibites, with 03's swimmers | https://claude.ai/artifact/WiLheDo1fTrX45eU89DdVk |
 
 To republish one, publish `frag/NN-name.html` to its URL above.
 
@@ -69,6 +71,16 @@ noses, all tufts fired inward and crushed the cell in place; an urchin contact w
 snag scored −280. Changes: pellet noses fire on contrast (own smell minus the mean of the four), stings count once per
 tick, one point per second. Test dish, 40 s: blank 0, same-side wiring −2.5, opposite-side seeker 32.5, seeker plus
 urchin fear 35.1, bred (8 generations of 14, 3.5 s) 43.4. A slow pulse does not help. Fixed size, no growth yet.
+
+**10 Pitdiver.** Soft cell (20 beads) in the grain world; beads are blocked by stone, sand, moss and bangdust and pass
+through liquids. Squirting costs juice (starts 60, pellets refill). Scripted: swim around a ledge, sit under the moss plug,
+40 ticks of sparks; the plug burned, 33 pellets fell into the cell, no damage. A straight-line bot sticks under ledges.
+Not yet tested: blasts, acid, popping, flooding from inside.
+
+**11 Brood.** Swimmers split at energy 1.5 with each wire miscopied 25% of the time. Three ponds from random wiring,
+8 minutes of sim each (0.9 s to compute): mean crossed pellet wires went 0.00 to 0.37, 0.30 to 0.38, −0.01 to 0.34;
+same-side wires stayed near 0; family depth 17 to 26; population 20 to 35 of a 110 cap, limited by rain. Poison wires
+showed no clear trend.
 
 ## Ideas proposed to Sam (see gallery.json `next`)
 

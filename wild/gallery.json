@@ -31,6 +31,26 @@
    "note": "Blank scores 0, the opposite-side seeker 32, adding urchin fear 35, bred 43 after 3.5 seconds of breeding. Same-side wiring flees food (\u22122). Raw smell made all four tufts fire and crush the cell, so noses now fire on contrast."
   },
   {
+   "file": "10-pitdiver",
+   "name": "Pitdiver",
+   "axis": "soft cell in a grain world",
+   "url": "https://claude.ai/artifact/ELm6hV3vF1tZ4i9eFNeSr8",
+   "from": "Gulp crossed with Cinderpit. The second proposed test, built.",
+   "hands": "swim with the pointer and squirt spark, water, bangdust, acid, moss or oil from your membrane.",
+   "first": "swim under the chamber with the moss plug, squirt sparks at it, and catch what falls.",
+   "note": "A scripted cell burned a plug from below and ate 33 pellets as they fell, with no damage. A naive straight-line swimmer gets stuck under ledges, so the pit already asks for routes. Blast, fire and acid damage are untested by hand."
+  },
+  {
+   "file": "11-brood",
+   "name": "Brood",
+   "axis": "you are the weather",
+   "url": "https://claude.ai/artifact/WiLheDo1fTrX45eU89DdVk",
+   "from": "The Bibites and artificial life ponds, with Wirehead's swimmers. The living pond test, built.",
+   "hands": "scatter food, place poison, set the rain. Nothing else.",
+   "first": "leave it at 4x for two minutes and watch the average wiring table.",
+   "note": "In three ponds started from noise, the crossed pellet wires rose from 0 to about +0.35 within two minutes at 4x, and family trees ran 17 to 26 splits deep. Poison avoidance did not clearly evolve at default settings."
+  },
+  {
    "file": "08-sprout",
    "name": "Sprout",
    "axis": "grow, don't build",
@@ -98,11 +118,6 @@
    "params": "up to 6 patches, 3 patch kinds (nose, cilia, spike), grow every 5 pellets"
   },
   {
-   "name": "Cell in the pit",
-   "what": "Gulp's cell swimming inside Cinderpit's grain world, where water, oil, moss and bangdust are both hazard and tool.",
-   "params": "180 x 112 grains, 20 bead cell, 6 chambers, cell can carry and drop one material"
-  },
-  {
    "name": "Grown machines",
    "what": "Sprout's cards driving the parts sandbox from the other thread, so slingshots and whips are grown from a germ instead of placed by hand.",
    "params": "4 types x 6 settings, bond kinds rod/spring/rope, dish cap 160"
@@ -111,11 +126,6 @@
    "name": "Bigger brains",
    "what": "Wirehead with two inner neurons, a touch sense and a hunger sense, to see where hand wiring stops being readable.",
    "params": "8 senses, 2 inner, 2 cilia, breed 30 generations of 40, 3 dishes"
-  },
-  {
-   "name": "Living pond",
-   "what": "Wirehead swimmers that breed in the dish as they eat, with you as gardener moving pellets and poison.",
-   "params": "start 40 swimmers, cap 120, mutation 0.2 per wire, split at energy 1.5"
   },
   {
    "name": "Species hunt",

@@ -9,7 +9,9 @@ const S={
 '06-gulp':()=>{for(let i=0;i<420;i++){const s=__t.stats(),ps=__t.pel();if(ps.length&&i%10==0){let b=ps[0],bd=1e9;for(const q of ps){const d=(q.x-s.x)**2+(q.y-s.y)**2;if(d<bd){bd=d;b=q}}__t.setTarget(b.x,b.y)}__t.step()}},
 '07-mycel':()=>{for(let i=0;i<1500;i++){if(i%240==0){const c=__t.centroid(),ps=__t.pel().filter(q=>q.amt>100).sort((a,b)=>Math.hypot(a.x-c.x,a.y-c.y)-Math.hypot(b.x-c.x,b.y-c.y));const q=ps[Math.min(1,ps.length-1)];if(q)__t.line(c.x,c.y,q.x,q.y)}__t.step()}},
 '08-sprout':()=>{for(let i=0;i<5200;i++)__t.step()},
-'09-twitch':()=>{__t.setG(__t.PRESETS['Seeker that fears urchins']);for(let i=0;i<500;i++)__t.step()}};
+'09-twitch':()=>{__t.setG(__t.PRESETS['Seeker that fears urchins']);for(let i=0;i<500;i++)__t.step()},
+'10-pitdiver':()=>{const m=__t.find(7).filter(c=>c[0]>100).reduce((a,c)=>c[1]>a[1]?c:a,[0,0]),mx=m[0]*5,my=m[1]*5;for(const [x,y] of [[mx-70,470],[mx-70,my+70],[mx,my+70]])for(let i=0;i<300;i++){__t.setTarget(x,y);__t.step()}__t.pick(5);__t.setTarget(mx,my);__t.squirt(true);for(let i=0;i<14;i++)__t.step();__t.squirt(false);for(let i=0;i<10;i++)__t.step()},
+'11-brood':()=>{for(let i=0;i<9000;i++)__t.step()}};
 (async()=>{const b=await chromium.launch();for(const k in S){const p=await b.newPage({viewport:{width:700,height:900},deviceScaleFactor:1});
   await p.goto('file://'+path.resolve(__dirname,'../play/'+k+'.html'));await p.waitForFunction(()=>!!window.__t);await p.evaluate(S[k]);await p.waitForTimeout(250);
   await p.evaluate(()=>{document.getElementById('hud').style.display='none'});
