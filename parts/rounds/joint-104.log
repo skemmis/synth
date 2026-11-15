@@ -1,0 +1,6 @@
+seed 104 start f 0.787 hand 0.49 bender 0.89 top 1.10
+seed 104 cand 4 f 0.856 hand 0.49 bender 1.05 (8) top 1.11 bomb 12 82s
+seed 104 cand 8 f 0.860 hand 0.50 bender 1.05 (8) top 1.10 bomb 12 145s
+seed 104 cand 21 f 0.866 hand 0.48 bender 1.08 (6) top 1.15 bomb 11 358s
+seed 104 cand 46 f 0.885 hand 0.48 bender 1.11 (9) top 1.18 bomb 11 790s
+seed 104 done 1853s

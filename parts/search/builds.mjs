@@ -73,10 +73,11 @@ function cellOf(m) {
   return `${nb}|${ab}|${bb}|${jb}`;
 }
 // Run a build search. init: builds to start from. Returns elites sorted fastest first.
-export function runSearch(params, seedN, evals, init = [], log = null, outFile = null) {
+export function runSearch(params, seedN, evals, init = [], log = null, outFile = null, custom = null) {
   r = rng32(seedN * 7919 + 5);
   const archive = new Map(), t0 = Date.now();
-  const consider = (b) => { if (!valid(b)) return; const m = measure(b, params, 50, 1); if (!m) return; const key = cellOf(m), cur = archive.get(key); if (cur && m.speed <= cur.f) return;
+  const consider = custom ? (b) => { if (!valid(b)) return; const m = custom.measure(b, params); if (!m) return; const key = custom.cellOf(m, b), cur = archive.get(key); if (!cur || m.f > cur.f) archive.set(key, { f: m.f, build: b, m }); }
+    : (b) => { if (!valid(b)) return; const m = measure(b, params, 50, 1); if (!m) return; const key = cellOf(m), cur = archive.get(key); if (cur && m.speed <= cur.f) return;
     const m2 = measure(b, params, 50, 2); if (!m2) return; const f = Math.min(m.speed, m2.speed); if (!cur || f > cur.f) archive.set(key, { f, build: b, m }); };
   for (const b of init) consider(JSON.parse(JSON.stringify(b)));
   const sorted = () => [...archive.entries()].map(([key, v]) => ({ key, ...v })).sort((a, b) => b.f - a.f);
@@ -84,7 +85,7 @@ export function runSearch(params, seedN, evals, init = [], log = null, outFile =
     if (i < evals / 10 || !archive.size) consider(randomBuild());
     else { const keys = [...archive.keys()], p = archive.get(pick(keys)), b = JSON.parse(JSON.stringify(p.build)); mutate(b); if (r() < 0.4) mutate(b); consider(b); }
     if (log && ((i + 1) % 10000 === 0 || i === evals - 1)) { const all = sorted(); if (outFile) fs.writeFileSync(outFile, JSON.stringify(all));
-      const bendy = all.filter(e => e.m.aspect >= 2.5 && e.m.bendAmp >= 0.2)[0];
+      const bendy = custom ? null : all.filter(e => e.m.aspect >= 2.5 && e.m.bendAmp >= 0.2)[0];
       log(`seed ${seedN} evals ${i + 1} cells ${all.length} best ${all[0].f.toFixed(2)} [${all[0].key}] best long bender ${bendy ? bendy.f.toFixed(2) + ' n' + bendy.m.n : '-'} ${((Date.now() - t0) / 1000).toFixed(0)}s`); }
   }
   return sorted();

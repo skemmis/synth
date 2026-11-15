@@ -57,3 +57,11 @@ size, elongation, bending and jitter count. Four seeds, 480,000 builds, hidden n
   about 23 widths in 6 s, against 15 for the hand-built worm.
 - Sticky atoms and fuses almost never appear in good swimmers. They need their own goals (catching,
   launching) to earn a place.
+
+**2026-11-15, joint search.** `search/joint.mjs` tunes the hidden numbers against four hand builds, the best
+long bending build a short search can find, the fastest build of any shape, and a fuse cluster that must
+stay quiet alone and go off when flicked. Four seeds, 120 candidates each.
+- It barely moved: the combined score went from 0.85 to 0.89. All four runs ended at nearly the same numbers,
+  with tug strength, the two masses and slipstream pinned at the limits I had set to keep things gentle.
+- So about 1.1 widths/s is a ceiling of this part set, not of the tuning. Going beyond it means changing
+  what a part does, not searching harder. The planned larger round on the Mac was dropped for that reason.
