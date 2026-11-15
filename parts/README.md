@@ -65,3 +65,17 @@ stay quiet alone and go off when flicked. Four seeds, 120 candidates each.
   with tug strength, the two masses and slipstream pinned at the limits I had set to keep things gentle.
 - So about 1.1 widths/s is a ceiling of this part set, not of the tuning. Going beyond it means changing
   what a part does, not searching harder. The planned larger round on the Mac was dropped for that reason.
+
+**2026-11-15, forage search.** `search/forage.mjs` scores a build by pellets eaten in 90 s in the walled
+pond, with jitters that run down unless fed. Four seeds, 160,000 builds.
+- Speed is the wrong goal for feeding. The fast swimmers from the build search eat 2 to 7 of 40 pellets;
+  they run straight into a wall and stay there. Builds bred for eating reach 20 to 23.5.
+- The winner cheats in a way worth keeping: "Burster" is eleven atoms, mostly jitters held by fuses. The
+  jitters' own tugging sets the fuses off within a second, the kicks fling single jitters across the pond,
+  and each eats whatever it hits. A bomb became a feeding strategy without anyone asking for a bomb.
+- It works because a lone jitter still counts as a build that can eat. If the game should reward staying
+  in one piece, pellets must only feed the body they touch when it is more than one atom, or the score
+  must count one body. That is a design choice, not a bug.
+- Best without fuses ("Grazer", 11 atoms, 20 of 40) is a compact truss with two jitters that wanders in
+  curves instead of straight lines. Best with five atoms ("Nibbler") eats 16.5.
+- Sticky atoms still earn nothing here.
