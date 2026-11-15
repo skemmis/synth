@@ -3,9 +3,9 @@
 // Usage: node search/builds.mjs <seed> <evals> <out.json> [params.json]
 import fs from 'node:fs';
 import { Parts, rng32, BEAD, JITTER, STICKY, ROD, SPRING, ROPE, FUSE } from '../sim.js';
-const seed = +process.argv[2] || 1, EVALS = +process.argv[3] || 20000, out = process.argv[4] || `results/builds-${seed}.json`;
-const params = JSON.parse(fs.readFileSync(process.argv[5] || new URL('../params.json', import.meta.url)));
-const r = rng32(seed * 7919 + 5), NMAX = 15, REACH = 2.1;
+const MAIN = process.argv[1].endsWith('builds.mjs');
+const seed = MAIN ? +process.argv[2] || 1 : 1, EVALS = +process.argv[3] || 20000, out = process.argv[4] || `results/builds-${seed}.json`;
+let r = rng32(seed * 7919 + 5); const NMAX = 15, REACH = 2.1;
 const KINDS = [BEAD, BEAD, JITTER, STICKY], LK = [ROD, ROD, SPRING, SPRING, ROPE, FUSE];
 const pick = (a) => a[Math.floor(r() * a.length)];
 
@@ -72,15 +72,24 @@ function cellOf(m) {
   const bb = m.bendAmp < 0.05 ? 0 : m.bendAmp < 0.2 ? 1 : 2, jb = Math.min(m.jitters, 3) - 1;
   return `${nb}|${ab}|${bb}|${jb}`;
 }
-if (process.argv[1].endsWith('builds.mjs')) {
+// Run a build search. init: builds to start from. Returns elites sorted fastest first.
+export function runSearch(params, seedN, evals, init = [], log = null, outFile = null) {
+  r = rng32(seedN * 7919 + 5);
   const archive = new Map(), t0 = Date.now();
-  const consider = (b) => { if (!valid(b)) return; let m = measure(b, params, 50, 1); if (!m) return; const key = cellOf(m), cur = archive.get(key); if (cur && m.speed <= cur.f) return;
+  const consider = (b) => { if (!valid(b)) return; const m = measure(b, params, 50, 1); if (!m) return; const key = cellOf(m), cur = archive.get(key); if (cur && m.speed <= cur.f) return;
     const m2 = measure(b, params, 50, 2); if (!m2) return; const f = Math.min(m.speed, m2.speed); if (!cur || f > cur.f) archive.set(key, { f, build: b, m }); };
-  for (let i = 0; i < EVALS; i++) {
-    if (i < EVALS / 10 || !archive.size) consider(randomBuild());
+  for (const b of init) consider(JSON.parse(JSON.stringify(b)));
+  const sorted = () => [...archive.entries()].map(([key, v]) => ({ key, ...v })).sort((a, b) => b.f - a.f);
+  for (let i = 0; i < evals; i++) {
+    if (i < evals / 10 || !archive.size) consider(randomBuild());
     else { const keys = [...archive.keys()], p = archive.get(pick(keys)), b = JSON.parse(JSON.stringify(p.build)); mutate(b); if (r() < 0.4) mutate(b); consider(b); }
-    if ((i + 1) % 10000 === 0 || i === EVALS - 1) { const all = [...archive.entries()].map(([key, v]) => ({ key, ...v })).sort((a, b) => b.f - a.f); fs.writeFileSync(out, JSON.stringify(all));
-      const bendy = all.filter(e => e.m.aspect >= 2.5 && e.m.bendAmp >= 0.2).sort((a, b) => b.f - a.f)[0];
-      console.log(`seed ${seed} evals ${i + 1} cells ${all.length} best ${all[0].f.toFixed(2)} [${all[0].key}] best long bender ${bendy ? bendy.f.toFixed(2) + ' n' + bendy.m.n : '-'} ${((Date.now() - t0) / 1000).toFixed(0)}s`); }
+    if (log && ((i + 1) % 10000 === 0 || i === evals - 1)) { const all = sorted(); if (outFile) fs.writeFileSync(outFile, JSON.stringify(all));
+      const bendy = all.filter(e => e.m.aspect >= 2.5 && e.m.bendAmp >= 0.2)[0];
+      log(`seed ${seedN} evals ${i + 1} cells ${all.length} best ${all[0].f.toFixed(2)} [${all[0].key}] best long bender ${bendy ? bendy.f.toFixed(2) + ' n' + bendy.m.n : '-'} ${((Date.now() - t0) / 1000).toFixed(0)}s`); }
   }
+  return sorted();
+}
+if (MAIN) {
+  const params = JSON.parse(fs.readFileSync(process.argv[5] || new URL('../params.json', import.meta.url)));
+  runSearch(params, seed, EVALS, [], console.log, out);
 }
