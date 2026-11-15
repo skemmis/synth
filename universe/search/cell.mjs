@@ -9,6 +9,7 @@ const seed = +process.argv[2] || 1, EVALS = +process.argv[3] || 50000, out = pro
 const r = rng32(seed * 6151 + 3);
 let elites = []; for (const f of process.argv.slice(5)) elites.push(...JSON.parse(fs.readFileSync(f)));
 elites.sort((a, b) => b.f - a.f); elites = elites.slice(0, 60);
+const PRIOR = process.env.PRIOR ? JSON.parse(fs.readFileSync(process.env.PRIOR)) : [];
 const archive = new Map();
 const AREA = 8;
 function cellOf(R, atoms, m) {
@@ -19,9 +20,13 @@ function cellOf(R, atoms, m) {
 }
 function consider(R, atoms) {
   if (atoms.length > 48) return;
-  const m = swimTest(R, atoms, { voids: true });
-  if (!m || m.bad || !(m.voidArea > 2)) return;
-  const f = (0.002 + m.fit * (m.cyclesPerTime > 0.05 ? 1 : 0.2)) * Math.min(1, m.voidArea / AREA);
+  const T = Math.max(R.T || 0, 0.02);
+  const sc = (m) => (!m || m.bad || !(m.voidArea > 2)) ? 0 : (0.002 + m.fit * (m.cyclesPerTime > 0.05 ? 1 : 0.2)) * Math.min(1, m.voidArea / AREA);
+  let m = swimTest(R, atoms, { voids: true, T, seed: 1 }), f = sc(m);
+  if (f <= 0) return;
+  const m2 = swimTest(R, atoms, { voids: true, T, seed: 2 }), f2 = sc(m2);
+  if (f2 < f) { f = f2; m = m2; }
+  if (f <= 0) return;
   const key = cellOf(R, atoms, m), cur = archive.get(key);
   if (!cur || f > cur.f) archive.set(key, { f, R, atoms, m });
 }
@@ -41,6 +46,7 @@ function seedCell() {
   if (r() < 0.5) atoms.push({ t: Math.floor(r() * R.K), x: 0, y: 0 }); // cargo
   return { R, atoms };
 }
+for (const e of PRIOR) consider(e.R, e.atoms);
 const t0 = Date.now(), INIT = Math.min(4000, EVALS / 5);
 for (let i = 0; i < EVALS; i++) {
   if (i < INIT || archive.size === 0) { const s = seedCell(); if (s) consider(s.R, s.atoms); }

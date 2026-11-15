@@ -64,6 +64,8 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-family: var(--mono); font-size: 11.5px; margin-top: 6px; }
 .kv dt { color: var(--muted); } .kv dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 .hint { color: var(--muted); font-size: 12.5px; }
+.who { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-direction: column; gap: 4px; }
+.who li { display: flex; gap: 8px; align-items: baseline; } .who b { font-weight: 600; }
 </style>
 <header>
   <h1>__HEADING__</h1>
@@ -82,7 +84,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       <span class="hint">Drop:</span>
       <span id="palette" class="bar"></span>
     </div>
-    <div class="what"><h2 id="pName"></h2><p id="pBlurb"></p><p class="hint">Drag any atom to pull it. Pick a colour, then click empty water to drop an atom of that type. Right-click (or long-press) an atom to remove it.</p></div>
+    <div class="what"><h2 id="pName"></h2><p id="pBlurb"></p><ul id="who" class="who"></ul><p class="hint">Drag any atom to pull it. Pick a colour, then click empty water to drop an atom of that type. Right-click (or long-press) an atom to remove it.</p></div>
   </div>
   <aside class="laws" id="laws"></aside>
 </div>
@@ -131,22 +133,42 @@ function bondWords(b, ti, tj) {
   if (b.kick > 0) parts.push('kicks apart when it breaks (' + f1(b.kick) + ')');
   return parts.join(', ');
 }
+function present() {
+  const s = new Set(); if (P.atoms) for (const a of P.atoms) s.add(a.t); if (P.world && P.world.extra) for (const a of P.world.extra) s.add(a.t);
+  if (!s.size) for (let t = 0; t < P.rules.K; t++) s.add(t);
+  return [...s].sort();
+}
+// one plain sentence per atom type in this specimen, worked out from the rules
+function roleOf(t, ts) {
+  const R = P.rules, y = R.types[t], bits = [];
+  bits.push(y.m > 1.6 ? 'heavy' : y.m < 0.8 ? 'light' : 'middling weight');
+  const glue = [], kick = [], pull = [];
+  for (const u of ts) { const b = R.bond[Math.min(t, u)][Math.max(t, u)]; if (!b.on || !y.val || !R.types[u].val) continue;
+    if (b.life > 0 || b.kick > 0) { (b.kick > 0 ? kick : pull).push(TN[u]); } else glue.push(TN[u]); }
+  if (glue.length) bits.push('links for good to ' + glue.join(', '));
+  if (kick.length) bits.push('makes a short-lived bond with ' + kick.join(', ') + ' that kicks the two apart when it breaks');
+  if (pull.length) bits.push('grabs ' + pull.join(', ') + ', pulls, then lets go');
+  if (!glue.length && !kick.length && !pull.length) bits.push('bonds to nothing here');
+  if (y.recharge > 0) bits.push('recharges its energy at ' + f1(y.recharge) + ' per second'); else bits.push('never recharges');
+  return bits.join('; ') + '.';
+}
 function renderLaws() {
-  const R = P.rules; let h = '';
+  const R = P.rules, ts = present(); let h = '';
+  $('who').innerHTML = P.atoms ? ts.map(t => `<li>${dotHtml(t)}<span><b>${TN[t]}</b> is ${roleOf(t, ts)}</span></li>`).join('') : '';
   h += '<section><h2>Water</h2><dl class="kv">'
     + `<dt>thickness (linear drag)</dt><dd>${f1(R.g1)}</dd><dt>splash (drag grows with speed)</dt><dd>${f1(R.g2 || 0)}</dd>`
     + `<dt>slipstream (neighbours shield drag)</dt><dd>${f1(R.shadow || 0)}</dd><dt>jiggle (temperature)</dt><dd>${f1((P.world && P.world.T !== undefined) ? P.world.T : (R.T || 0))}</dd>`
     + `<dt>energy in a full atom</dt><dd>${f1(R.eUnit || 50)}</dd></dl></section>`;
   h += '<section><h2>Atoms</h2><table><tr><th>type</th><th>mass</th><th>drag</th><th>bonds</th><th>recharge</th></tr>';
-  for (let t = 0; t < R.K; t++) { const y = R.types[t]; h += `<tr><td>${dotHtml(t)} ${TN[t]}</td><td>${f1(y.m)}</td><td>${f1(y.drag)}</td><td>${y.val}</td><td>${f1(y.recharge || 0)}/s</td></tr>`; }
+  for (const t of ts) { const y = R.types[t]; h += `<tr><td>${dotHtml(t)} ${TN[t]}</td><td>${f1(y.m)}</td><td>${f1(y.drag)}</td><td>${y.val}</td><td>${f1(y.recharge || 0)}/s</td></tr>`; }
   h += '</table></section>';
   h += '<section><h2>Bonds</h2><ul>'; let any = false;
-  for (let i = 0; i < R.K; i++) for (let j = i; j < R.K; j++) { const s = bondWords(R.bond[i][j]); if (s && R.types[i].val > 0 && R.types[j].val > 0) { any = true; h += `<li><span class="pr">${dotHtml(i)}${dotHtml(j)}</span><span>${s}</span></li>`; } }
+  for (const i of ts) for (const j of ts) if (i <= j) { const s = bondWords(R.bond[i][j]); if (s && R.types[i].val > 0 && R.types[j].val > 0) { any = true; h += `<li><span class="pr">${dotHtml(i)}${dotHtml(j)}</span><span>${s}</span></li>`; } }
   if (!any) h += '<li>No bonds in this universe. Structure comes from push and pull alone.</li>';
   h += '</ul></section>';
-  h += '<section><h2>Push and pull</h2><table><tr><th></th>' + [...Array(R.K)].map((_, t) => `<th>${TN[t]}</th>`).join('') + '</tr>';
-  for (let i = 0; i < R.K; i++) { h += `<tr><td>${dotHtml(i)} ${TN[i]}</td>`; for (let j = 0; j < R.K; j++) { const a = R.pair[i][j].a; h += `<td>${a > 0.05 ? '+' : ''}${Math.abs(a) < 0.05 ? '·' : a.toFixed(1)}</td>`; } h += '</tr>'; }
-  h += '</table><p class="hint" style="margin:6px 0 0">Plus attracts, minus repels.</p></section>';
+  h += '<section><h2>Push and pull</h2><table><tr><th></th>' + ts.map((t) => `<th>${TN[t]}</th>`).join('') + '</tr>';
+  for (const i of ts) { h += `<tr><td>${dotHtml(i)} ${TN[i]}</td>`; for (const j of ts) { const a = R.pair[i][j].a; h += `<td>${a > 0.05 ? '+' : ''}${Math.abs(a) < 0.05 ? '·' : a.toFixed(1)}</td>`; } h += '</tr>'; }
+  h += '</table><p class="hint" style="margin:6px 0 0">Plus attracts, minus repels. Red lines in the dish are bonds that let go by themselves; grey lines are permanent. An atom with a dark centre has spent its energy.</p></section>';
   $('laws').innerHTML = h;
 }
 function buildList() {
@@ -193,7 +215,7 @@ function tick() {
     }
     const c = centroid(); if (!startC) startC = c;
     if (follow && P.atoms) { cam.x += (c[0] - cam.x) * 0.08; cam.y += (c[1] - cam.y) * 0.08; }
-    if (P.atoms && w.steps % 8 < k) { trail.push(c); if (trail.length > 400) trail.shift(); }
+    if (P.atoms && !slow && w.steps % 8 < k) { trail.push(c); if (trail.length > 400) trail.shift(); }
   }
   draw(); requestAnimationFrame(tick);
 }
@@ -220,7 +242,10 @@ function draw() {
   }
   if (grab >= 0 && grab < w.n) { ctx.strokeStyle = css.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(grab), Y(grab)); ctx.lineTo((grabX - cam.x) * z + Wp / 2, (grabY - cam.y) * z + Hp / 2); ctx.stroke(); }
   let hud = `t ${w.time.toFixed(1)} s   atoms ${w.n}   bonds ${w.nbonds}`;
-  if (P.atoms && startC) { const c = centroid(); const d = Math.hypot(c[0] - startC[0], c[1] - startC[1]); hud += `\ntravelled ${d.toFixed(1)} atom widths   ${(d / Math.max(w.time, 0.01)).toFixed(2)} per s`; }
+  if (P.atoms && startC) { const c = centroid(); const d = Math.hypot(c[0] - startC[0], c[1] - startC[1]);
+    // speed over the last stretch of trail (about 8 s), so it shows what the body is doing now
+    const k = Math.min(trail.length - 1, 50), old = trail[trail.length - 1 - k]; const sp = k > 5 ? Math.hypot(c[0] - old[0], c[1] - old[1]) / (k * 8 * w.dt) : 0;
+    hud += `\ntravelled ${d.toFixed(1)} atom widths   now ${sp.toFixed(2)} per s`; }
   hud += `\nenergy spent ${(w.stat.energyUsed * (P.rules.eUnit || 50)).toFixed(0)}`;
   $('hud').textContent = hud;
 }

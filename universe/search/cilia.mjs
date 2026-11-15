@@ -17,16 +17,27 @@ export function cellOf(R, atoms, m) {
   const sb = R.shadow === 0 ? 0 : R.shadow < 0.6 ? 1 : 2;
   const gb = R.g2 === 0 ? 0 : R.g2 < 0.4 ? 1 : 2;
   const n = atoms.length, nb = n <= 4 ? 0 : n <= 8 ? 1 : n <= 14 ? 2 : 3;
-  const used = new Set(atoms.map(a => a.t)).size, tb = Math.min(used, 4) - 1;
-  return `${sb}|${gb}|${nb}|${tb}`;
+  // beats per atom per second: slow and readable, medium, or a buzz
+  const rate = m.cyclesPerTime / n, rb = rate < 0.3 ? 0 : rate < 1.5 ? 1 : 2;
+  if (!process.env.ASPECT) return `${sb}|${gb}|${nb}|${rb}`;
+  // optional fifth axis: round lump, oval, or filament
+  const ab = m.aspect < 1.8 ? 0 : m.aspect < 3.5 ? 1 : 2;
+  return `${sb}|${gb}|${nb}|${rb}|${ab}`;
 }
 function score(m) {
   if (!m || m.bad) return 0;
   return m.fit * (m.cyclesPerTime > 0.05 ? 1 : 0.2);
 }
 function consider(R, atoms) {
-  const m = swimTest(R, atoms);
-  const f = score(m);
+  // judged in jiggling water (the universe's own temperature, at least a little), worst of two seeds,
+  // so a swimmer cannot depend on a perfectly still start
+  const T = Math.max(R.T || 0, 0.02);
+  let m = swimTest(R, atoms, { T, seed: 1 }), f = score(m);
+  if (f <= 0) return;
+  const pre = archive.get(cellOf(R, atoms, m));
+  if (pre && f <= pre.f) return;
+  const m2 = swimTest(R, atoms, { T, seed: 2 }), f2 = score(m2);
+  if (f2 < f) { f = f2; m = m2; }
   if (f <= 0) return;
   const key = cellOf(R, atoms, m), cur = archive.get(key);
   if (!cur || f > cur.f) archive.set(key, { f, R, atoms, m });

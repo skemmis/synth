@@ -1,0 +1,601 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}[hidden]{display:none!important}</style></head><body><title>Universe Specimens</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a specimen list on the left, the live dish in the middle, the laws of that universe on the right; stacks on a phone. */
+:root {
+  --bg: #eef3f1; --panel: #ffffff; --ink: #14211f; --muted: #5a6b68; --line: #cfdbd7; --dish: #f8fbfa; --grid: #d5e0dc;
+  --accent: #0b7a6b; --accent-ink: #ffffff; --bond: #43524f; --hot: #d2452d;
+  --t0: #1f77b4; --t1: #d9822b; --t2: #2a9d5c; --t3: #c0398a; --t4: #7a5cc9; --t5: #8a7a1c;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0b1413; --panel: #121e1c; --ink: #e4efec; --muted: #8fa5a0; --line: #24362f; --dish: #070d0c; --grid: #16241f;
+  --accent: #3fd0b6; --accent-ink: #06211c; --bond: #a9bdb8; --hot: #ff7a5c;
+  --t0: #5aa9e6; --t1: #f2a65a; --t2: #5fd38d; --t3: #f078c0; --t4: #a892f5; --t5: #d6c75a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0b1413; --panel: #121e1c; --ink: #e4efec; --muted: #8fa5a0; --line: #24362f; --dish: #070d0c; --grid: #16241f;
+  --accent: #3fd0b6; --accent-ink: #06211c; --bond: #a9bdb8; --hot: #ff7a5c;
+  --t0: #5aa9e6; --t1: #f2a65a; --t2: #5fd38d; --t3: #f078c0; --t4: #a892f5; --t5: #d6c75a; color-scheme: dark }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px 28px; }
+h1 { font-family: var(--display); font-size: 26px; line-height: 1.1; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-size: 17px; margin: 0; }
+.lede { color: var(--muted); max-width: 68ch; margin: 6px 0 0; }
+header { display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px; }
+.wrap { display: grid; grid-template-columns: 230px minmax(0, 1fr) 300px; gap: 14px; align-items: start; }
+@media (max-width: 1000px) { .wrap { grid-template-columns: minmax(0, 1fr); } }
+.list { display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 1000px) { .list { flex-direction: row; overflow-x: auto; padding-bottom: 4px; } .list button { min-width: 170px; } }
+.list button { text-align: left; background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 2px; }
+.list button:hover { border-color: var(--accent); }
+.list button[aria-pressed="true"] { background: var(--panel); border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.list .nm { font-weight: 600; }
+.list .tg { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .02em; }
+.group { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 8px 0 0; }
+@media (max-width: 1000px) { .group { display: none; } }
+.stage { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.dish { position: relative; background: var(--dish); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 10; max-width: 100%; touch-action: none; }
+@media (max-width: 600px) { .dish { aspect-ratio: 1 / 1; } }
+canvas { width: 100%; height: 100%; display: block; }
+.hud { position: absolute; left: 10px; top: 8px; font-family: var(--mono); font-size: 11px; color: var(--muted); pointer-events: none; font-variant-numeric: tabular-nums; white-space: pre; }
+.bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.bar button, .chip { font: inherit; font-size: 13px; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+.bar button:hover { border-color: var(--accent); }
+.bar button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex: none; }
+.spacer { flex: 1; }
+.what { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.what p { margin: 6px 0 0; max-width: 70ch; }
+.laws { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.laws section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.laws table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; margin-top: 6px; }
+.laws th { text-align: right; font-weight: 500; color: var(--muted); padding: 2px 4px; }
+.laws td { text-align: right; padding: 2px 4px; border-top: 1px solid var(--line); }
+.laws th:first-child, .laws td:first-child { text-align: left; }
+.laws ul { margin: 6px 0 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; font-size: 13px; }
+.laws li { display: flex; gap: 6px; align-items: baseline; }
+.laws li .pr { flex: none; display: inline-flex; gap: 2px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-family: var(--mono); font-size: 11.5px; margin-top: 6px; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.hint { color: var(--muted); font-size: 12.5px; }
+.who { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-direction: column; gap: 4px; }
+.who li { display: flex; gap: 8px; align-items: baseline; } .who b { font-weight: 600; }
+</style>
+<header>
+  <h1>Universe specimens</h1>
+  <p class="lede">Atoms here have only raw properties: weight, drag, how many bonds they can hold, how they push and pull each other, and how their bonds form, stretch, let go and kick. Nothing was told to swim. A search tried about two million rule sets and bodies and kept the ones that move themselves through still water. Pick a specimen, watch it, then poke it.</p>
+</header>
+<div class="wrap">
+  <nav class="list" id="list" aria-label="Specimens"></nav>
+  <div class="stage">
+    <div class="dish" id="dish"><canvas id="cv"></canvas><div class="hud" id="hud"></div></div>
+    <div class="bar">
+      <button id="bPause" aria-pressed="false">Pause</button>
+      <button id="bReset">Restart</button>
+      <button id="bSlow" aria-pressed="false">Slow motion</button>
+      <button id="bFollow" aria-pressed="true">Follow</button>
+      <span class="spacer"></span>
+      <span class="hint">Drop:</span>
+      <span id="palette" class="bar"></span>
+    </div>
+    <div class="what"><h2 id="pName"></h2><p id="pBlurb"></p><ul id="who" class="who"></ul><p class="hint">Drag any atom to pull it. Pick a colour, then click empty water to drop an atom of that type. Right-click (or long-press) an atom to remove it.</p></div>
+  </div>
+  <aside class="laws" id="laws"></aside>
+</div>
+<script>
+// Universe: a minimal off-grid atom simulator.
+// Deterministic: only + - * / sqrt abs round are used in the step, so the same seed gives the same
+// run in Node and in any browser. No dependencies.
+//
+// Atoms are unit-diameter discs in 2D still water. Everything an atom "is" comes from a rule set:
+//   per type : mass, drag, valence (how many bonds), recharge (energy gained per time unit)
+//   per pair : attraction/repulsion strength and range
+//   per pair : bond rule (can bond, form distance, rest length, stiffness, snap strain,
+//              lifetime, energy cost to form, kick released on break)
+//   global   : linear drag g1, quadratic drag g2, shadow (drag shielding by neighbours),
+//              bond damping, temperature, non-reciprocity
+// Forces conserve momentum (unless nonrecip > 0), so anything that swims must push on the water.
+
+const KCORE = 120;      // hard-core stiffness
+const SH0 = 1.2, SH1 = 1.8; // shadow weight: 1 below SH0, falls to 0 at SH1
+const MAXV = 6;         // max bonds per atom
+const VCAP = 60;        // speed cap (hits are counted; a valid run has none)
+
+function rng32(seed) {
+  let s = (seed >>> 0) || 1;
+  return function () {
+    s = (s + 0x6D2B79F5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+class World {
+  // opts: { cap, boundary: 'open' | 'periodic' | 'box', W, H, seed, T (overrides rules.T) }
+  constructor(rules, opts = {}) {
+    this.rules = rules;
+    const K = this.K = rules.K;
+    this.dt = rules.dt || 0.02;
+    this.boundary = opts.boundary || 'open';
+    this.W = opts.W || 40; this.H = opts.H || 40;
+    this.T = opts.T !== undefined ? opts.T : (rules.T || 0);
+    this.rand = rng32(opts.seed === undefined ? 1 : opts.seed);
+    const cap = this.cap = opts.cap || 256;
+    this.n = 0;
+    this.x = new Float64Array(cap); this.y = new Float64Array(cap);
+    this.vx = new Float64Array(cap); this.vy = new Float64Array(cap);
+    this.fx = new Float64Array(cap); this.fy = new Float64Array(cap);
+    this.e = new Float64Array(cap);
+    this.sw = new Float64Array(cap); this.sxx = new Float64Array(cap);
+    this.sxy = new Float64Array(cap); this.syy = new Float64Array(cap);
+    this.type = new Uint8Array(cap);
+    this.nb = new Uint8Array(cap);
+    this.slots = new Int32Array(cap * MAXV);
+    const capB = this.capB = cap * MAXV / 2;
+    this.ba = new Int32Array(capB); this.bb = new Int32Array(capB);
+    this.bage = new Float64Array(capB);
+    this.nbonds = 0;
+    this.candCap = cap * 4; this.ncand = 0;
+    this.ci = new Int32Array(this.candCap); this.cj = new Int32Array(this.candCap);
+    this.cr = new Float64Array(this.candCap); this.cord = new Int32Array(this.candCap);
+    this.time = 0; this.steps = 0;
+    this.stat = { formed: 0, expired: 0, snapped: 0, capHits: 0, energyUsed: 0 };
+    this.formedBy = new Int32Array(K * K); // bond formations per type pair
+    // compile rules
+    this.mass = new Float64Array(K); this.drag = new Float64Array(K);
+    this.val = new Uint8Array(K); this.recharge = new Float64Array(K);
+    for (let t = 0; t < K; t++) {
+      const ty = rules.types[t];
+      this.mass[t] = ty.m; this.drag[t] = ty.drag;
+      this.val[t] = Math.min(MAXV, ty.val); this.recharge[t] = ty.recharge || 0;
+    }
+    const KK = K * K;
+    this.A = new Float64Array(KK); this.R = new Float64Array(KK);
+    this.bon = new Uint8Array(KK); this.bform = new Float64Array(KK); this.br0 = new Float64Array(KK);
+    this.bk = new Float64Array(KK); this.bsnap = new Float64Array(KK); this.blife = new Float64Array(KK);
+    this.bcost = new Float64Array(KK); this.bkick = new Float64Array(KK);
+    let rmax = SH1;
+    const nr = rules.nonrecip || 0;
+    for (let i = 0; i < K; i++) for (let j = 0; j < K; j++) {
+      const q = i * K + j, p = rules.pair[i][j], ps = rules.pair[j][i];
+      // symmetric part plus (optionally) a non-reciprocal part
+      this.A[q] = 0.5 * (p.a + ps.a) + nr * 0.5 * (p.a - ps.a);
+      this.R[q] = Math.max(p.R, ps.R);
+      if (this.R[q] > rmax) rmax = this.R[q];
+      const lo = i < j ? i : j, hi = i < j ? j : i;
+      const b = rules.bond[lo][hi];
+      this.bon[q] = b.on ? 1 : 0; this.bform[q] = b.form; this.br0[q] = b.r0; this.bk[q] = b.k;
+      this.bsnap[q] = b.snap; this.blife[q] = b.life || 0; this.bkick[q] = b.kick || 0;
+      // Energy is conserved: a bond that forms stretched (form > r0) injects spring energy, and a kick
+      // stores energy until the bond breaks. Both atoms pay half of that from their own store (0..1);
+      // eUnit is how much mechanical energy one full store holds.
+      const st = b.form > b.r0 ? b.form - b.r0 : 0, kk = b.kick || 0;
+      const mech = 0.5 * b.k * st * st + 0.5 * kk * kk * (1 / rules.types[i].m + 1 / rules.types[j].m);
+      this.bcost[q] = 0.5 * mech / (rules.eUnit || 50);
+      if (b.on && b.form > rmax) rmax = b.form;
+    }
+    this.rmax = rmax; this.rmax2 = rmax * rmax;
+    this.g1 = rules.g1; this.g2 = rules.g2 || 0; this.shadow = rules.shadow || 0;
+    this.bdamp = rules.bdamp || 0;
+    if (this.boundary !== 'open') {
+      this.nx = Math.max(3, Math.floor(this.W / rmax)); this.ny = Math.max(3, Math.floor(this.H / rmax));
+      this.cw = this.W / this.nx; this.ch = this.H / this.ny;
+      this.head = new Int32Array(this.nx * this.ny); this.next = new Int32Array(cap);
+    }
+  }
+
+  add(t, x, y, vx = 0, vy = 0) {
+    const i = this.n++;
+    if (i >= this.cap) throw new Error('world full');
+    this.type[i] = t; this.x[i] = x; this.y[i] = y; this.vx[i] = vx; this.vy[i] = vy;
+    this.e[i] = 1; this.nb[i] = 0;
+    return i;
+  }
+
+  bonded(i, j) {
+    const s = this.slots, o = i * MAXV, c = this.nb[i];
+    for (let k = 0; k < c; k++) if (s[o + k] === j) return true;
+    return false;
+  }
+
+  addBond(i, j) {
+    const b = this.nbonds++;
+    this.ba[b] = i; this.bb[b] = j; this.bage[b] = 0;
+    this.slots[i * MAXV + this.nb[i]++] = j;
+    this.slots[j * MAXV + this.nb[j]++] = i;
+  }
+
+  _unslot(i, j) {
+    const s = this.slots, o = i * MAXV, c = this.nb[i];
+    for (let k = 0; k < c; k++) if (s[o + k] === j) { s[o + k] = s[o + c - 1]; this.nb[i] = c - 1; return; }
+  }
+
+  removeBond(b) {
+    const i = this.ba[b], j = this.bb[b];
+    this._unslot(i, j); this._unslot(j, i);
+    const l = --this.nbonds;
+    this.ba[b] = this.ba[l]; this.bb[b] = this.bb[l]; this.bage[b] = this.bage[l];
+  }
+
+  // remove atom i (swap with last). Used by viewers, not by the search.
+  removeAtom(i) {
+    for (let b = this.nbonds - 1; b >= 0; b--) if (this.ba[b] === i || this.bb[b] === i) this.removeBond(b);
+    const l = --this.n;
+    if (i === l) return;
+    this.type[i] = this.type[l]; this.x[i] = this.x[l]; this.y[i] = this.y[l];
+    this.vx[i] = this.vx[l]; this.vy[i] = this.vy[l]; this.e[i] = this.e[l];
+    this.nb[i] = this.nb[l];
+    for (let k = 0; k < MAXV; k++) this.slots[i * MAXV + k] = this.slots[l * MAXV + k];
+    this.nb[l] = 0;
+    for (let b = 0; b < this.nbonds; b++) { if (this.ba[b] === l) this.ba[b] = i; if (this.bb[b] === l) this.bb[b] = i; }
+    for (let k = 0; k < this.nb[i]; k++) {
+      const p = this.slots[i * MAXV + k], o = p * MAXV;
+      for (let q = 0; q < this.nb[p]; q++) if (this.slots[o + q] === l) this.slots[o + q] = i;
+    }
+  }
+
+  _pair(i, j, dx, dy, r2) {
+    const K = this.K, ti = this.type[i], tj = this.type[j], q = ti * K + tj;
+    const r = Math.sqrt(r2);
+    if (r < 1e-9) return;
+    const ux = dx / r, uy = dy / r;
+    if (r < 1) {
+      const f = KCORE * (1 - r);
+      this.fx[i] -= f * ux; this.fy[i] -= f * uy; this.fx[j] += f * ux; this.fy[j] += f * uy;
+    } else {
+      const R = this.R[q];
+      if (r < R) {
+        const s = 1 - Math.abs(2 * r - 1 - R) / (R - 1);
+        const fi = this.A[q] * s, fj = this.A[tj * K + ti] * s;
+        this.fx[i] += fi * ux; this.fy[i] += fi * uy; this.fx[j] -= fj * ux; this.fy[j] -= fj * uy;
+      }
+    }
+    if (this.shadow > 0 && r < SH1) {
+      const w = r < SH0 ? 1 : (SH1 - r) / (SH1 - SH0);
+      const xx = w * ux * ux, xy = w * ux * uy, yy = w * uy * uy;
+      this.sw[i] += w; this.sxx[i] += xx; this.sxy[i] += xy; this.syy[i] += yy;
+      this.sw[j] += w; this.sxx[j] += xx; this.sxy[j] += xy; this.syy[j] += yy;
+    }
+    // bond candidates are only noted here; step() forms them closest-first, so the result does not
+    // depend on the order atoms happen to be stored or visited in
+    if (this.bon[q] && r < this.bform[q] && this.nb[i] < this.val[ti] && this.nb[j] < this.val[tj] && !this.bonded(i, j)) {
+      const c = this.ncand++;
+      if (c < this.candCap) { this.ci[c] = i < j ? i : j; this.cj[c] = i < j ? j : i; this.cr[c] = r; }
+    }
+  }
+
+  _formBonds() {
+    const n = this.ncand < this.candCap ? this.ncand : this.candCap, K = this.K;
+    this.ncand = 0;
+    if (n === 0) return;
+    const ord = this.cord; for (let k = 0; k < n; k++) ord[k] = k;
+    const cr = this.cr, ci = this.ci, cj = this.cj;
+    // insertion sort by distance, ties by atom index (n is small)
+    for (let a = 1; a < n; a++) {
+      const v = ord[a]; let b = a - 1;
+      while (b >= 0) { const u = ord[b]; if (cr[u] < cr[v] || (cr[u] === cr[v] && (ci[u] < ci[v] || (ci[u] === ci[v] && cj[u] < cj[v])))) break; ord[b + 1] = u; b--; }
+      ord[b + 1] = v;
+    }
+    for (let a = 0; a < n; a++) {
+      const k = ord[a], i = ci[k], j = cj[k], ti = this.type[i], tj = this.type[j], q = ti * K + tj;
+      if (this.nb[i] >= this.val[ti] || this.nb[j] >= this.val[tj]) continue;
+      const c = this.bcost[q];
+      if (this.e[i] >= c && this.e[j] >= c && !this.bonded(i, j)) {
+        this.e[i] -= c; this.e[j] -= c;
+        this.addBond(i, j);
+        this.stat.formed++; this.stat.energyUsed += 2 * c; this.formedBy[q]++;
+      }
+    }
+  }
+
+  step() {
+    const n = this.n, x = this.x, y = this.y, vx = this.vx, vy = this.vy, fx = this.fx, fy = this.fy;
+    const dt = this.dt, type = this.type;
+    fx.fill(0, 0, n); fy.fill(0, 0, n);
+    if (this.shadow > 0) { this.sw.fill(0, 0, n); this.sxx.fill(0, 0, n); this.sxy.fill(0, 0, n); this.syy.fill(0, 0, n); }
+    const rmax2 = this.rmax2;
+    if (this.boundary === 'open') {
+      for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+        const dx = x[j] - x[i], dy = y[j] - y[i], r2 = dx * dx + dy * dy;
+        if (r2 < rmax2) this._pair(i, j, dx, dy, r2);
+      }
+    } else {
+      const per = this.boundary === 'periodic';
+      const nx = this.nx, ny = this.ny, W = this.W, H = this.H, head = this.head, next = this.next;
+      head.fill(-1);
+      for (let i = n - 1; i >= 0; i--) {
+        let cx, cy;
+        if (per) {
+          let px = x[i] - W * Math.floor(x[i] / W), py = y[i] - H * Math.floor(y[i] / H);
+          cx = Math.floor(px / this.cw); cy = Math.floor(py / this.ch);
+          if (cx >= nx) cx = nx - 1; if (cy >= ny) cy = ny - 1;
+        } else {
+          cx = Math.floor(x[i] / this.cw); cy = Math.floor(y[i] / this.ch);
+          if (cx < 0) cx = 0; else if (cx >= nx) cx = nx - 1;
+          if (cy < 0) cy = 0; else if (cy >= ny) cy = ny - 1;
+        }
+        const c = cy * nx + cx;
+        next[i] = head[c]; head[c] = i;
+      }
+      for (let cy = 0; cy < ny; cy++) for (let cx = 0; cx < nx; cx++) {
+        const c = cy * nx + cx;
+        for (let i = head[c]; i >= 0; i = next[i]) {
+          for (let j = next[i]; j >= 0; j = next[j]) {
+            let dx = x[j] - x[i], dy = y[j] - y[i];
+            if (per) { dx -= W * Math.round(dx / W); dy -= H * Math.round(dy / H); }
+            const r2 = dx * dx + dy * dy;
+            if (r2 < rmax2) this._pair(i, j, dx, dy, r2);
+          }
+          for (let s = 0; s < 4; s++) {
+            let ox = s === 0 ? 1 : s - 2, oy = s === 0 ? 0 : 1;
+            let c2x = cx + ox, c2y = cy + oy;
+            if (per) { c2x = (c2x + nx) % nx; c2y = (c2y + ny) % ny; }
+            else if (c2x < 0 || c2x >= nx || c2y >= ny) continue;
+            for (let j = head[c2y * nx + c2x]; j >= 0; j = next[j]) {
+              let dx = x[j] - x[i], dy = y[j] - y[i];
+              if (per) { dx -= W * Math.round(dx / W); dy -= H * Math.round(dy / H); }
+              const r2 = dx * dx + dy * dy;
+              if (r2 < rmax2) this._pair(i, j, dx, dy, r2);
+            }
+          }
+        }
+      }
+    }
+    this._formBonds();
+    // bonds
+    const K = this.K, per = this.boundary === 'periodic', bd = this.bdamp;
+    for (let b = this.nbonds - 1; b >= 0; b--) {
+      const i = this.ba[b], j = this.bb[b], q = type[i] * K + type[j];
+      let dx = x[j] - x[i], dy = y[j] - y[i];
+      if (per) { dx -= this.W * Math.round(dx / this.W); dy -= this.H * Math.round(dy / this.H); }
+      const r = Math.sqrt(dx * dx + dy * dy) || 1e-9, ux = dx / r, uy = dy / r;
+      const age = (this.bage[b] += dt), life = this.blife[q], r0 = this.br0[q];
+      const expired = life > 0 && age > life, snapped = r > r0 * (1 + this.bsnap[q]);
+      if (expired || snapped) {
+        const kick = this.bkick[q];
+        if (kick > 0) {
+          const f = kick / dt;
+          fx[i] -= f * ux; fy[i] -= f * uy; fx[j] += f * ux; fy[j] += f * uy;
+        }
+        if (expired) this.stat.expired++; else this.stat.snapped++;
+        this.removeBond(b);
+        continue;
+      }
+      let f = this.bk[q] * (r - r0);
+      if (bd > 0) f += bd * ((vx[j] - vx[i]) * ux + (vy[j] - vy[i]) * uy);
+      fx[i] += f * ux; fy[i] += f * uy; fx[j] -= f * ux; fy[j] -= f * uy;
+    }
+    // integrate
+    const g1 = this.g1, g2 = this.g2, sh = this.shadow, T = this.T, rand = this.rand;
+    for (let i = 0; i < n; i++) {
+      const t = type[i], m = this.mass[t], g = g1 * this.drag[t];
+      let ax = fx[i] / m, ay = fy[i] / m;
+      let u = vx[i], v = vy[i];
+      // linear drag, shielded along directions where neighbours sit
+      let dxv = u, dyv = v;
+      if (sh > 0 && this.sw[i] > 0) {
+        const c = sh / (this.sw[i] > 1 ? this.sw[i] : 1);
+        dxv = u - c * (this.sxx[i] * u + this.sxy[i] * v);
+        dyv = v - c * (this.sxy[i] * u + this.syy[i] * v);
+      }
+      ax -= g * dxv / m; ay -= g * dyv / m;
+      u += ax * dt; v += ay * dt;
+      if (T > 0) {
+        const amp = Math.sqrt(6 * g * T * dt) / m; // uniform noise with the variance of 2 g T dt
+        u += amp * (2 * rand() - 1); v += amp * (2 * rand() - 1);
+      }
+      if (g2 > 0) {
+        const sp = Math.sqrt(u * u + v * v), k = 1 / (1 + g2 * this.drag[t] * sp * dt / m);
+        u *= k; v *= k;
+      }
+      const s2 = u * u + v * v;
+      if (s2 > VCAP * VCAP) { const k = VCAP / Math.sqrt(s2); u *= k; v *= k; this.stat.capHits++; }
+      vx[i] = u; vy[i] = v;
+      x[i] += u * dt; y[i] += v * dt;
+      const ne = this.e[i] + this.recharge[t] * dt;
+      this.e[i] = ne > 1 ? 1 : ne;
+    }
+    if (this.boundary === 'box') {
+      const W = this.W, H = this.H;
+      for (let i = 0; i < n; i++) {
+        if (x[i] < 0.5) { x[i] = 0.5; if (vx[i] < 0) vx[i] = -0.5 * vx[i]; }
+        else if (x[i] > W - 0.5) { x[i] = W - 0.5; if (vx[i] > 0) vx[i] = -0.5 * vx[i]; }
+        if (y[i] < 0.5) { y[i] = 0.5; if (vy[i] < 0) vy[i] = -0.5 * vy[i]; }
+        else if (y[i] > H - 0.5) { y[i] = H - 0.5; if (vy[i] > 0) vy[i] = -0.5 * vy[i]; }
+      }
+    }
+    this.time += dt; this.steps++;
+  }
+
+  // FNV-style hash of the state, for determinism checks
+  hash() {
+    let h = 2166136261 >>> 0;
+    const f = new Float64Array(1), u = new Uint32Array(f.buffer);
+    for (let i = 0; i < this.n; i++) {
+      f[0] = this.x[i]; h = Math.imul(h ^ u[0], 16777619); h = Math.imul(h ^ u[1], 16777619);
+      f[0] = this.y[i]; h = Math.imul(h ^ u[0], 16777619); h = Math.imul(h ^ u[1], 16777619);
+    }
+    return (h ^ this.nbonds) >>> 0;
+  }
+}
+
+const PRESETS = [{"id":"slow-kicker","group":"Swimmers","name":"Slow kicker","tag":"10 atoms · 2.8 beats/s · 3.0 widths/s","blurb":"A lump with one odd atom. The odd atom grabs a neighbour, the bond stores a kick, and when the bond lets go the kick shoves the body one way and the light atom the other. The water stops the light atom faster than the heavy body, so the body gains ground on every beat. You can count the beats.","rules":{"K":4,"dt":0.02,"types":[{"m":3,"drag":3,"val":5,"recharge":0.05448547402906922},{"m":1.6333516158910268,"drag":3,"val":5,"recharge":0.4597375791036629},{"m":0.5,"drag":3,"val":6,"recharge":0.5461455060479822},{"m":3,"drag":0.3,"val":6,"recharge":0.24217348500878058}],"pair":[[{"a":0,"R":2.330609054086581},{"a":-2.684985369666219,"R":3.5},{"a":-0.2554694598215818,"R":3.5},{"a":3.20248670179516,"R":3.5}],[{"a":-2.684985369666219,"R":3.5},{"a":-0.16162761308938245,"R":2.0297870533677185},{"a":0.8355266613247994,"R":2.313932324693352},{"a":0,"R":2.605982951046228}],[{"a":-0.2554694598215818,"R":3.5},{"a":0.8355266613247994,"R":2.313932324693352},{"a":2.1445827465087173,"R":2.0822280376819524},{"a":1.5151253918159002,"R":2.6178762114676837}],[{"a":3.20248670179516,"R":3.5},{"a":0,"R":2.605982951046228},{"a":1.5151253918159002,"R":2.6178762114676837},{"a":1.3655776739716523,"R":3.5}]],"bond":[[{"on":0,"r0":1.800957609077707,"form":1.7596219330589042,"k":32.796759594096656,"snap":1.99523832622125,"life":3.359544499017833,"kick":1.7987482033681712},{"on":1,"r0":1.2905742674208132,"form":1.295611544174987,"k":5.795517518478009,"snap":0.48312778202375767,"life":2.441005407570423,"kick":0},{"on":1,"r0":1.2879589276355206,"form":2.184611484565645,"k":15.497386359831111,"snap":0.47407532855255136,"life":0.7460050049778755,"kick":3.2055451371075057},{"on":1,"r0":1.025817402445063,"form":1.8464713244011135,"k":37.560655261511904,"snap":1.0937124888043852,"life":2.3801214668396216,"kick":0}],[null,{"on":0,"r0":1.1839843218640689,"form":1.7055658190820233,"k":62.2386432627191,"snap":0.37222817994326335,"life":0.2516856315227609,"kick":0},{"on":0,"r0":1.2133332129656673,"form":1.6602714524245779,"k":8.287581540209471,"snap":0.4753321899523953,"life":0.783343414617683,"kick":0},{"on":0,"r0":1.8261875997337849,"form":2.4920120893826256,"k":33.94891033678834,"snap":1.1115025509363265,"life":0.41708847823495365,"kick":0.9178155333846126}],[null,null,{"on":0,"r0":1.6216267394720016,"form":2.5253555694964014,"k":109.96458685510748,"snap":0.2694812290974036,"life":0.5840961755208017,"kick":0.2},{"on":1,"r0":2,"form":3.6,"k":5,"snap":1.9079839779747725,"life":2.1299864545264366,"kick":6}],[null,null,null,{"on":1,"r0":0.9103138133407231,"form":1.1133836986993138,"k":43.36916070304309,"snap":2,"life":0,"kick":0}]],"g1":0.2,"g2":0.05,"shadow":0.95,"bdamp":0.7014349129753183,"T":0.015134055912494658,"nonrecip":0,"eUnit":273.6342605532963},"atoms":[{"t":3,"x":-0.23089782158128913,"y":0.4586247150018811},{"t":3,"x":-1.9803966723635669,"y":1.1259254138758596},{"t":2,"x":2.3178076767609745,"y":1.4066131550989303},{"t":3,"x":1.856670329927797,"y":1.8213763658567237},{"t":3,"x":1.502721879366189,"y":-0.5646309262703672},{"t":3,"x":1.611689438732232,"y":2.855679130275139},{"t":3,"x":0.08244627644454923,"y":1.046410281586433},{"t":3,"x":1.9743946878348135,"y":1.8013545943089904},{"t":3,"x":0.42919738707532795,"y":-0.5221163341555766},{"t":3,"x":0.9953796630594471,"y":1.3501646904158267}],"world":{},"stats":{"viewer":2.961648544260751,"robust":2.8660804495130763,"base":2.9880295106503953,"half":2.8660804495130763,"long":2.9719266673082916,"noisy":2.9940823415554756,"own":2.9935659347675596,"linear":0,"beats":2.8,"power":135.5199999999983,"stroke":"kick","water":"both","voidArea":0}},{"id":"four-atom","group":"Swimmers","name":"Four-atom swimmer","tag":"4 atoms · 1.1 beats/s · 1.9 widths/s","blurb":"The smallest and thriftiest swimmer found: three of one type and one of another. It goes furthest per unit of energy of anything in the search.","rules":{"K":4,"dt":0.02,"types":[{"m":1.2614754602577516,"drag":0.6257415727224276,"val":1,"recharge":0.947171870530804},{"m":0.9329029686978177,"drag":1.514205189540254,"val":6,"recharge":2},{"m":0.5,"drag":1.4068194825601115,"val":6,"recharge":1.0517550325449427},{"m":3,"drag":0.3,"val":4,"recharge":1.5565877291405372}],"pair":[[{"a":-0.7216051141768691,"R":2.82908090199016},{"a":-0.5054303610545392,"R":2.4719357759554685},{"a":-2.371926235795915,"R":3.2188292995975907},{"a":4,"R":3.231464111868367}],[{"a":-0.5054303610545392,"R":2.4719357759554685},{"a":4,"R":1.5},{"a":-0.25871136337786904,"R":2.1940287203896793},{"a":0.1373130781289935,"R":1.7021718263346701}],[{"a":-2.371926235795915,"R":3.2188292995975907},{"a":-0.25871136337786904,"R":2.1940287203896793},{"a":1.7232138729831576,"R":1.8906090358829497},{"a":4,"R":1.9849529895507547}],[{"a":4,"R":3.231464111868367},{"a":0.1373130781289935,"R":1.7021718263346701},{"a":4,"R":1.9849529895507547},{"a":3.550280331401527,"R":3.150558272071257}]],"bond":[[{"on":0,"r0":1.4733489808432758,"form":1.384111097809801,"k":49.632143749227865,"snap":1.8366456729067937,"life":1.6018824621190528,"kick":0.33846137434344514},{"on":0,"r0":0.9460170332185627,"form":0.8514153298967064,"k":5,"snap":0.6874764379722103,"life":0,"kick":0},{"on":0,"r0":0.9617520201760977,"form":1.3675640482608324,"k":119.80390460183362,"snap":1.6888789513622295,"life":0.9916200043247638,"kick":0.30982187992436017},{"on":1,"r0":1.3659322513821721,"form":1.312705935295282,"k":21.931215744762117,"snap":1.9186636222856044,"life":1.2087778327117873,"kick":0}],[null,{"on":0,"r0":1.9790981901647002,"form":2.369558705730165,"k":14.395968000435708,"snap":0.9143416020237058,"life":0,"kick":0},{"on":1,"r0":1.0263709257607012,"form":1.2793012688284913,"k":29.037690744743834,"snap":1.1938254001713025,"life":0,"kick":0},{"on":0,"r0":1.6001959800275118,"form":1.576140376591388,"k":150,"snap":0.731884748438388,"life":0.20881839370874888,"kick":1.0427883429079308}],[null,null,{"on":0,"r0":1.8720406522764563,"form":2.2058155116419385,"k":66.10052774706706,"snap":0.6848103626387342,"life":0.8908475269546708,"kick":0.5779670248017998},{"on":1,"r0":1.9437178408071698,"form":3.10312271606358,"k":5,"snap":2,"life":2.55184750724146,"kick":6}],[null,null,null,{"on":1,"r0":0.8,"form":0.9350759724209461,"k":150,"snap":1.6078327795801457,"life":0,"kick":0.2}]],"g1":0.2,"g2":0.07768503481923088,"shadow":0.95,"bdamp":0.9717191987125573,"T":0.015134055912494658,"nonrecip":0,"eUnit":370.59238477837414},"atoms":[{"t":2,"x":-0.06371387714048848,"y":0.8831497011320107},{"t":3,"x":0.4787131337654373,"y":0.03238035949480597},{"t":3,"x":-0.7823574928199909,"y":2.456310442113208},{"t":3,"x":-2.389252128886948,"y":0.980164360145409}],"world":{},"stats":{"viewer":1.8855392202334698,"robust":1.81348387402454,"base":1.8797024623600926,"half":1.81348387402454,"long":1.8971022576598042,"noisy":1.8537782434924426,"own":1.8777937283357913,"linear":0.004071142533106069,"beats":1.15,"power":52.16463153620908,"stroke":"kick","water":"both","voidArea":0}},{"id":"buzzer","group":"Swimmers","name":"Buzzer","tag":"7 atoms · 17.6 beats/s · 6.6 widths/s","blurb":"The fastest body found. It beats too quickly to see, and burns energy about ten times faster than the slow kicker to go twice as fast. The search finds this first if speed is all you ask for.","rules":{"K":6,"dt":0.02,"types":[{"m":2.3472030015008034,"drag":0.3,"val":6,"recharge":0.35465093573877104},{"m":0.5,"drag":0.8054737277050524,"val":6,"recharge":0.07588529494323841},{"m":0.5,"drag":3,"val":6,"recharge":2},{"m":1.9265852356457374,"drag":0.3642641698623088,"val":3,"recharge":0.02},{"m":0.910370341775329,"drag":0.3,"val":6,"recharge":0.025830067961752277},{"m":0.5,"drag":0.3,"val":2,"recharge":0}],"pair":[[{"a":4,"R":2.596526130551174},{"a":-0.7461442262771725,"R":3.2282823973726478},{"a":1.374519853705466,"R":2.139901689722017},{"a":-4,"R":1.7878466707199068},{"a":0.9315120515146851,"R":1.7676360380433496},{"a":-1.167646110285819,"R":3.5}],[{"a":-0.7461442262771725,"R":3.2282823973726478},{"a":3.3176501431658867,"R":2.9722915404608834},{"a":-3.0184250588500494,"R":2.3271908758907767},{"a":-1.1642318381533028,"R":3.1604049904054405},{"a":-4,"R":3.1868826160711796},{"a":-1.9633199577379226,"R":2.7652973350831123}],[{"a":1.374519853705466,"R":2.139901689722017},{"a":-3.0184250588500494,"R":2.3271908758907767},{"a":1.0465911660611633,"R":1.5},{"a":2.0927232498925923,"R":3.438101258832812},{"a":1.9041856154999135,"R":1.5},{"a":-2.656841590422988,"R":3.5}],[{"a":-4,"R":1.7878466707199068},{"a":-1.1642318381533028,"R":3.1604049904054405},{"a":2.0927232498925923,"R":3.438101258832812},{"a":-1.4247646794939035,"R":3.258073209093362},{"a":-3.2251213154265286,"R":1.5},{"a":2.5051362136548754,"R":3.240769088448361}],[{"a":0.9315120515146851,"R":1.7676360380433496},{"a":-4,"R":3.1868826160711796},{"a":1.9041856154999135,"R":1.5},{"a":-3.2251213154265286,"R":1.5},{"a":1.6922461867836116,"R":2.58697328019619},{"a":-2.669163880345225,"R":2.809456567532866}],[{"a":-1.167646110285819,"R":3.5},{"a":-1.9633199577379226,"R":2.7652973350831123},{"a":-2.656841590422988,"R":3.5},{"a":2.5051362136548754,"R":3.240769088448361},{"a":-2.669163880345225,"R":2.809456567532866},{"a":-1.864118487969041,"R":1.6843819520860166}]],"bond":[[{"on":1,"r0":0.8738045242386762,"form":1.4978141404386838,"k":150,"snap":1.8929575085676387,"life":0,"kick":0},{"on":0,"r0":2,"form":2.663290269454389,"k":50.059090433449434,"snap":1.8824054538829997,"life":0,"kick":0.45470202597515685},{"on":1,"r0":2,"form":3.6,"k":34.250485304529356,"snap":1.9755111430247725,"life":0.3218633015276827,"kick":6},{"on":0,"r0":1.1969712257020473,"form":1.0772741031318427,"k":15.195691695097784,"snap":1.2208929204172865,"life":0,"kick":0.841583584940346},{"on":1,"r0":1.6411951808873566,"form":1.6786267856406896,"k":49.945169235057264,"snap":1.270106348675616,"life":8,"kick":0.7093644105786853},{"on":1,"r0":1.3130401017809212,"form":1.1817360916028292,"k":8.083438753512324,"snap":0.9962313780809045,"life":0.29646135670424417,"kick":0}],[null,{"on":0,"r0":0.8,"form":1.2351689981342824,"k":108.73732940927619,"snap":1.8147688112748637,"life":2.3982276186016116,"kick":2.1383632091941696},{"on":1,"r0":1.2913844308506695,"form":1.982858275499124,"k":41.648318278300025,"snap":2,"life":0.5427718394167498,"kick":0},{"on":1,"r0":1.4332262063151897,"form":1.6052794967524717,"k":67.11972286537444,"snap":2,"life":8,"kick":0.7943774478867176},{"on":1,"r0":0.8,"form":1.17537669428654,"k":22.35310042031721,"snap":1.8907171666117457,"life":0.5278359462823892,"kick":0.2},{"on":0,"r0":0.8851752239783257,"form":1.2318037799594637,"k":7.777293857823408,"snap":0.2,"life":5.7637334835598,"kick":0}],[null,null,{"on":0,"r0":0.8213330685857833,"form":1.4476638812592906,"k":12.540263983613622,"snap":1.8270819362976625,"life":1.4837116402266841,"kick":1.3935244161017024},{"on":1,"r0":1.7930163514780848,"form":2.7642211279022564,"k":13.942540327614008,"snap":1.5765278199835122,"life":5.680775834416698,"kick":0.44808210030205586},{"on":0,"r0":1.2504266519711167,"form":1.6794569123247405,"k":16.599982049127235,"snap":0.44284429288801547,"life":0,"kick":0.22025369508550866},{"on":1,"r0":1.016803239436522,"form":1.0886766582380123,"k":12.731417398029901,"snap":0.8668928160798027,"life":1.4738086434397153,"kick":4.58272394432946}],[null,null,null,{"on":0,"r0":0.8,"form":1.019618234677738,"k":24.91990568592833,"snap":1.4718052485684683,"life":0,"kick":0.4042316066547931},{"on":1,"r0":1.4038621511782257,"form":2.0767249552300857,"k":37.45926832451423,"snap":0.7950547685711755,"life":7.166641791408592,"kick":6},{"on":1,"r0":0.9952040080555679,"form":1.5994140233703933,"k":10.51082347062553,"snap":1.8544565030068234,"life":3.2329833962538155,"kick":1.4679723500047954}],[null,null,null,null,{"on":0,"r0":0.8,"form":0.7200000000000001,"k":76.72520496400433,"snap":1.5396135210833994,"life":0.27020579221838764,"kick":0.29826704717329655},{"on":0,"r0":1.8045472244137226,"form":2.1746495921468414,"k":33.0314740216819,"snap":1.1450103032752348,"life":4.8354955910576685,"kick":1.0082708443503707}],[null,null,null,null,null,{"on":0,"r0":1.4963866528533547,"form":2.1852769158271332,"k":26.62121695092141,"snap":0.34314390771678094,"life":0.4675127387424086,"kick":0.2}]],"g1":0.2,"g2":0.061141595471302115,"shadow":0.7177801093318872,"bdamp":3,"T":0.007653994183056056,"nonrecip":0,"eUnit":400},"atoms":[{"t":2,"x":1.5007688964160906,"y":-0.8062629789119775},{"t":0,"x":-0.8473813477568254,"y":1.5510582607846986},{"t":0,"x":1.0468208679127253,"y":1.8708344071972263},{"t":0,"x":1.3578648153635509,"y":1.8772924763537047},{"t":0,"x":2.6016989734829323,"y":-0.451277718226891},{"t":0,"x":2.291385300069916,"y":0.9322320652171203},{"t":0,"x":0.5510487269395563,"y":1.5604259167933476}],"world":{},"stats":{"viewer":6.62813718312469,"robust":5.554414064569729,"base":6.628593341770584,"half":5.554414064569729,"long":6.627783438218918,"noisy":5.65874454294657,"own":6.6235672224863045,"linear":0,"beats":17.6,"power":1540.1640855010191,"stroke":"mixed","water":"both","voidArea":0}},{"id":"slipstream","group":"Swimmers","name":"Slipstream swimmer","tag":"6 atoms · 18.2 beats/s · 4.0 widths/s","blurb":"This water has no splash at all: drag does not grow with speed. The only thing this body can use is that atoms in a row shield each other from the water. That is how real cilia work, and here it is weak but real.","rules":{"K":5,"dt":0.02,"types":[{"m":0.5,"drag":3,"val":4,"recharge":2},{"m":0.5,"drag":1.9648612310882425,"val":1,"recharge":0.1},{"m":2.22321014705941,"drag":1.5637585781164738,"val":1,"recharge":0.541877176591814},{"m":3,"drag":0.3,"val":6,"recharge":1.609573243934303},{"m":0.9357943291183786,"drag":2.013737088304623,"val":0,"recharge":0.04754704265858968}],"pair":[[{"a":-2.712865077153742,"R":1.5},{"a":-1.2055024852645397,"R":1.962788059765399},{"a":-2.5532779293239116,"R":3.5},{"a":-1.224075963071882,"R":1.5232494249051065},{"a":-0.13867497354000785,"R":1.5}],[{"a":-1.2055024852645397,"R":1.962788059765399},{"a":-0.4629822123545408,"R":2.241842309430763},{"a":-4,"R":1.5},{"a":-4,"R":2.4580035364618893},{"a":3.0752110763275615,"R":3.5}],[{"a":-2.5532779293239116,"R":3.5},{"a":-4,"R":1.5},{"a":-2.906422024115324,"R":1.9528517179699239},{"a":0.7412615767833595,"R":2.197371860980243},{"a":-0.910623196070194,"R":3.2062439588873093}],[{"a":-1.224075963071882,"R":1.5232494249051065},{"a":-4,"R":2.4580035364618893},{"a":0.7412615767833595,"R":2.197371860980243},{"a":2.53025200327158,"R":2.6446401900392025},{"a":0.03959001384615893,"R":1.7872682616774738}],[{"a":-0.13867497354000785,"R":1.5},{"a":3.0752110763275615,"R":3.5},{"a":-0.910623196070194,"R":3.2062439588873093},{"a":0.03959001384615893,"R":1.7872682616774738},{"a":-1.9541955476841328,"R":1.9428859143052248}]],"bond":[[{"on":1,"r0":1.3069872408635022,"form":1.9924023397124244,"k":77.93967187231574,"snap":1.4352571070196554,"life":0.2,"kick":2.4586256339779644},{"on":0,"r0":1.3500571011777818,"form":2.0423270314109323,"k":150,"snap":1.5530726840879772,"life":0,"kick":1.238465902951739},{"on":1,"r0":2,"form":3.2096746855348335,"k":26.71624916187641,"snap":1.695234578325644,"life":6.802645658264545,"kick":6},{"on":1,"r0":1.452034474393249,"form":2.613662053907848,"k":75.15686491185201,"snap":2,"life":0.2,"kick":4.542980078448124},{"on":0,"r0":0.9801465130151361,"form":1.701794520734518,"k":29.947030448631143,"snap":0.7354386696771232,"life":1.2991764261917331,"kick":0}],[null,{"on":1,"r0":1.9203874188904464,"form":2.0108014820943136,"k":7.683688480602493,"snap":0.8148410714281428,"life":0,"kick":0},{"on":0,"r0":1.9728986175354872,"form":3.551217511563877,"k":132.99553986489565,"snap":0.2,"life":2.5829882088805283,"kick":0.2635838156844338},{"on":0,"r0":1.4835174514511376,"form":2.0940274015670663,"k":69.9711755841899,"snap":0.7319862254578772,"life":1.0478781379422544,"kick":3.8325086304527107},{"on":1,"r0":1.3181673229140347,"form":1.521017199633949,"k":100.29115134044115,"snap":1.6361433927300124,"life":1.6977697449879938,"kick":1.7801923849926296}],[null,null,{"on":0,"r0":2,"form":2.4398981869752334,"k":23.5773393748655,"snap":1.132853180148579,"life":0.4174445205235268,"kick":0.3214214858271553},{"on":1,"r0":0.9475353316810134,"form":1.4344302411416257,"k":27.43597283898668,"snap":1.2761388184230997,"life":0.44420998616166313,"kick":0},{"on":0,"r0":0.8,"form":0.8226812600137979,"k":13.50139661384979,"snap":0.7683368779820575,"life":8,"kick":3.262423957227094}],[null,null,null,{"on":1,"r0":0.8,"form":1.4400000000000002,"k":150,"snap":1.8678766639379636,"life":0,"kick":0.6686117118275462},{"on":0,"r0":1.370880417986318,"form":1.6284421053099398,"k":22.536722208366598,"snap":0.9361581286676676,"life":1.7353533248577793,"kick":0}],[null,null,null,null,{"on":1,"r0":1.1273726937052606,"form":1.3943803107227868,"k":7.531804866186344,"snap":0.9286308470230255,"life":4.343004461033755,"kick":0.230549975298306}]],"g1":1.0307167463321534,"g2":0,"shadow":0.95,"bdamp":2.261258936620988,"T":0.14464854500256477,"nonrecip":0,"eUnit":380.9250035053509},"atoms":[{"t":3,"x":1.0232684975040949,"y":-2.257293039221718},{"t":3,"x":1.015433165404669,"y":-1.0195611363304007},{"t":0,"x":0.9243109052961419,"y":-1.1973683593006246},{"t":3,"x":0.7034246296237068,"y":-2.0592107017905095},{"t":3,"x":0.46809575925047753,"y":-2.0312411541399147},{"t":3,"x":-1.3623165746385089,"y":-2.121478769658184}],"world":{},"stats":{"viewer":3.9813109690824184,"robust":1.1265231503643263,"base":4.0718763960217315,"half":1.1265231503643263,"long":4.052350975578336,"noisy":2.2787817350770068,"own":3.9162462420271424,"linear":0.001501425369203591,"beats":18.2,"power":1361.1048328710324,"stroke":"mixed","water":"slipstream","voidArea":0}},{"id":"splash","group":"Swimmers","name":"Splash swimmer","tag":"4 atoms · 5.8 beats/s · 2.9 widths/s","blurb":"This water has splash and no slipstream. A fast stroke meets much more resistance than a slow return, and that difference is the whole engine.","rules":{"K":3,"dt":0.02,"types":[{"m":0.5,"drag":2.015387458766918,"val":4,"recharge":1.1276255532473813},{"m":2.466309545778669,"drag":0.3,"val":6,"recharge":0.2549242098645384},{"m":2.1497012883238176,"drag":0.46142935139877134,"val":3,"recharge":0.7082029852820795}],"pair":[[{"a":1.4613979238843922,"R":3.5},{"a":-4,"R":3.381253534713759},{"a":0,"R":3.1327478146773577}],[{"a":-4,"R":3.381253534713759},{"a":-4,"R":1.6763553690195083},{"a":-4,"R":3.0100198248122623}],[{"a":0,"R":3.1327478146773577},{"a":-4,"R":3.0100198248122623},{"a":-3.631706402374208,"R":1.5}]],"bond":[[{"on":0,"r0":1.9933407316527068,"form":3.5880133169748722,"k":11.76842534464608,"snap":0.2,"life":0.6187181380727063,"kick":0.21782442377950867},{"on":1,"r0":2,"form":3.5478926754501834,"k":15.141913885629547,"snap":0.9686345123070702,"life":0.5029536931619273,"kick":6},{"on":1,"r0":1.2418689155406057,"form":2.0056362505691445,"k":85.72290795118514,"snap":0.2,"life":0.29009991799666424,"kick":0}],[null,{"on":1,"r0":0.8,"form":1.0058943762692651,"k":150,"snap":1.5808269673069715,"life":0,"kick":2.9880458569582773},{"on":1,"r0":0.8575555716508032,"form":1.0439204415193875,"k":80.33864328452569,"snap":1.4302840212237984,"life":2.044357525299005,"kick":1.8741513774769767}],[null,null,{"on":0,"r0":1.6485869933291082,"form":1.9119305062771106,"k":18.996670827481644,"snap":0.6062832716832012,"life":0.5739869246576632,"kick":0.6554389908436759}]],"g1":0.2,"g2":0.1353109422761968,"shadow":0,"bdamp":3,"T":0.2841918618651107,"nonrecip":0,"eUnit":400},"atoms":[{"t":1,"x":-0.028664113105327654,"y":-3.167074497236352},{"t":0,"x":-1.8805505529033482,"y":-3.32669937452037},{"t":1,"x":-0.3533959067165115,"y":-4.022406212566805},{"t":1,"x":0.13284594443689773,"y":-3.389472953157554}],"world":{},"stats":{"viewer":2.943596532965392,"robust":2.678651389484446,"base":2.945584666812495,"half":2.678651389484446,"long":2.9522595332335855,"noisy":2.9446762035559146,"own":2.9414019557360023,"linear":0,"beats":5.75,"power":353.269378505028,"stroke":"mixed","water":"splash","voidArea":0}},{"id":"raft","group":"Swimmers","name":"Raft","tag":"15 atoms · 3.0 beats/s · 2.3 widths/s","blurb":"A larger body with several kickers firing along it. Try pulling atoms off to see how much of it the motor needs.","rules":{"K":4,"dt":0.02,"types":[{"m":3,"drag":1.475223002340703,"val":3,"recharge":0.44144430596396467},{"m":2.460979013858665,"drag":1.8008557241057732,"val":4,"recharge":2},{"m":0.5,"drag":2.816078281770219,"val":6,"recharge":0.2744361705152834},{"m":2.4356195943894767,"drag":0.3,"val":6,"recharge":0.6094690651669703}],"pair":[[{"a":0,"R":2.9265075659810003},{"a":-3.076026836973131,"R":3.295127220531031},{"a":0.8674912442082167,"R":2.76268330224514},{"a":3.8092872423771023,"R":3.042871460624933}],[{"a":-3.076026836973131,"R":3.295127220531031},{"a":-1.8055083495453,"R":2.2210843586910514},{"a":2.4189669788441064,"R":2.5528823980982605},{"a":-0.8282713109064102,"R":3.5}],[{"a":0.8674912442082167,"R":2.76268330224514},{"a":2.4189669788441064,"R":2.5528823980982605},{"a":3.241661799530089,"R":2.5155964334593706},{"a":0.5295048481330269,"R":1.7215219144500786}],[{"a":3.8092872423771023,"R":3.042871460624933},{"a":-0.8282713109064102,"R":3.5},{"a":0.5295048481330269,"R":1.7215219144500786},{"a":2.297733265741467,"R":3.2521735915267462}]],"bond":[[{"on":1,"r0":1.9572266831198335,"form":2.3828493819819565,"k":9.352110286261144,"snap":1.6172632303177115,"life":8,"kick":2.075729308073563},{"on":1,"r0":1.3672738390467016,"form":1.2305464551420315,"k":100.8498484540257,"snap":0.27984966511072995,"life":5.769427784995038,"kick":4.958266496170818},{"on":1,"r0":0.8,"form":1.2578782789417862,"k":77.35065028380586,"snap":0.8417845062218456,"life":1.235729242228898,"kick":0.7055174938529051},{"on":1,"r0":1.083595456245467,"form":1.811237609940843,"k":5,"snap":0.41827082492540013,"life":2.235845671768608,"kick":6}],[null,{"on":0,"r0":1.0770624790588024,"form":1.5409182440331128,"k":20.95812401081363,"snap":0.280665406724125,"life":0.22196901251847737,"kick":0.2},{"on":1,"r0":1.3047580025244652,"form":2.025943888512435,"k":10.016777842867127,"snap":1.3967854600026082,"life":0,"kick":0.8574875140405545},{"on":1,"r0":1.920126685491562,"form":2.6091393420674334,"k":54.64531491798421,"snap":1.2399958888707234,"life":3.7380931404347613,"kick":0.5963169033491861}],[null,null,{"on":1,"r0":1.6315213378288447,"form":2.5487051604181366,"k":33.66794424017385,"snap":0.6265388381420446,"life":0,"kick":0.3612425183364923},{"on":1,"r0":2,"form":3.6,"k":5,"snap":2,"life":2.012560663038492,"kick":6}],[null,null,null,{"on":1,"r0":0.8,"form":0.7987019699703275,"k":20.007211994150268,"snap":1.5421413233074919,"life":0,"kick":2.6658791488582727}]],"g1":0.2,"g2":0.08042020697173347,"shadow":0.8753176524943298,"bdamp":0.8384580091249194,"T":0.015134055912494658,"nonrecip":0,"eUnit":358.8041007005555},"atoms":[{"t":3,"x":-1.4243768562403576,"y":2.1293318111978663},{"t":3,"x":1.7475782443593386,"y":1.3929327366978765},{"t":3,"x":1.145571292169392,"y":1.0815587999546774},{"t":3,"x":1.972993718277815,"y":2.844032306236514},{"t":3,"x":0.048752895537743826,"y":0.8570463843881616},{"t":3,"x":1.8157608182634446,"y":2.3992230043581273},{"t":3,"x":0.9964747723446168,"y":3.6789232334048183},{"t":3,"x":4.164452106701917,"y":0.5022600657097623},{"t":3,"x":4.137822670041409,"y":2.316126571343002},{"t":2,"x":7.235357254233668,"y":0.24275394175484777},{"t":3,"x":6.18565701283574,"y":0.7038529641521596},{"t":3,"x":6.791123620104698,"y":3.54296676521754},{"t":3,"x":5.285093884680997,"y":0.6464440939259435},{"t":3,"x":6.465584679884317,"y":2.7934114949933218},{"t":3,"x":7.7337898021980935,"y":2.366588988387294}],"world":{},"stats":{"viewer":2.334562201217747,"robust":2.32805759220404,"base":2.416544392727833,"half":2.32805759220404,"long":2.3880133722921832,"noisy":2.4207726115341814,"own":2.35266915413144,"linear":0,"beats":3,"power":149.37094989890343,"stroke":"kick","water":"both","voidArea":0}},{"id":"darter","group":"Swimmers","name":"Darter","tag":"6 atoms · 8.9 beats/s · 3.9 widths/s","blurb":"A quick four-atom swimmer. It is here mainly as the partner of the control below: same atoms, same rules, different water.","rules":{"K":3,"dt":0.02,"types":[{"m":0.5,"drag":1.0821251043269684,"val":5,"recharge":1.4206504319974558},{"m":3,"drag":0.3,"val":5,"recharge":1.2109320087389464},{"m":1.658240494554401,"drag":0.3804220118015794,"val":4,"recharge":0.022311814903987467}],"pair":[[{"a":3.6927531209999325,"R":3.5},{"a":-4,"R":3.5},{"a":-1.8346572441473605,"R":2.814473568632379}],[{"a":-4,"R":3.5},{"a":4,"R":1.5},{"a":-3.4036657618498802,"R":2.11528905577436}],[{"a":-1.8346572441473605,"R":2.814473568632379},{"a":-3.4036657618498802,"R":2.11528905577436},{"a":-3.69031118806839,"R":1.5}]],"bond":[[{"on":1,"r0":1.022120468903914,"form":1.2655611956229482,"k":7.146826750931493,"snap":0.9749962122958824,"life":8,"kick":0},{"on":1,"r0":2,"form":3.6,"k":14.143145217833299,"snap":1.5314150966023727,"life":0.5447243389990478,"kick":6},{"on":1,"r0":1.6646218562692552,"form":2.112270013600099,"k":150,"snap":0.2,"life":0,"kick":6}],[null,{"on":1,"r0":0.8,"form":1.3768283456952275,"k":150,"snap":1.8566964372254386,"life":0,"kick":0.9965578940285761},{"on":0,"r0":1.029016675510645,"form":1.625807187220398,"k":103.57696441866767,"snap":0.5306957497814819,"life":0.3003252454188253,"kick":1.9574460281192683}],[null,null,{"on":0,"r0":1.6865908353011758,"form":2.255075967620361,"k":50.09993719623924,"snap":0.9391213618637619,"life":0.29881997593085224,"kick":1.2530838899423755}]],"g1":0.2,"g2":0.4155991722993589,"shadow":0.95,"bdamp":3,"T":0.2841918618651107,"nonrecip":0,"eUnit":400},"atoms":[{"t":1,"x":-0.7968223666735709,"y":-1.5377461575744338},{"t":0,"x":-0.8341748094243274,"y":-1.1458475806545847},{"t":1,"x":-1.0545824067278589,"y":-3.840475062884515},{"t":1,"x":0.9046876471037948,"y":-3.905588412953857},{"t":1,"x":-1.5299493499444807,"y":-1.7454057215410725},{"t":1,"x":-1.705724081374865,"y":-3.0735567469280873}],"world":{},"stats":{"viewer":3.8761955652528473,"robust":3.5088712115371834,"base":3.8771630050427937,"half":3.5088712115371834,"long":3.878170219797518,"noisy":3.876906878399333,"own":3.8702937018187447,"linear":0.0013273095014605138,"beats":8.916666666666666,"power":535.9204307528612,"stroke":"mixed","water":"both","voidArea":0}},{"id":"control","group":"Swimmers","name":"Control: plain water","tag":"same body · 0.13 widths/s","blurb":"The darter again, in water with plain drag only. It beats just as hard and goes nowhere. With plain drag the pushes and pulls inside a body always cancel, so nothing can ever swim. Every universe worth playing in needs splash or slipstream.","rules":{"K":3,"dt":0.02,"types":[{"m":0.5,"drag":1.0821251043269684,"val":5,"recharge":1.4206504319974558},{"m":3,"drag":0.3,"val":5,"recharge":1.2109320087389464},{"m":1.658240494554401,"drag":0.3804220118015794,"val":4,"recharge":0.022311814903987467}],"pair":[[{"a":3.6927531209999325,"R":3.5},{"a":-4,"R":3.5},{"a":-1.8346572441473605,"R":2.814473568632379}],[{"a":-4,"R":3.5},{"a":4,"R":1.5},{"a":-3.4036657618498802,"R":2.11528905577436}],[{"a":-1.8346572441473605,"R":2.814473568632379},{"a":-3.4036657618498802,"R":2.11528905577436},{"a":-3.69031118806839,"R":1.5}]],"bond":[[{"on":1,"r0":1.022120468903914,"form":1.2655611956229482,"k":7.146826750931493,"snap":0.9749962122958824,"life":8,"kick":0},{"on":1,"r0":2,"form":3.6,"k":14.143145217833299,"snap":1.5314150966023727,"life":0.5447243389990478,"kick":6},{"on":1,"r0":1.6646218562692552,"form":2.112270013600099,"k":150,"snap":0.2,"life":0,"kick":6}],[null,{"on":1,"r0":0.8,"form":1.3768283456952275,"k":150,"snap":1.8566964372254386,"life":0,"kick":0.9965578940285761},{"on":0,"r0":1.029016675510645,"form":1.625807187220398,"k":103.57696441866767,"snap":0.5306957497814819,"life":0.3003252454188253,"kick":1.9574460281192683}],[null,null,{"on":0,"r0":1.6865908353011758,"form":2.255075967620361,"k":50.09993719623924,"snap":0.9391213618637619,"life":0.29881997593085224,"kick":1.2530838899423755}]],"g1":0.2,"g2":0,"shadow":0,"bdamp":3,"T":0.2841918618651107,"nonrecip":0,"eUnit":400},"atoms":[{"t":1,"x":-0.7968223666735709,"y":-1.5377461575744338},{"t":0,"x":-0.8341748094243274,"y":-1.1458475806545847},{"t":1,"x":-1.0545824067278589,"y":-3.840475062884515},{"t":1,"x":0.9046876471037948,"y":-3.905588412953857},{"t":1,"x":-1.5299493499444807,"y":-1.7454057215410725},{"t":1,"x":-1.705724081374865,"y":-3.0735567469280873}],"world":{}},{"id":"membrane","group":"Cells","name":"Membrane ring","tag":"20 atoms · ring placed by hand","blurb":"A closed ring of one atom type that links only to its own kind, twice. Three loose atoms start inside and sixteen outside. Watch whether the insiders stay in and the outsiders stay out as everything jiggles. Try dragging an outsider through the wall, or dropping atoms inside.","rules":{"K":4,"dt":0.02,"types":[{"m":0.5,"drag":2.1514716172053987,"val":6,"recharge":2},{"m":1.9739367622125537,"drag":0.3,"val":6,"recharge":1.0372939281574662},{"m":0.5,"drag":0.5181124766576296,"val":1,"recharge":0.03386562625675302},{"m":1.0933987657906112,"drag":0.3370111534872159,"val":2,"recharge":0.23721370457248003}],"pair":[[{"a":-3.75873847268939,"R":1.5},{"a":-3.3707969171974064,"R":3.5},{"a":-0.7145209009337425,"R":3.5},{"a":-1.8643516944512726,"R":3.386553434885964}],[{"a":-3.3707969171974064,"R":3.5},{"a":2.30591893332541,"R":3.1462417160096012},{"a":3.4276349520274993,"R":3.0396619172653554},{"a":0,"R":2.914519729852006}],[{"a":-0.7145209009337425,"R":3.5},{"a":3.4276349520274993,"R":3.0396619172653554},{"a":-3.473944790992737,"R":3.1590290915624055},{"a":4,"R":1.9825932453610002}],[{"a":-1.8643516944512726,"R":3.386553434885964},{"a":0,"R":2.914519729852006},{"a":4,"R":1.9825932453610002},{"a":-4,"R":3.440670658331737}]],"bond":[[{"on":0,"r0":0.9116590151536466,"form":1.0708444024397006,"k":57.72947096756695,"snap":2,"life":7.8189508629329465,"kick":0.2},{"on":1,"r0":1.945447406823352,"form":3.501805332282034,"k":26.397991231974242,"snap":1.1444151421448066,"life":0.2956914494518473,"kick":6},{"on":0,"r0":1.4872469930720178,"form":1.68336466898286,"k":122.42709755887333,"snap":0.7965533480080818,"life":2.905607118782153,"kick":0},{"on":1,"r0":1.1563640010042637,"form":1.967363452942245,"k":22.375611493988785,"snap":1.5524147650090754,"life":0,"kick":0}],[null,{"on":1,"r0":0.8435200350780339,"form":1.195873323441706,"k":150,"snap":1.3591329180397762,"life":0,"kick":0},{"on":0,"r0":0.8555214793249666,"form":1.5399386627849398,"k":38.11745929034751,"snap":1.6343025356696543,"life":0,"kick":0},{"on":0,"r0":0.8,"form":1.1263188697161464,"k":150,"snap":1.093360169014521,"life":5.083526669389958,"kick":3.427239576450561}],[null,null,{"on":1,"r0":1.0166881344324799,"form":1.3586765497180684,"k":26.817686168500316,"snap":0.2,"life":0.8341736021391064,"kick":0},{"on":0,"r0":1.2926980133533925,"form":1.2674570710834374,"k":20.56502361324236,"snap":1.8610877875109315,"life":0.7058904535995546,"kick":0.28470730601268923}],[null,null,null,{"on":1,"r0":1.5899903594521878,"form":1.9874879493152346,"k":44.64105476326387,"snap":1.907232781487681,"life":0,"kick":0}]],"g1":0.2,"g2":0.2240437119297795,"shadow":0.5861719226252383,"bdamp":2.9517004449793696,"T":0.2841918618651107,"nonrecip":0,"eUnit":400},"atoms":[{"t":3,"x":4.0691909029666595,"y":0.018168551353141674},{"t":3,"x":4.633204104026656,"y":1.3353384157771842},{"t":3,"x":3.857809269889654,"y":2.1139589458005767},{"t":3,"x":2.62210736807527,"y":3.238165526513255},{"t":3,"x":1.9062980042764002,"y":4.264640105993103},{"t":3,"x":-0.4110084217757793,"y":4.576490239821554},{"t":3,"x":-2.189356257425542,"y":4.087288519191763},{"t":3,"x":-2.9781033401594996,"y":3.3976166831967576},{"t":3,"x":-3.5658677352635046,"y":2.6021332533508623},{"t":3,"x":-4.796553973899675,"y":1.1718859621435909},{"t":3,"x":-4.44638783529098,"y":0.030738084687524952},{"t":3,"x":-4.195179231058851,"y":-1.0328690980968949},{"t":3,"x":-2.1951999450289126,"y":-3.5244693892982304},{"t":3,"x":-1.7055130743988307,"y":-3.7425616307205645},{"t":3,"x":-0.14567187875264653,"y":-3.753122869938504},{"t":3,"x":1.1582759351249081,"y":-4.378698766790897},{"t":3,"x":1.7381663255384627,"y":-4.352295840433368},{"t":3,"x":2.5826406386389666,"y":-3.2000140275472497},{"t":3,"x":3.7373851157842055,"y":-2.548273886576172},{"t":3,"x":3.7511083816084865,"y":-1.5969835262284073}],"world":{"extra":[{"t":0,"x":-1.0286327823562276,"y":-0.5646432373900488},{"t":1,"x":0.17136721764377236,"y":0.5353567626099514},{"t":2,"x":1.3713672176437723,"y":-0.5646432373900488},{"t":0,"x":8.171367217643771,"y":-0.06464323739004882},{"t":1,"x":9.872098619112007,"y":3.953541710639111},{"t":2,"x":9.363738490289844,"y":9.127761800783107},{"t":0,"x":3.2328143149587913,"y":7.326401456720618},{"t":1,"x":0.1713286489901872,"y":10.435356762539115},{"t":2,"x":-4.803572549033928,"y":11.945767842915604},{"t":0,"x":-5.4855181999415885,"y":5.592179843837619},{"t":1,"x":-9.529393702797607,"y":3.953470444978501},{"t":2,"x":-12.828632782005425,"y":-0.06473874072273518},{"t":0,"x":-7.219643740048837,"y":-3.126171780988456},{"t":1,"x":-7.253185804110697,"y":-7.4893326199269765},{"t":2,"x":-4.803396081683845,"y":-12.075127412295863},{"t":0,"x":0.17145537456624932,"y":-8.06464323690432},{"t":1,"x":4.189659063757235,"y":-9.765330359416923},{"t":2,"x":9.363873551654011,"y":-9.256913212710705},{"t":0,"x":7.56244564727499,"y":-3.1260088880499186}],"zoom":17,"follow":false}},{"id":"cell","group":"Cells","name":"Bag with a motor","tag":"30 atoms · 41.2 beats/s · 4.6 widths/s","blurb":"The same kind of ring with a motor attached. The ring was placed by hand; the search found a motor that can push it and rules under which the ring stays closed while it is dragged along.","rules":{"K":4,"dt":0.02,"types":[{"m":0.5,"drag":2.1514716172053987,"val":6,"recharge":2},{"m":1.9739367622125537,"drag":0.3,"val":6,"recharge":1.0372939281574662},{"m":0.5,"drag":0.5181124766576296,"val":1,"recharge":0.03386562625675302},{"m":1.0933987657906112,"drag":0.3370111534872159,"val":2,"recharge":0.23721370457248003}],"pair":[[{"a":-3.75873847268939,"R":1.5},{"a":-3.3707969171974064,"R":3.5},{"a":-0.7145209009337425,"R":3.5},{"a":-1.8643516944512726,"R":3.386553434885964}],[{"a":-3.3707969171974064,"R":3.5},{"a":2.30591893332541,"R":3.1462417160096012},{"a":3.4276349520274993,"R":3.0396619172653554},{"a":0,"R":2.914519729852006}],[{"a":-0.7145209009337425,"R":3.5},{"a":3.4276349520274993,"R":3.0396619172653554},{"a":-3.473944790992737,"R":3.1590290915624055},{"a":4,"R":1.9825932453610002}],[{"a":-1.8643516944512726,"R":3.386553434885964},{"a":0,"R":2.914519729852006},{"a":4,"R":1.9825932453610002},{"a":-4,"R":3.440670658331737}]],"bond":[[{"on":0,"r0":0.9116590151536466,"form":1.0708444024397006,"k":57.72947096756695,"snap":2,"life":7.8189508629329465,"kick":0.2},{"on":1,"r0":1.945447406823352,"form":3.501805332282034,"k":26.397991231974242,"snap":1.1444151421448066,"life":0.2956914494518473,"kick":6},{"on":0,"r0":1.4872469930720178,"form":1.68336466898286,"k":122.42709755887333,"snap":0.7965533480080818,"life":2.905607118782153,"kick":0},{"on":1,"r0":1.1563640010042637,"form":1.967363452942245,"k":22.375611493988785,"snap":1.5524147650090754,"life":0,"kick":0}],[null,{"on":1,"r0":0.8435200350780339,"form":1.195873323441706,"k":150,"snap":1.3591329180397762,"life":0,"kick":0},{"on":0,"r0":0.8555214793249666,"form":1.5399386627849398,"k":38.11745929034751,"snap":1.6343025356696543,"life":0,"kick":0},{"on":0,"r0":0.8,"form":1.1263188697161464,"k":150,"snap":1.093360169014521,"life":5.083526669389958,"kick":3.427239576450561}],[null,null,{"on":1,"r0":1.0166881344324799,"form":1.3586765497180684,"k":26.817686168500316,"snap":0.2,"life":0.8341736021391064,"kick":0},{"on":0,"r0":1.2926980133533925,"form":1.2674570710834374,"k":20.56502361324236,"snap":1.8610877875109315,"life":0.7058904535995546,"kick":0.28470730601268923}],[null,null,null,{"on":1,"r0":1.5899903594521878,"form":1.9874879493152346,"k":44.64105476326387,"snap":1.907232781487681,"life":0,"kick":0}]],"g1":0.2,"g2":0.2240437119297795,"shadow":0.5861719226252383,"bdamp":2.9517004449793696,"T":0.2841918618651107,"nonrecip":0,"eUnit":400},"atoms":[{"t":3,"x":4.0691909029666595,"y":0.018168551353141674},{"t":3,"x":4.633204104026656,"y":1.3353384157771842},{"t":3,"x":3.857809269889654,"y":2.1139589458005767},{"t":3,"x":2.62210736807527,"y":3.238165526513255},{"t":3,"x":1.9062980042764002,"y":4.264640105993103},{"t":3,"x":-0.4110084217757793,"y":4.576490239821554},{"t":3,"x":-2.189356257425542,"y":4.087288519191763},{"t":3,"x":-2.9781033401594996,"y":3.3976166831967576},{"t":3,"x":-3.5658677352635046,"y":2.6021332533508623},{"t":3,"x":-4.796553973899675,"y":1.1718859621435909},{"t":3,"x":-4.44638783529098,"y":0.030738084687524952},{"t":3,"x":-4.195179231058851,"y":-1.0328690980968949},{"t":3,"x":-2.1951999450289126,"y":-3.5244693892982304},{"t":3,"x":-1.7055130743988307,"y":-3.7425616307205645},{"t":3,"x":-0.14567187875264653,"y":-3.753122869938504},{"t":3,"x":1.1582759351249081,"y":-4.378698766790897},{"t":3,"x":1.7381663255384627,"y":-4.352295840433368},{"t":3,"x":2.5826406386389666,"y":-3.2000140275472497},{"t":3,"x":3.7373851157842055,"y":-2.548273886576172},{"t":3,"x":3.7511083816084865,"y":-1.5969835262284073},{"t":1,"x":5.981110884745551,"y":-0.6743502325440016},{"t":0,"x":7.810475163951895,"y":0.18991176560196127},{"t":1,"x":6.020198922774174,"y":-1.9140737410026594},{"t":1,"x":6.430318685782494,"y":-0.13970745362909603},{"t":1,"x":6.44257749552405,"y":-1.1730429427893732},{"t":1,"x":5.799311263409755,"y":-0.16549587887631226},{"t":1,"x":5.148905075315377,"y":0.7616006028005461},{"t":0,"x":7.096623341357445,"y":-1.2620148168215695},{"t":2,"x":4.925284184921166,"y":-1.4748696251158815},{"t":2,"x":-5.4026932276854485,"y":-1.8715230185595846}],"world":{"zoom":15},"stats":{"viewer":4.552323834814429,"robust":4.011832667053048,"base":4.603361371397553,"half":4.011832667053048,"long":4.341470957932776,"noisy":4.593825391596596,"own":4.585454914452005,"linear":0,"beats":41.18333333333333,"power":3085.4597648011186,"stroke":"mixed","water":"both","voidArea":17.4375}},{"id":"cell-2","group":"Cells","name":"Second cell","tag":"31 atoms · 35.7 beats/s · 4.1 widths/s","blurb":"Another cell from a different run of the search. The membrane is a floppy chain with no stiffness of its own, so it trails like a bag. Something inside pushing outward would round it out.","rules":{"K":4,"dt":0.02,"types":[{"m":0.5,"drag":3,"val":5,"recharge":2},{"m":3,"drag":0.3,"val":6,"recharge":0.8364203916884756},{"m":1.3471141747321038,"drag":0.8424119732112005,"val":2,"recharge":0.12932694537304623},{"m":0.5,"drag":0.3,"val":3,"recharge":0.06564041531318737}],"pair":[[{"a":-4,"R":1.553200615746081},{"a":-2.7409600936162475,"R":3.5},{"a":2.8304939511528606,"R":3.4392391651241483},{"a":1.717734794394672,"R":2.7534504495403915}],[{"a":-2.7409600936162475,"R":3.5},{"a":4,"R":3.125486452133581},{"a":-0.42461470789104716,"R":2.782466203459427},{"a":0.142770822523534,"R":1.984329656435251}],[{"a":2.8304939511528606,"R":3.4392391651241483},{"a":-0.42461470789104716,"R":2.782466203459427},{"a":-2.961596796589196,"R":2.36553851923272},{"a":-0.29475031289249687,"R":3.170667954614982}],[{"a":1.717734794394672,"R":2.7534504495403915},{"a":0.142770822523534,"R":1.984329656435251},{"a":-0.29475031289249687,"R":3.170667954614982},{"a":-4,"R":3.5}]],"bond":[[{"on":0,"r0":2,"form":2.192794656977914,"k":11.076499973975245,"snap":0.8502641465896666,"life":0.8394491478572332,"kick":0.6460051178645652},{"on":1,"r0":2,"form":3.4731305851330387,"k":32.56859602673289,"snap":1.4867937191500589,"life":0.27746789222363427,"kick":6},{"on":1,"r0":1.6338330343896594,"form":1.7869435171776678,"k":140.25620175642655,"snap":0.9839453356322575,"life":8,"kick":0},{"on":0,"r0":1.95695601402241,"form":3.238573456573505,"k":150,"snap":0.7318145905735716,"life":0,"kick":0.9105939130436314}],[null,{"on":1,"r0":0.8,"form":0.8162943117822645,"k":150,"snap":1.1652842674270194,"life":0,"kick":3.51054066403705},{"on":1,"r0":0.8014629956874253,"form":1.3204351074203098,"k":26.58097437086978,"snap":0.4733750410907046,"life":0,"kick":1.7932562521609232},{"on":0,"r0":0.9608699346765726,"form":0.8647829412089152,"k":5,"snap":1.946027514758021,"life":0.3273743111714347,"kick":3.0299105519209037}],[null,null,{"on":0,"r0":1.17082586935851,"form":1.5387433825005856,"k":19.73438304433918,"snap":0.23887695405132325,"life":0.5623602816617079,"kick":0.4175293866114507},{"on":0,"r0":1.2678869084432722,"form":1.7694418877445155,"k":23.127986912813753,"snap":1.3429388410715537,"life":1.5515705939561566,"kick":0}],[null,null,null,{"on":1,"r0":1.448808627009332,"form":1.8884956113481965,"k":18.334274917087665,"snap":1.2258353375229611,"life":0,"kick":0}]],"g1":0.2,"g2":0.19283979830547818,"shadow":0,"bdamp":2.933692989870608,"T":0.2841918618651107,"nonrecip":0,"eUnit":348.0375395530691},"atoms":[{"t":3,"x":4.632410292774678,"y":0.15938447068713602},{"t":3,"x":3.9696849071080815,"y":1.3760219034359868},{"t":3,"x":3.8988775217518246,"y":2.4082816818864505},{"t":3,"x":3.09828301798485,"y":3.24916703124951},{"t":3,"x":1.8317353104220961,"y":4.51734167954617},{"t":3,"x":0.8829492848889373,"y":4.230749652991048},{"t":3,"x":-0.13118423965631504,"y":4.499817724818388},{"t":3,"x":-1.3507586636689666,"y":4.419955943746431},{"t":3,"x":-2.670132172292215,"y":3.338542676326556},{"t":3,"x":-3.4396505586929256,"y":2.8985354439532474},{"t":3,"x":-4.163107853117893,"y":1.5631025271722065},{"t":3,"x":-5.036900531957501,"y":0.9448340533213899},{"t":3,"x":-4.836598050689666,"y":-0.7837236073835816},{"t":3,"x":-4.601256696796078,"y":-2.4956016581033253},{"t":3,"x":-3.832736570558762,"y":-3.2016701441256306},{"t":3,"x":-2.364522589871503,"y":-3.58300091703043},{"t":3,"x":-1.3348005459308054,"y":-4.232745117574155},{"t":3,"x":-0.08044649827977465,"y":-4.813213796646211},{"t":3,"x":0.9846794753224314,"y":-4.7111861621800335},{"t":3,"x":2.0342092586558844,"y":-4.055099048013197},{"t":3,"x":3.3929000144540225,"y":-3.4843203313273503},{"t":3,"x":3.800732742207213,"y":-2.2467415779276747},{"t":3,"x":3.914223936137455,"y":-1.5594441102232601},{"t":1,"x":5.735350982643867,"y":-0.6197236724549163},{"t":0,"x":7.531289149499446,"y":0.8101500082683658},{"t":1,"x":5.957879395513363,"y":-1.8393222957668067},{"t":1,"x":6.308150056575781,"y":-0.8363378526158531},{"t":1,"x":6.190897295104424,"y":-0.19894681197212497},{"t":1,"x":5.31472496378685,"y":0.9390257405683378},{"t":0,"x":6.644435084140819,"y":-2.0095676071821407},{"t":1,"x":-0.05238610050469638,"y":-0.03760420177683235}],"world":{"zoom":15},"stats":{"viewer":4.098561446392157,"robust":3.6781606845024015,"base":4.1219904971929235,"half":3.6781606845024015,"long":4.090734750592973,"noisy":4.115401096949892,"own":4.102566458197189,"linear":0,"beats":35.666666666666664,"power":2758.416435067882,"stroke":"mixed","water":"splash","voidArea":12.9375}},{"id":"foam","group":"Soups","name":"Foam","tag":"1 type · left alone","blurb":"Nothing placed by hand: 260 atoms scattered at random. These rules knit them into a net of closed compartments on their own. About one random universe in twenty does this, almost always with one or two atom types.","rules":{"K":1,"dt":0.02,"types":[{"m":2.468911533647184,"drag":0.3729349292264992,"val":5,"recharge":0.02016513656050284}],"pair":[[{"a":0,"R":2.133780102711171}]],"bond":[[{"on":1,"r0":1.8666873815469445,"form":2.1978625940134338,"k":8.455346625905584,"snap":0.9095064224209637,"life":4.411694485528041,"kick":3.0880256602310423}]],"g1":1.5275995470726915,"g2":0.10458054306724265,"shadow":0.7750818221713416,"bdamp":2.3563589255791157,"T":0.28668172673787923,"nonrecip":0,"eUnit":105.97919419137605},"world":{"soup":260,"W":34,"H":34,"follow":false,"zoom":22,"seed":11,"stepsPerFrame":6}},{"id":"living","group":"Soups","name":"Restless clusters","tag":"3 types · left alone","blurb":"Random atoms that clump into clusters which keep making and breaking bonds without ever settling or blowing up. This is the most common kind of universe with bonds: about four in ten.","rules":{"K":3,"dt":0.02,"types":[{"m":0.7103078361070019,"drag":0.860817787588062,"val":1,"recharge":1.3791846445689546},{"m":0.7492536674175412,"drag":0.5196256942294231,"val":4,"recharge":0.08726344174685005},{"m":0.848821503556025,"drag":0.7257429157115662,"val":2,"recharge":0.13293305062614952}],"pair":[[{"a":2.326186629012227,"R":1.8461265750229359},{"a":1.5273566860705614,"R":2.605145111680031},{"a":-0.9797081910073757,"R":2.7528321454301476}],[{"a":1.5273566860705614,"R":2.605145111680031},{"a":1.6669936645776033,"R":2.8156876899302006},{"a":-1.4575760252773762,"R":2.0215291995555162}],[{"a":-0.9797081910073757,"R":2.7528321454301476},{"a":-1.4575760252773762,"R":2.0215291995555162},{"a":-1.3772593829780817,"R":3.195643796119839}]],"bond":[[{"on":1,"r0":1.410351279936731,"form":1.501208585943824,"k":28.448892398299712,"snap":1.9207075124140829,"life":0.23307050445134142,"kick":0},{"on":0,"r0":1.1562915697693825,"form":1.1858459663514511,"k":33.59714699535852,"snap":1.9869574879296124,"life":0,"kick":0},{"on":0,"r0":1.1408563129603864,"form":1.2080007845127771,"k":129.54337213301622,"snap":1.7127788243815303,"life":0,"kick":0}],[null,{"on":1,"r0":1.0973601615056396,"form":1.846190278649134,"k":32.53901071333537,"snap":1.8527007310651242,"life":0,"kick":0},{"on":1,"r0":1.8345741432160139,"form":2.5452204488227914,"k":43.46771099856275,"snap":1.2268826149404048,"life":0.7841004834730201,"kick":0}],[null,null,{"on":1,"r0":1.5757177760824561,"form":1.6699818756829485,"k":5.184349694893752,"snap":1.0697758537717164,"life":0,"kick":0.24274002223745308}]],"g1":0.23313154214201443,"g2":0,"shadow":0.896070208272431,"bdamp":1.001163336681202,"T":0.2629026011796668,"nonrecip":0,"eUnit":69.54402001439027},"world":{"soup":260,"W":34,"H":34,"follow":false,"zoom":22,"seed":11,"stepsPerFrame":6}},{"id":"gliders","group":"Soups","name":"Gliders (one-sided forces)","tag":"5 types · left alone","blurb":"No bonds here. Instead forces are one-sided: A chases B while B ignores A. Clusters glide around at once, with no beating and no energy bill. It is lively, but motion is free, so there is nothing for a player to earn.","rules":{"K":5,"dt":0.02,"types":[{"m":1.4166191396282943,"drag":2.293131322907559,"val":2,"recharge":1.8744626604254926},{"m":0.5823333683907673,"drag":0.8224795955812153,"val":4,"recharge":0},{"m":2.4062828692238667,"drag":0.9222357018054184,"val":0,"recharge":0.08546827520462932},{"m":1.6614366664214857,"drag":1.3995307363946734,"val":0,"recharge":1.3798140379729136},{"m":1.8121626611188941,"drag":0.5160505159081576,"val":3,"recharge":0}],"pair":[[{"a":-2.1835417468100786,"R":3.2335406681522727},{"a":-2.722191233187914,"R":1.8776601562276483},{"a":-3.267828421667218,"R":2.9528665631078184},{"a":2.2160332519561052,"R":3.135828905273229},{"a":-2.5026081427931786,"R":2.8193804640322924}],[{"a":0.964790241792798,"R":1.8776601562276483},{"a":1.456465233117342,"R":3.0786793511360884},{"a":-3.5771243274211884,"R":3.3407526980154216},{"a":3.2319393381476402,"R":2.301784556824714},{"a":-3.342701770365238,"R":1.8566453643143177}],[{"a":-3.2073098309338093,"R":2.9528665631078184},{"a":0,"R":3.3407526980154216},{"a":0,"R":2.512109997216612},{"a":-2.326291063800454,"R":3.3952505593188107},{"a":-2.2668353635817766,"R":2.7387377289123833}],[{"a":3.141639309003949,"R":3.135828905273229},{"a":0,"R":2.301784556824714},{"a":-1.718332875519991,"R":3.3952505593188107},{"a":-3.3172307144850492,"R":1.8878489476628602},{"a":0.31529551185667515,"R":3.2366827982477844}],[{"a":-2.84893156029284,"R":2.8193804640322924},{"a":-1.60903943143785,"R":1.8566453643143177},{"a":-3.4217625372111797,"R":2.7387377289123833},{"a":0,"R":3.2366827982477844},{"a":-1.283895330503583,"R":3.159075810108334}]],"bond":[[{"on":0,"r0":0.9171717420220376,"form":1.4197869471932023,"k":65.88466307332322,"snap":1.2214707951527088,"life":0,"kick":4.661467720274454},{"on":0,"r0":1.2380139673128725,"form":1.7084017166101184,"k":78.2994772221207,"snap":1.7943028989713639,"life":0.4693736038861859,"kick":0},{"on":0,"r0":0.989888783171773,"form":0.992380997153137,"k":17.729273443669076,"snap":0.7434446961618961,"life":0.2328568874278483,"kick":0.2036717308069969},{"on":0,"r0":1.7809568548575043,"form":2.576465583204311,"k":63.06441246310281,"snap":0.303732352424413,"life":6.352287637098183,"kick":0},{"on":0,"r0":1.1509006937034427,"form":1.869708509533568,"k":41.31217719163437,"snap":0.8232877616304906,"life":0,"kick":0}],[null,{"on":0,"r0":1.8568434218876064,"form":3.0588688956272576,"k":22.062187862332443,"snap":0.4573591732885689,"life":0.4135751575549393,"kick":1.5750991646546764},{"on":0,"r0":1.483418031409383,"form":1.8137110191682684,"k":10.073632077334645,"snap":1.383435317641124,"life":0.785887104404298,"kick":0},{"on":0,"r0":1.7599952874705196,"form":1.6697824785826452,"k":44.49036613876602,"snap":1.7117949285078793,"life":5.823223772789488,"kick":0},{"on":0,"r0":1.3884386515244842,"form":1.991301407729718,"k":45.540154023739156,"snap":1.748416302492842,"life":0,"kick":0}],[null,null,{"on":0,"r0":0.9664581174962223,"form":1.3035183172950282,"k":6.212505254845987,"snap":1.5634293004404753,"life":7.3537909414170475,"kick":0},{"on":0,"r0":1.9947198966518045,"form":3.4804721895950252,"k":108.87166054263221,"snap":1.543341156281531,"life":0.4702470883243445,"kick":5.419764725788351},{"on":0,"r0":0.9918397462926806,"form":1.206779470402504,"k":121.75029541943498,"snap":0.6890564886853099,"life":1.0720842771305228,"kick":0}],[null,null,null,{"on":0,"r0":1.8642317110672593,"form":2.591926151453972,"k":23.0832396274145,"snap":0.7130611475091428,"life":0,"kick":0},{"on":0,"r0":1.6389874964952469,"form":2.4092168493509565,"k":13.019567475970293,"snap":1.1289775740820915,"life":0,"kick":1.354376414615539}],[null,null,null,null,{"on":0,"r0":1.9653263316489755,"form":2.065636200502291,"k":91.3429881303094,"snap":0.45062031676061454,"life":1.5705074549528981,"kick":0}]],"g1":0.4944552791964154,"g2":0,"shadow":0,"bdamp":0.9483440557960421,"T":0.05581590319052338,"nonrecip":1,"eUnit":32.39933167700469},"world":{"soup":260,"W":34,"H":34,"follow":false,"zoom":22,"seed":11,"stepsPerFrame":6}}];
+const $ = (id) => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d');
+let P = null, w = null, cam = { x: 0, y: 0, z: 22 }, paused = false, slow = false, follow = true, dropType = 0;
+let grab = -1, grabX = 0, grabY = 0, trail = [], startC = null, css = {};
+function readCss() { const s = getComputedStyle(document.documentElement); for (const k of ['dish', 'grid', 'bond', 'hot', 'muted', 'ink', 't0', 't1', 't2', 't3', 't4', 't5', 'accent']) css[k] = s.getPropertyValue('--' + k).trim(); }
+function load(p) {
+  P = p; const wd = p.world || {};
+  const W = wd.W || 80, H = wd.H || 80;
+  w = new World(p.rules, { cap: 4000, boundary: wd.boundary || 'periodic', W, H, seed: wd.seed || 3, T: wd.T });
+  if (p.atoms) for (const a of p.atoms) w.add(a.t, a.x + W / 2, a.y + H / 2);
+  if (wd.soup) { const r = w.rand; for (let i = 0; i < wd.soup; i++) w.add(wd.mix ? wd.mix[i % wd.mix.length] : i % p.rules.K, r() * W, r() * H); }
+  if (wd.extra) for (const a of wd.extra) w.add(a.t, a.x + W / 2, a.y + H / 2);
+  cam.x = W / 2; cam.y = H / 2; cam.z = wd.zoom || 22; trail = []; startC = null; grab = -1;
+  follow = wd.follow !== false; $('bFollow').setAttribute('aria-pressed', follow);
+  dropType = Math.min(dropType, p.rules.K - 1);
+  $('pName').textContent = p.name; $('pBlurb').textContent = p.blurb;
+  for (const b of $('list').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.id === p.id);
+  renderLaws(); renderPalette();
+  try { localStorage.setItem('universe-preset', p.id); } catch (e) {}
+}
+const TN = 'ABCDEF';
+const dotHtml = (t) => `<span class="dot" style="background:var(--t${t})"></span>`;
+function renderPalette() {
+  $('palette').innerHTML = '';
+  for (let t = 0; t < P.rules.K; t++) {
+    const b = document.createElement('button'); b.className = 'chip'; b.id = 'drop' + t; b.innerHTML = dotHtml(t) + TN[t];
+    b.setAttribute('aria-pressed', t === dropType); b.onclick = () => { dropType = t; renderPalette(); };
+    $('palette').appendChild(b);
+  }
+}
+const f1 = (v) => (+v).toFixed(v >= 10 ? 0 : v >= 1 ? 1 : 2);
+function bondWords(b, ti, tj) {
+  if (!b.on) return null;
+  const parts = [];
+  const ratio = b.form / b.r0;
+  parts.push(ratio > 1.15 ? 'snaps shut when close (pulls ' + f1(ratio) + '× its length)' : 'links on contact');
+  parts.push(b.k > 60 ? 'stiff' : b.k > 20 ? 'springy' : 'soft');
+  parts.push(b.life > 0 ? 'lets go after ' + f1(b.life) + ' s' : 'permanent');
+  parts.push('tears at ' + f1(1 + b.snap) + '× stretch');
+  if (b.kick > 0) parts.push('kicks apart when it breaks (' + f1(b.kick) + ')');
+  return parts.join(', ');
+}
+function present() {
+  const s = new Set(); if (P.atoms) for (const a of P.atoms) s.add(a.t); if (P.world && P.world.extra) for (const a of P.world.extra) s.add(a.t);
+  if (!s.size) for (let t = 0; t < P.rules.K; t++) s.add(t);
+  return [...s].sort();
+}
+// one plain sentence per atom type in this specimen, worked out from the rules
+function roleOf(t, ts) {
+  const R = P.rules, y = R.types[t], bits = [];
+  bits.push(y.m > 1.6 ? 'heavy' : y.m < 0.8 ? 'light' : 'middling weight');
+  const glue = [], kick = [], pull = [];
+  for (const u of ts) { const b = R.bond[Math.min(t, u)][Math.max(t, u)]; if (!b.on || !y.val || !R.types[u].val) continue;
+    if (b.life > 0 || b.kick > 0) { (b.kick > 0 ? kick : pull).push(TN[u]); } else glue.push(TN[u]); }
+  if (glue.length) bits.push('links for good to ' + glue.join(', '));
+  if (kick.length) bits.push('makes a short-lived bond with ' + kick.join(', ') + ' that kicks the two apart when it breaks');
+  if (pull.length) bits.push('grabs ' + pull.join(', ') + ', pulls, then lets go');
+  if (!glue.length && !kick.length && !pull.length) bits.push('bonds to nothing here');
+  if (y.recharge > 0) bits.push('recharges its energy at ' + f1(y.recharge) + ' per second'); else bits.push('never recharges');
+  return bits.join('; ') + '.';
+}
+function renderLaws() {
+  const R = P.rules, ts = present(); let h = '';
+  $('who').innerHTML = P.atoms ? ts.map(t => `<li>${dotHtml(t)}<span><b>${TN[t]}</b> is ${roleOf(t, ts)}</span></li>`).join('') : '';
+  h += '<section><h2>Water</h2><dl class="kv">'
+    + `<dt>thickness (linear drag)</dt><dd>${f1(R.g1)}</dd><dt>splash (drag grows with speed)</dt><dd>${f1(R.g2 || 0)}</dd>`
+    + `<dt>slipstream (neighbours shield drag)</dt><dd>${f1(R.shadow || 0)}</dd><dt>jiggle (temperature)</dt><dd>${f1((P.world && P.world.T !== undefined) ? P.world.T : (R.T || 0))}</dd>`
+    + `<dt>energy in a full atom</dt><dd>${f1(R.eUnit || 50)}</dd></dl></section>`;
+  h += '<section><h2>Atoms</h2><table><tr><th>type</th><th>mass</th><th>drag</th><th>bonds</th><th>recharge</th></tr>';
+  for (const t of ts) { const y = R.types[t]; h += `<tr><td>${dotHtml(t)} ${TN[t]}</td><td>${f1(y.m)}</td><td>${f1(y.drag)}</td><td>${y.val}</td><td>${f1(y.recharge || 0)}/s</td></tr>`; }
+  h += '</table></section>';
+  h += '<section><h2>Bonds</h2><ul>'; let any = false;
+  for (const i of ts) for (const j of ts) if (i <= j) { const s = bondWords(R.bond[i][j]); if (s && R.types[i].val > 0 && R.types[j].val > 0) { any = true; h += `<li><span class="pr">${dotHtml(i)}${dotHtml(j)}</span><span>${s}</span></li>`; } }
+  if (!any) h += '<li>No bonds in this universe. Structure comes from push and pull alone.</li>';
+  h += '</ul></section>';
+  h += '<section><h2>Push and pull</h2><table><tr><th></th>' + ts.map((t) => `<th>${TN[t]}</th>`).join('') + '</tr>';
+  for (const i of ts) { h += `<tr><td>${dotHtml(i)} ${TN[i]}</td>`; for (const j of ts) { const a = R.pair[i][j].a; h += `<td>${a > 0.05 ? '+' : ''}${Math.abs(a) < 0.05 ? '·' : a.toFixed(1)}</td>`; } h += '</tr>'; }
+  h += '</table><p class="hint" style="margin:6px 0 0">Plus attracts, minus repels. Red lines in the dish are bonds that let go by themselves; grey lines are permanent. An atom with a dark centre has spent its energy.</p></section>';
+  $('laws').innerHTML = h;
+}
+function buildList() {
+  let g = null;
+  for (const p of PRESETS) {
+    if (p.group && p.group !== g) { g = p.group; const d = document.createElement('div'); d.className = 'group'; d.textContent = g; $('list').appendChild(d); }
+    const b = document.createElement('button'); b.dataset.id = p.id; b.id = 'pick-' + p.id;
+    b.innerHTML = `<span class="nm"></span><span class="tg"></span>`; b.children[0].textContent = p.name; b.children[1].textContent = p.tag || '';
+    b.onclick = () => load(p); $('list').appendChild(b);
+  }
+}
+function resize() { const r = cv.getBoundingClientRect(), d = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d); }
+function wrapRel(v, c, L) { let d = v - c; if (w.boundary === 'periodic') d -= L * Math.round(d / L); return d; }
+function toWorld(ev) { const r = cv.getBoundingClientRect(); const sx = ev.clientX - r.left - r.width / 2, sy = ev.clientY - r.top - r.height / 2; const z = cam.z * r.width / 900; return [cam.x + sx / z, cam.y + sy / z]; }
+function pick(wx, wy) { let best = -1, bd = 1.2; for (let i = 0; i < w.n; i++) { const d = Math.hypot(wrapRel(w.x[i], wx, w.W), wrapRel(w.y[i], wy, w.H)); if (d < bd) { bd = d; best = i; } } return best; }
+let lpTimer = 0;
+cv.addEventListener('pointerdown', (ev) => {
+  const [wx, wy] = toWorld(ev), i = pick(wx, wy);
+  if (ev.button === 2) { if (i >= 0) w.removeAtom(i); return; }
+  if (i >= 0) { grab = i; grabX = wx; grabY = wy; cv.setPointerCapture(ev.pointerId); clearTimeout(lpTimer); lpTimer = setTimeout(() => { if (grab === i && Math.hypot(grabX - wx, grabY - wy) < 0.3) { w.removeAtom(i); grab = -1; } }, 700); }
+  else if (w.n < w.cap - 1) w.add(dropType, wx, wy);
+});
+cv.addEventListener('pointermove', (ev) => { if (grab >= 0) { const [wx, wy] = toWorld(ev); grabX = wx; grabY = wy; } });
+const release = () => { grab = -1; clearTimeout(lpTimer); };
+cv.addEventListener('pointerup', release); cv.addEventListener('pointercancel', release);
+cv.addEventListener('contextmenu', (ev) => ev.preventDefault());
+cv.addEventListener('wheel', (ev) => { ev.preventDefault(); cam.z = Math.max(5, Math.min(60, cam.z * (ev.deltaY > 0 ? 0.9 : 1.1))); }, { passive: false });
+function centroid() {
+  // follow the atoms the specimen started with (or everything, for a soup)
+  const n = P.atoms ? Math.min(P.atoms.length, w.n) : w.n; if (!n) return [cam.x, cam.y];
+  let sx = 0, sy = 0; const x0 = w.x[0], y0 = w.y[0];
+  for (let i = 0; i < n; i++) { sx += wrapRel(w.x[i], x0, w.W); sy += wrapRel(w.y[i], y0, w.H); }
+  return [x0 + sx / n, y0 + sy / n];
+}
+function tick() {
+  if (!paused) {
+    const k = slow ? 1 : (P.world && P.world.stepsPerFrame) || 4;
+    for (let s = 0; s < k; s++) {
+      if (grab >= 0 && grab < w.n) { // pull the grabbed atom toward the pointer through its velocity
+        const dx = wrapRel(grabX, w.x[grab], w.W), dy = wrapRel(grabY, w.y[grab], w.H);
+        w.vx[grab] += (dx * 40 - w.vx[grab] * 6) * w.dt; w.vy[grab] += (dy * 40 - w.vy[grab] * 6) * w.dt;
+      }
+      w.step();
+    }
+    const c = centroid(); if (!startC) startC = c;
+    if (follow && P.atoms) { cam.x += (c[0] - cam.x) * 0.08; cam.y += (c[1] - cam.y) * 0.08; }
+    if (P.atoms && !slow && w.steps % 8 < k) { trail.push(c); if (trail.length > 400) trail.shift(); }
+  }
+  draw(); requestAnimationFrame(tick);
+}
+function draw() {
+  const Wp = cv.width, Hp = cv.height, z = cam.z * Wp / 900;
+  ctx.fillStyle = css.dish; ctx.fillRect(0, 0, Wp, Hp);
+  // reference dots fixed in the water, so motion is visible while the camera follows
+  ctx.fillStyle = css.grid; const sp = 4, x0 = Math.floor((cam.x - Wp / 2 / z) / sp) * sp, y0 = Math.floor((cam.y - Hp / 2 / z) / sp) * sp;
+  for (let gx = x0; gx < cam.x + Wp / 2 / z + sp; gx += sp) for (let gy = y0; gy < cam.y + Hp / 2 / z + sp; gy += sp) { ctx.beginPath(); ctx.arc((gx - cam.x) * z + Wp / 2, (gy - cam.y) * z + Hp / 2, Math.max(1, z * 0.09), 0, 6.3); ctx.fill(); }
+  const X = (i) => wrapRel(w.x[i], cam.x, w.W) * z + Wp / 2, Y = (i) => wrapRel(w.y[i], cam.y, w.H) * z + Hp / 2;
+  if (trail.length > 1) { ctx.strokeStyle = css.accent; ctx.globalAlpha = 0.45; ctx.lineWidth = Math.max(1, z * 0.08); ctx.beginPath(); for (let k = 0; k < trail.length; k++) { const px = (trail[k][0] - cam.x) * z + Wp / 2, py = (trail[k][1] - cam.y) * z + Hp / 2; k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.stroke(); ctx.globalAlpha = 1; }
+  const K = w.K;
+  for (let b = 0; b < w.nbonds; b++) {
+    const i = w.ba[b], j = w.bb[b], q = w.type[i] * K + w.type[j];
+    const xi = X(i), yi = Y(i), xj = X(j), yj = Y(j); if (Math.abs(xi - xj) > Wp / 2 || Math.abs(yi - yj) > Hp / 2) continue;
+    const active = w.blife[q] > 0;
+    ctx.strokeStyle = active ? css.hot : css.bond; ctx.lineWidth = z * (active ? 0.2 : 0.14);
+    ctx.beginPath(); ctx.moveTo(xi, yi); ctx.lineTo(xj, yj); ctx.stroke();
+  }
+  for (let i = 0; i < w.n; i++) {
+    const px = X(i), py = Y(i); if (px < -z || py < -z || px > Wp + z || py > Hp + z) continue;
+    ctx.fillStyle = css['t' + w.type[i]]; ctx.beginPath(); ctx.arc(px, py, z * 0.5, 0, 6.3); ctx.fill();
+    if (w.recharge[w.type[i]] > 0 || w.e[i] < 1) { ctx.fillStyle = css.dish; ctx.globalAlpha = 0.75 * (1 - w.e[i]); ctx.beginPath(); ctx.arc(px, py, z * 0.3, 0, 6.3); ctx.fill(); ctx.globalAlpha = 1; }
+  }
+  if (grab >= 0 && grab < w.n) { ctx.strokeStyle = css.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(grab), Y(grab)); ctx.lineTo((grabX - cam.x) * z + Wp / 2, (grabY - cam.y) * z + Hp / 2); ctx.stroke(); }
+  let hud = `t ${w.time.toFixed(1)} s   atoms ${w.n}   bonds ${w.nbonds}`;
+  if (P.atoms && startC) { const c = centroid(); const d = Math.hypot(c[0] - startC[0], c[1] - startC[1]);
+    // speed over the last stretch of trail (about 8 s), so it shows what the body is doing now
+    const k = Math.min(trail.length - 1, 50), old = trail[trail.length - 1 - k]; const sp = k > 5 ? Math.hypot(c[0] - old[0], c[1] - old[1]) / (k * 8 * w.dt) : 0;
+    hud += `\ntravelled ${d.toFixed(1)} atom widths   now ${sp.toFixed(2)} per s`; }
+  hud += `\nenergy spent ${(w.stat.energyUsed * (P.rules.eUnit || 50)).toFixed(0)}`;
+  $('hud').textContent = hud;
+}
+$('bPause').onclick = () => { paused = !paused; $('bPause').setAttribute('aria-pressed', paused); $('bPause').textContent = paused ? 'Resume' : 'Pause'; };
+$('bReset').onclick = () => load(P);
+$('bSlow').onclick = () => { slow = !slow; $('bSlow').setAttribute('aria-pressed', slow); };
+$('bFollow').onclick = () => { follow = !follow; $('bFollow').setAttribute('aria-pressed', follow); };
+window.addEventListener('resize', resize);
+new MutationObserver(readCss).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readCss);
+readCss(); buildList(); resize();
+let first = PRESETS[0]; try { const id = localStorage.getItem('universe-preset'); first = PRESETS.find(p => p.id === id) || first; } catch (e) {}
+if (location.hash.length > 1) first = PRESETS.find(p => p.id === location.hash.slice(1)) || first;
+load(first); requestAnimationFrame(tick);
+</script>
+</body></html>

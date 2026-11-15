@@ -52,6 +52,9 @@ export class World {
     this.ba = new Int32Array(capB); this.bb = new Int32Array(capB);
     this.bage = new Float64Array(capB);
     this.nbonds = 0;
+    this.candCap = cap * 4; this.ncand = 0;
+    this.ci = new Int32Array(this.candCap); this.cj = new Int32Array(this.candCap);
+    this.cr = new Float64Array(this.candCap); this.cord = new Int32Array(this.candCap);
     this.time = 0; this.steps = 0;
     this.stat = { formed: 0, expired: 0, snapped: 0, capHits: 0, energyUsed: 0 };
     this.formedBy = new Int32Array(K * K); // bond formations per type pair
@@ -170,7 +173,29 @@ export class World {
       this.sw[i] += w; this.sxx[i] += xx; this.sxy[i] += xy; this.syy[i] += yy;
       this.sw[j] += w; this.sxx[j] += xx; this.sxy[j] += xy; this.syy[j] += yy;
     }
-    if (this.bon[q] && r < this.bform[q] && this.nb[i] < this.val[ti] && this.nb[j] < this.val[tj]) {
+    // bond candidates are only noted here; step() forms them closest-first, so the result does not
+    // depend on the order atoms happen to be stored or visited in
+    if (this.bon[q] && r < this.bform[q] && this.nb[i] < this.val[ti] && this.nb[j] < this.val[tj] && !this.bonded(i, j)) {
+      const c = this.ncand++;
+      if (c < this.candCap) { this.ci[c] = i < j ? i : j; this.cj[c] = i < j ? j : i; this.cr[c] = r; }
+    }
+  }
+
+  _formBonds() {
+    const n = this.ncand < this.candCap ? this.ncand : this.candCap, K = this.K;
+    this.ncand = 0;
+    if (n === 0) return;
+    const ord = this.cord; for (let k = 0; k < n; k++) ord[k] = k;
+    const cr = this.cr, ci = this.ci, cj = this.cj;
+    // insertion sort by distance, ties by atom index (n is small)
+    for (let a = 1; a < n; a++) {
+      const v = ord[a]; let b = a - 1;
+      while (b >= 0) { const u = ord[b]; if (cr[u] < cr[v] || (cr[u] === cr[v] && (ci[u] < ci[v] || (ci[u] === ci[v] && cj[u] < cj[v])))) break; ord[b + 1] = u; b--; }
+      ord[b + 1] = v;
+    }
+    for (let a = 0; a < n; a++) {
+      const k = ord[a], i = ci[k], j = cj[k], ti = this.type[i], tj = this.type[j], q = ti * K + tj;
+      if (this.nb[i] >= this.val[ti] || this.nb[j] >= this.val[tj]) continue;
       const c = this.bcost[q];
       if (this.e[i] >= c && this.e[j] >= c && !this.bonded(i, j)) {
         this.e[i] -= c; this.e[j] -= c;
@@ -233,6 +258,7 @@ export class World {
         }
       }
     }
+    this._formBonds();
     // bonds
     const K = this.K, per = this.boundary === 'periodic', bd = this.bdamp;
     for (let b = this.nbonds - 1; b >= 0; b--) {

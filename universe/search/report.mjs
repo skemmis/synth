@@ -12,13 +12,15 @@ const rows = [];
 for (const e of all.slice(0, TOPN)) {
   const base = swimTest(e.R, e.atoms, { voids });
   const half = swimTest(e.R, e.atoms, { dt: 0.01, voids });
-  const long = swimTest(e.R, e.atoms, { steps: 12000, voids });
+  const long = swimTest(e.R, e.atoms, { steps: 18000, voids });
   const lin = swimTest({ ...e.R, g2: 0, shadow: 0 }, e.atoms);
   let noisy = 0; for (let s = 1; s <= 3; s++) noisy += (swimTest(e.R, e.atoms, { T: 0.05, seed: s, voids }).fit || 0) / 3;
-  const robust = Math.min(base.fit || 0, half.fit || 0, long.fit || 0, noisy);
+  // and at the universe's own temperature, which is what a viewer or a game would run
+  let own = 0; const Tn = e.R.T || 0; if (Tn > 0) { for (let s = 1; s <= 3; s++) own += (swimTest(e.R, e.atoms, { T: Tn, seed: s, voids }).fit || 0) / 3; } else own = base.fit || 0;
+  const robust = Math.min(base.fit || 0, half.fit || 0, long.fit || 0, noisy, own);
   // which bonds cycle, and what powers the stroke
   const w = new World(e.R, { cap: e.atoms.length + 1 }); for (const a of e.atoms) w.add(a.t, a.x, a.y);
-  for (let s = 0; s < 4000; s++) w.step();
+  for (let s = 0; s < 6000; s++) w.step();
   const K = e.R.K; let kickE = 0, pullE = 0; const cyc = [];
   for (let i = 0; i < K; i++) for (let j = i; j < K; j++) {
     const nf = w.formedBy[i * K + j] + (i !== j ? w.formedBy[j * K + i] : 0); if (nf < 5) continue;
@@ -28,7 +30,7 @@ for (const e of all.slice(0, TOPN)) {
   }
   const power = (base.energyPerTime || 0) * (e.R.eUnit || 50);
   rows.push({
-    key: e.key, src: e.src, f: e.f, robust, base: base.fit, half: half.fit, long: long.fit, noisy, linear: lin.fit,
+    key: e.key, src: e.src, f: e.f, robust, base: base.fit, half: half.fit, long: long.fit, noisy, own, ownT: Tn, linear: lin.fit,
     n: e.atoms.length, types: new Set(e.atoms.map(a => a.t)).size, size: base.size, beatHz: base.cyclesPerTime, power,
     stroke: kickE + pullE === 0 ? 'none' : kickE > 3 * pullE ? 'kick' : pullE > 3 * kickE ? 'pull' : 'mixed',
     water: e.R.g2 > 0 && e.R.shadow > 0 ? 'both' : e.R.g2 > 0 ? 'splash' : e.R.shadow > 0 ? 'slipstream' : 'linear',
@@ -38,7 +40,7 @@ for (const e of all.slice(0, TOPN)) {
 rows.sort((a, b) => b.robust - a.robust);
 fs.writeFileSync(out, JSON.stringify(rows));
 const f3 = (v) => (+v || 0).toFixed(3);
-console.log('robust base  half  long  noisy linear | n ty size hz    power  stroke water      void  cell');
-for (const r of rows.slice(0, +process.env.SHOW || 40)) console.log(f3(r.robust), f3(r.base), f3(r.half), f3(r.long), f3(r.noisy), f3(r.linear), '|', String(r.n).padStart(2), r.types, f3(r.size), f3(r.beatHz).padStart(6), r.power.toFixed(1).padStart(6), r.stroke.padEnd(6), r.water.padEnd(10), f3(r.voidArea), r.key);
+console.log('robust base  half  long  noisy own   linear | n ty size hz    power  stroke water      void  cell');
+for (const r of rows.slice(0, +process.env.SHOW || 40)) console.log(f3(r.robust), f3(r.base), f3(r.half), f3(r.long), f3(r.noisy), f3(r.own), f3(r.linear), '|', String(r.n).padStart(2), r.types, f3(r.size), f3(r.beatHz).padStart(6), r.power.toFixed(1).padStart(6), r.stroke.padEnd(6), r.water.padEnd(10), f3(r.voidArea), r.key);
 const tally = {}; for (const r of rows) if (r.robust > 0.1) { const k = r.stroke + '/' + r.water; tally[k] = (tally[k] || 0) + 1; }
 console.log('robust > 0.1 by mechanism:', JSON.stringify(tally), 'of', rows.length);
