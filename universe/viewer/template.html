@@ -1,0 +1,238 @@
+<title>__TITLE__</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a specimen list on the left, the live dish in the middle, the laws of that universe on the right; stacks on a phone. */
+:root {
+  --bg: #eef3f1; --panel: #ffffff; --ink: #14211f; --muted: #5a6b68; --line: #cfdbd7; --dish: #f8fbfa; --grid: #d5e0dc;
+  --accent: #0b7a6b; --accent-ink: #ffffff; --bond: #43524f; --hot: #d2452d;
+  --t0: #1f77b4; --t1: #d9822b; --t2: #2a9d5c; --t3: #c0398a; --t4: #7a5cc9; --t5: #8a7a1c;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0b1413; --panel: #121e1c; --ink: #e4efec; --muted: #8fa5a0; --line: #24362f; --dish: #070d0c; --grid: #16241f;
+  --accent: #3fd0b6; --accent-ink: #06211c; --bond: #a9bdb8; --hot: #ff7a5c;
+  --t0: #5aa9e6; --t1: #f2a65a; --t2: #5fd38d; --t3: #f078c0; --t4: #a892f5; --t5: #d6c75a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0b1413; --panel: #121e1c; --ink: #e4efec; --muted: #8fa5a0; --line: #24362f; --dish: #070d0c; --grid: #16241f;
+  --accent: #3fd0b6; --accent-ink: #06211c; --bond: #a9bdb8; --hot: #ff7a5c;
+  --t0: #5aa9e6; --t1: #f2a65a; --t2: #5fd38d; --t3: #f078c0; --t4: #a892f5; --t5: #d6c75a; color-scheme: dark }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px 28px; }
+h1 { font-family: var(--display); font-size: 26px; line-height: 1.1; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-size: 17px; margin: 0; }
+.lede { color: var(--muted); max-width: 68ch; margin: 6px 0 0; }
+header { display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px; }
+.wrap { display: grid; grid-template-columns: 230px minmax(0, 1fr) 300px; gap: 14px; align-items: start; }
+@media (max-width: 1000px) { .wrap { grid-template-columns: minmax(0, 1fr); } }
+.list { display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 1000px) { .list { flex-direction: row; overflow-x: auto; padding-bottom: 4px; } .list button { min-width: 170px; } }
+.list button { text-align: left; background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 2px; }
+.list button:hover { border-color: var(--accent); }
+.list button[aria-pressed="true"] { background: var(--panel); border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.list .nm { font-weight: 600; }
+.list .tg { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .02em; }
+.group { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 8px 0 0; }
+@media (max-width: 1000px) { .group { display: none; } }
+.stage { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.dish { position: relative; background: var(--dish); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 10; max-width: 100%; touch-action: none; }
+@media (max-width: 600px) { .dish { aspect-ratio: 1 / 1; } }
+canvas { width: 100%; height: 100%; display: block; }
+.hud { position: absolute; left: 10px; top: 8px; font-family: var(--mono); font-size: 11px; color: var(--muted); pointer-events: none; font-variant-numeric: tabular-nums; white-space: pre; }
+.bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.bar button, .chip { font: inherit; font-size: 13px; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+.bar button:hover { border-color: var(--accent); }
+.bar button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex: none; }
+.spacer { flex: 1; }
+.what { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.what p { margin: 6px 0 0; max-width: 70ch; }
+.laws { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.laws section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.laws table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; margin-top: 6px; }
+.laws th { text-align: right; font-weight: 500; color: var(--muted); padding: 2px 4px; }
+.laws td { text-align: right; padding: 2px 4px; border-top: 1px solid var(--line); }
+.laws th:first-child, .laws td:first-child { text-align: left; }
+.laws ul { margin: 6px 0 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; font-size: 13px; }
+.laws li { display: flex; gap: 6px; align-items: baseline; }
+.laws li .pr { flex: none; display: inline-flex; gap: 2px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-family: var(--mono); font-size: 11.5px; margin-top: 6px; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.hint { color: var(--muted); font-size: 12.5px; }
+</style>
+<header>
+  <h1>__HEADING__</h1>
+  <p class="lede">__LEDE__</p>
+</header>
+<div class="wrap">
+  <nav class="list" id="list" aria-label="Specimens"></nav>
+  <div class="stage">
+    <div class="dish" id="dish"><canvas id="cv"></canvas><div class="hud" id="hud"></div></div>
+    <div class="bar">
+      <button id="bPause" aria-pressed="false">Pause</button>
+      <button id="bReset">Restart</button>
+      <button id="bSlow" aria-pressed="false">Slow motion</button>
+      <button id="bFollow" aria-pressed="true">Follow</button>
+      <span class="spacer"></span>
+      <span class="hint">Drop:</span>
+      <span id="palette" class="bar"></span>
+    </div>
+    <div class="what"><h2 id="pName"></h2><p id="pBlurb"></p><p class="hint">Drag any atom to pull it. Pick a colour, then click empty water to drop an atom of that type. Right-click (or long-press) an atom to remove it.</p></div>
+  </div>
+  <aside class="laws" id="laws"></aside>
+</div>
+<script>
+/*SIM*/
+const PRESETS = /*PRESETS*/[];
+const $ = (id) => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d');
+let P = null, w = null, cam = { x: 0, y: 0, z: 22 }, paused = false, slow = false, follow = true, dropType = 0;
+let grab = -1, grabX = 0, grabY = 0, trail = [], startC = null, css = {};
+function readCss() { const s = getComputedStyle(document.documentElement); for (const k of ['dish', 'grid', 'bond', 'hot', 'muted', 'ink', 't0', 't1', 't2', 't3', 't4', 't5', 'accent']) css[k] = s.getPropertyValue('--' + k).trim(); }
+function load(p) {
+  P = p; const wd = p.world || {};
+  const W = wd.W || 80, H = wd.H || 80;
+  w = new World(p.rules, { cap: 4000, boundary: wd.boundary || 'periodic', W, H, seed: wd.seed || 3, T: wd.T });
+  if (p.atoms) for (const a of p.atoms) w.add(a.t, a.x + W / 2, a.y + H / 2);
+  if (wd.soup) { const r = w.rand; for (let i = 0; i < wd.soup; i++) w.add(wd.mix ? wd.mix[i % wd.mix.length] : i % p.rules.K, r() * W, r() * H); }
+  if (wd.extra) for (const a of wd.extra) w.add(a.t, a.x + W / 2, a.y + H / 2);
+  cam.x = W / 2; cam.y = H / 2; cam.z = wd.zoom || 22; trail = []; startC = null; grab = -1;
+  follow = wd.follow !== false; $('bFollow').setAttribute('aria-pressed', follow);
+  dropType = Math.min(dropType, p.rules.K - 1);
+  $('pName').textContent = p.name; $('pBlurb').textContent = p.blurb;
+  for (const b of $('list').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.id === p.id);
+  renderLaws(); renderPalette();
+  try { localStorage.setItem('universe-preset', p.id); } catch (e) {}
+}
+const TN = 'ABCDEF';
+const dotHtml = (t) => `<span class="dot" style="background:var(--t${t})"></span>`;
+function renderPalette() {
+  $('palette').innerHTML = '';
+  for (let t = 0; t < P.rules.K; t++) {
+    const b = document.createElement('button'); b.className = 'chip'; b.id = 'drop' + t; b.innerHTML = dotHtml(t) + TN[t];
+    b.setAttribute('aria-pressed', t === dropType); b.onclick = () => { dropType = t; renderPalette(); };
+    $('palette').appendChild(b);
+  }
+}
+const f1 = (v) => (+v).toFixed(v >= 10 ? 0 : v >= 1 ? 1 : 2);
+function bondWords(b, ti, tj) {
+  if (!b.on) return null;
+  const parts = [];
+  const ratio = b.form / b.r0;
+  parts.push(ratio > 1.15 ? 'snaps shut when close (pulls ' + f1(ratio) + '× its length)' : 'links on contact');
+  parts.push(b.k > 60 ? 'stiff' : b.k > 20 ? 'springy' : 'soft');
+  parts.push(b.life > 0 ? 'lets go after ' + f1(b.life) + ' s' : 'permanent');
+  parts.push('tears at ' + f1(1 + b.snap) + '× stretch');
+  if (b.kick > 0) parts.push('kicks apart when it breaks (' + f1(b.kick) + ')');
+  return parts.join(', ');
+}
+function renderLaws() {
+  const R = P.rules; let h = '';
+  h += '<section><h2>Water</h2><dl class="kv">'
+    + `<dt>thickness (linear drag)</dt><dd>${f1(R.g1)}</dd><dt>splash (drag grows with speed)</dt><dd>${f1(R.g2 || 0)}</dd>`
+    + `<dt>slipstream (neighbours shield drag)</dt><dd>${f1(R.shadow || 0)}</dd><dt>jiggle (temperature)</dt><dd>${f1((P.world && P.world.T !== undefined) ? P.world.T : (R.T || 0))}</dd>`
+    + `<dt>energy in a full atom</dt><dd>${f1(R.eUnit || 50)}</dd></dl></section>`;
+  h += '<section><h2>Atoms</h2><table><tr><th>type</th><th>mass</th><th>drag</th><th>bonds</th><th>recharge</th></tr>';
+  for (let t = 0; t < R.K; t++) { const y = R.types[t]; h += `<tr><td>${dotHtml(t)} ${TN[t]}</td><td>${f1(y.m)}</td><td>${f1(y.drag)}</td><td>${y.val}</td><td>${f1(y.recharge || 0)}/s</td></tr>`; }
+  h += '</table></section>';
+  h += '<section><h2>Bonds</h2><ul>'; let any = false;
+  for (let i = 0; i < R.K; i++) for (let j = i; j < R.K; j++) { const s = bondWords(R.bond[i][j]); if (s && R.types[i].val > 0 && R.types[j].val > 0) { any = true; h += `<li><span class="pr">${dotHtml(i)}${dotHtml(j)}</span><span>${s}</span></li>`; } }
+  if (!any) h += '<li>No bonds in this universe. Structure comes from push and pull alone.</li>';
+  h += '</ul></section>';
+  h += '<section><h2>Push and pull</h2><table><tr><th></th>' + [...Array(R.K)].map((_, t) => `<th>${TN[t]}</th>`).join('') + '</tr>';
+  for (let i = 0; i < R.K; i++) { h += `<tr><td>${dotHtml(i)} ${TN[i]}</td>`; for (let j = 0; j < R.K; j++) { const a = R.pair[i][j].a; h += `<td>${a > 0.05 ? '+' : ''}${Math.abs(a) < 0.05 ? '·' : a.toFixed(1)}</td>`; } h += '</tr>'; }
+  h += '</table><p class="hint" style="margin:6px 0 0">Plus attracts, minus repels.</p></section>';
+  $('laws').innerHTML = h;
+}
+function buildList() {
+  let g = null;
+  for (const p of PRESETS) {
+    if (p.group && p.group !== g) { g = p.group; const d = document.createElement('div'); d.className = 'group'; d.textContent = g; $('list').appendChild(d); }
+    const b = document.createElement('button'); b.dataset.id = p.id; b.id = 'pick-' + p.id;
+    b.innerHTML = `<span class="nm"></span><span class="tg"></span>`; b.children[0].textContent = p.name; b.children[1].textContent = p.tag || '';
+    b.onclick = () => load(p); $('list').appendChild(b);
+  }
+}
+function resize() { const r = cv.getBoundingClientRect(), d = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d); }
+function wrapRel(v, c, L) { let d = v - c; if (w.boundary === 'periodic') d -= L * Math.round(d / L); return d; }
+function toWorld(ev) { const r = cv.getBoundingClientRect(); const sx = ev.clientX - r.left - r.width / 2, sy = ev.clientY - r.top - r.height / 2; const z = cam.z * r.width / 900; return [cam.x + sx / z, cam.y + sy / z]; }
+function pick(wx, wy) { let best = -1, bd = 1.2; for (let i = 0; i < w.n; i++) { const d = Math.hypot(wrapRel(w.x[i], wx, w.W), wrapRel(w.y[i], wy, w.H)); if (d < bd) { bd = d; best = i; } } return best; }
+let lpTimer = 0;
+cv.addEventListener('pointerdown', (ev) => {
+  const [wx, wy] = toWorld(ev), i = pick(wx, wy);
+  if (ev.button === 2) { if (i >= 0) w.removeAtom(i); return; }
+  if (i >= 0) { grab = i; grabX = wx; grabY = wy; cv.setPointerCapture(ev.pointerId); clearTimeout(lpTimer); lpTimer = setTimeout(() => { if (grab === i && Math.hypot(grabX - wx, grabY - wy) < 0.3) { w.removeAtom(i); grab = -1; } }, 700); }
+  else if (w.n < w.cap - 1) w.add(dropType, wx, wy);
+});
+cv.addEventListener('pointermove', (ev) => { if (grab >= 0) { const [wx, wy] = toWorld(ev); grabX = wx; grabY = wy; } });
+const release = () => { grab = -1; clearTimeout(lpTimer); };
+cv.addEventListener('pointerup', release); cv.addEventListener('pointercancel', release);
+cv.addEventListener('contextmenu', (ev) => ev.preventDefault());
+cv.addEventListener('wheel', (ev) => { ev.preventDefault(); cam.z = Math.max(5, Math.min(60, cam.z * (ev.deltaY > 0 ? 0.9 : 1.1))); }, { passive: false });
+function centroid() {
+  // follow the atoms the specimen started with (or everything, for a soup)
+  const n = P.atoms ? Math.min(P.atoms.length, w.n) : w.n; if (!n) return [cam.x, cam.y];
+  let sx = 0, sy = 0; const x0 = w.x[0], y0 = w.y[0];
+  for (let i = 0; i < n; i++) { sx += wrapRel(w.x[i], x0, w.W); sy += wrapRel(w.y[i], y0, w.H); }
+  return [x0 + sx / n, y0 + sy / n];
+}
+function tick() {
+  if (!paused) {
+    const k = slow ? 1 : (P.world && P.world.stepsPerFrame) || 4;
+    for (let s = 0; s < k; s++) {
+      if (grab >= 0 && grab < w.n) { // pull the grabbed atom toward the pointer through its velocity
+        const dx = wrapRel(grabX, w.x[grab], w.W), dy = wrapRel(grabY, w.y[grab], w.H);
+        w.vx[grab] += (dx * 40 - w.vx[grab] * 6) * w.dt; w.vy[grab] += (dy * 40 - w.vy[grab] * 6) * w.dt;
+      }
+      w.step();
+    }
+    const c = centroid(); if (!startC) startC = c;
+    if (follow && P.atoms) { cam.x += (c[0] - cam.x) * 0.08; cam.y += (c[1] - cam.y) * 0.08; }
+    if (P.atoms && w.steps % 8 < k) { trail.push(c); if (trail.length > 400) trail.shift(); }
+  }
+  draw(); requestAnimationFrame(tick);
+}
+function draw() {
+  const Wp = cv.width, Hp = cv.height, z = cam.z * Wp / 900;
+  ctx.fillStyle = css.dish; ctx.fillRect(0, 0, Wp, Hp);
+  // reference dots fixed in the water, so motion is visible while the camera follows
+  ctx.fillStyle = css.grid; const sp = 4, x0 = Math.floor((cam.x - Wp / 2 / z) / sp) * sp, y0 = Math.floor((cam.y - Hp / 2 / z) / sp) * sp;
+  for (let gx = x0; gx < cam.x + Wp / 2 / z + sp; gx += sp) for (let gy = y0; gy < cam.y + Hp / 2 / z + sp; gy += sp) { ctx.beginPath(); ctx.arc((gx - cam.x) * z + Wp / 2, (gy - cam.y) * z + Hp / 2, Math.max(1, z * 0.09), 0, 6.3); ctx.fill(); }
+  const X = (i) => wrapRel(w.x[i], cam.x, w.W) * z + Wp / 2, Y = (i) => wrapRel(w.y[i], cam.y, w.H) * z + Hp / 2;
+  if (trail.length > 1) { ctx.strokeStyle = css.accent; ctx.globalAlpha = 0.45; ctx.lineWidth = Math.max(1, z * 0.08); ctx.beginPath(); for (let k = 0; k < trail.length; k++) { const px = (trail[k][0] - cam.x) * z + Wp / 2, py = (trail[k][1] - cam.y) * z + Hp / 2; k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.stroke(); ctx.globalAlpha = 1; }
+  const K = w.K;
+  for (let b = 0; b < w.nbonds; b++) {
+    const i = w.ba[b], j = w.bb[b], q = w.type[i] * K + w.type[j];
+    const xi = X(i), yi = Y(i), xj = X(j), yj = Y(j); if (Math.abs(xi - xj) > Wp / 2 || Math.abs(yi - yj) > Hp / 2) continue;
+    const active = w.blife[q] > 0;
+    ctx.strokeStyle = active ? css.hot : css.bond; ctx.lineWidth = z * (active ? 0.2 : 0.14);
+    ctx.beginPath(); ctx.moveTo(xi, yi); ctx.lineTo(xj, yj); ctx.stroke();
+  }
+  for (let i = 0; i < w.n; i++) {
+    const px = X(i), py = Y(i); if (px < -z || py < -z || px > Wp + z || py > Hp + z) continue;
+    ctx.fillStyle = css['t' + w.type[i]]; ctx.beginPath(); ctx.arc(px, py, z * 0.5, 0, 6.3); ctx.fill();
+    if (w.recharge[w.type[i]] > 0 || w.e[i] < 1) { ctx.fillStyle = css.dish; ctx.globalAlpha = 0.75 * (1 - w.e[i]); ctx.beginPath(); ctx.arc(px, py, z * 0.3, 0, 6.3); ctx.fill(); ctx.globalAlpha = 1; }
+  }
+  if (grab >= 0 && grab < w.n) { ctx.strokeStyle = css.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(grab), Y(grab)); ctx.lineTo((grabX - cam.x) * z + Wp / 2, (grabY - cam.y) * z + Hp / 2); ctx.stroke(); }
+  let hud = `t ${w.time.toFixed(1)} s   atoms ${w.n}   bonds ${w.nbonds}`;
+  if (P.atoms && startC) { const c = centroid(); const d = Math.hypot(c[0] - startC[0], c[1] - startC[1]); hud += `\ntravelled ${d.toFixed(1)} atom widths   ${(d / Math.max(w.time, 0.01)).toFixed(2)} per s`; }
+  hud += `\nenergy spent ${(w.stat.energyUsed * (P.rules.eUnit || 50)).toFixed(0)}`;
+  $('hud').textContent = hud;
+}
+$('bPause').onclick = () => { paused = !paused; $('bPause').setAttribute('aria-pressed', paused); $('bPause').textContent = paused ? 'Resume' : 'Pause'; };
+$('bReset').onclick = () => load(P);
+$('bSlow').onclick = () => { slow = !slow; $('bSlow').setAttribute('aria-pressed', slow); };
+$('bFollow').onclick = () => { follow = !follow; $('bFollow').setAttribute('aria-pressed', follow); };
+window.addEventListener('resize', resize);
+new MutationObserver(readCss).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readCss);
+readCss(); buildList(); resize();
+let first = PRESETS[0]; try { const id = localStorage.getItem('universe-preset'); first = PRESETS.find(p => p.id === id) || first; } catch (e) {}
+if (location.hash.length > 1) first = PRESETS.find(p => p.id === location.hash.slice(1)) || first;
+load(first); requestAnimationFrame(tick);
+</script>
