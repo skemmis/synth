@@ -79,3 +79,28 @@ pond, with jitters that run down unless fed. Four seeds, 160,000 builds.
 - Best without fuses ("Grazer", 11 atoms, 20 of 40) is a compact truss with two jitters that wanders in
   curves instead of straight lines. Best with five atoms ("Nibbler") eats 16.5.
 - Sticky atoms still earn nothing here.
+
+**2026-11-15, rocks, gravity and floats (after Sam's playtest).** Sam found it hard to build in a wiggly
+pond, asked for static structures, and suggested a little gravity as a reason to grow upward. He also asked
+for the long search runs to stop while the design is still moving; searches are now quick checks of a few
+minutes at most.
+- **Rock**: an atom that never moves. Ledges, a wall and floor posts are in the "Pond with posts" starter.
+- **Still water while building**: choosing Build or Erase, or clicking the pond with Build, holds the water
+  still; Run lets it go. Grab works either way.
+- **Gravity slider** (off, gentle, firm, heavy; gentle by default). It is a force, not a weight, so things
+  are close to neutral: an idle rod triangle sinks at 0.26 widths/s on gentle. Pellets and rocks do not
+  sink. Pellets in the top third are worth double.
+- **Float**: rises under gravity; one carries about four atoms. A rod triangle with a float on top rises
+  and stays upright.
+- Quick check (`search/gravity.mjs`): a worm pointed up still climbs at 0.5 widths/s on gentle and firm,
+  0.4 on heavy. But no swimmer can keep itself pointed up, so in practice they end on the floor. A float
+  on top and weight below is the obvious thing to try for self-righting.
+- Scripted playtest: a six-bead rod tower built by clicks on a ledge, with a float on top, stands for the
+  whole run; a bead roped to a rock hangs; no page errors with gravity off or on.
+- **Did not work: the slingshot.** Three tries in the browser. A cradle bead on two springs bounces off a
+  heavy shot instead of throwing it. A three-bead cup lets the grabbed shot be dragged straight through
+  it. A fuse used as a release latch does not snap, because the shot swings round instead of pulling
+  away. Headless, a slingshot does throw a jitter about 20 widths when shot and cradle are held together
+  and released (`search/sling.mjs`), and a light bead dies within 2 widths whatever you do. So it is a
+  handling problem (how the player loads it), not a physics one. The starter was removed until that is
+  solved.

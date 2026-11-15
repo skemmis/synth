@@ -1,13 +1,14 @@
 // Parts: a small building physics with named pieces. Deterministic (only + - * / sqrt in the step).
 //
 // Atoms: BEAD (plain), JITTER (tugs its springs and ropes in rhythm, spends energy), STICKY (grabs what it
-// touches), PELLET (loose energy; eaten on touching a build that has a jitter in it).
+// touches), PELLET (loose energy; eaten on touching a build that has a jitter in it), ROCK (never moves;
+// something to build from, hang things on, or hide behind), FLOAT (rises when there is gravity).
 // Links: ROD (stiff), SPRING (soft, stretchy), ROPE (pulls, never pushes), FUSE (stiff, snaps under a
 // small stretch and kicks its ends apart), GLUE (what a sticky atom makes).
 // A link remembers the length it was built at. The numbers below are hidden from the player and are
 // what the search tunes.
 
-export const BEAD = 0, JITTER = 1, STICKY = 2, PELLET = 3;
+export const BEAD = 0, JITTER = 1, STICKY = 2, PELLET = 3, ROCK = 4, FLOAT = 5;
 export const ROD = 0, SPRING = 1, ROPE = 2, FUSE = 3, GLUE = 4;
 export const KCORE = 120, SH0 = 1.2, SH1 = 1.8, VCAP = 60;
 
@@ -23,6 +24,9 @@ export const DEFAULTS = {
   // delay between jitters in the order they were placed (fraction of a beat), energy per beat per link
   jitHz: 1.2, jitForce: 60, // (two jitters on one link tug as one)
   jitDuty: 0.2, jitLag: 0.25, jitCost: 0.01, jitShake: 0,
+  // gravity: a gentle pull down the screen. sink is how strongly each kind feels it (pellets and rocks do
+  // not; a float feels it upside down). It is a force, not a weight, so everything is close to neutral.
+  gravity: 0, sink: [1, 1, 1, 0, 0, -5],
   stickyReach: 1.15, stickyMax: 3, pelletEnergy: 0.5,
 };
 
@@ -39,6 +43,9 @@ export class Parts {
   // opts: { W, H, cap, seed, walls (default true), freeEnergy (jitters never run out) }
   constructor(params = {}, opts = {}) {
     this.p = { ...DEFAULTS, ...params };
+    // kinds added after a params file was written fall back to bead-like numbers
+    this.p.mass = [...this.p.mass]; this.p.drag = [...this.p.drag];
+    for (let k = 0; k < 6; k++) { if (this.p.mass[k] === undefined) this.p.mass[k] = k === FLOAT ? 0.5 : 1; if (this.p.drag[k] === undefined) this.p.drag[k] = 1; }
     this.W = opts.W || 48; this.H = opts.H || 30; this.walls = opts.walls !== false;
     this.freeEnergy = !!opts.freeEnergy;
     const cap = this.cap = opts.cap || 1200;
@@ -51,7 +58,7 @@ export class Parts {
     this.capB = cap * 4; this.nb = 0;
     this.ba = new Int32Array(this.capB); this.bb = new Int32Array(this.capB); this.bk = new Uint8Array(this.capB); this.bl = new Float64Array(this.capB);
     this.time = 0; this.steps = 0; this.jitters = 0;
-    this.stat = { snapped: 0, fuses: 0, eaten: 0, capHits: 0, glued: 0 };
+    this.stat = { snapped: 0, fuses: 0, eaten: 0, rich: 0, capHits: 0, glued: 0 };
     const cs = SH1; this.nx = Math.max(1, Math.floor(this.W / cs)); this.ny = Math.max(1, Math.floor(this.H / cs));
     this.cw = this.W / this.nx; this.ch = this.H / this.ny;
     this.head = new Int32Array(this.nx * this.ny); this.next = new Int32Array(cap);
@@ -159,17 +166,21 @@ export class Parts {
         if ((si || sj) && this.link(i, j, GLUE, 1) >= 0) { if (this.kind[i] === STICKY) this.glue[i]++; if (this.kind[j] === STICKY) this.glue[j]++; this.stat.glued++; }
       } else { const pel = q[a], eater = q[a + 1]; if (dead && dead.includes(pel)) continue;
         const js = this.component(eater).filter(o => this.kind[o] === JITTER); if (!js.length) continue;
-        for (const o of js) { const v = this.e[o] + p.pelletEnergy / js.length; this.e[o] = v > 1 ? 1 : v; }
-        (dead = dead || []).push(pel); this.stat.eaten++;
+        // pellets in the top third of the pond are rich: worth double
+        const rich = this.y[pel] < this.H / 3, worth = p.pelletEnergy * (rich ? 2 : 1);
+        for (const o of js) { const v = this.e[o] + worth / js.length; this.e[o] = v > 1 ? 1 : v; }
+        (dead = dead || []).push(pel); this.stat.eaten++; if (rich) this.stat.rich++;
       }
     }
     // integrate
     const g1 = p.g1, g2 = p.g2, sh = p.shadow, T = p.T, rand = this.rand, cost = this.freeEnergy ? 0 : p.jitCost * p.jitHz * dt;
     for (let i = 0; i < n; i++) {
-      const kd = this.kind[i], m = p.mass[kd], g = g1 * p.drag[kd];
+      const kd = this.kind[i];
+      if (kd === ROCK) { vx[i] = 0; vy[i] = 0; continue; }
+      const m = p.mass[kd], g = g1 * p.drag[kd];
       let u = vx[i], v = vy[i], dxv = u, dyv = v;
       if (sh > 0 && this.sw[i] > 0) { const c = sh / (this.sw[i] > 1 ? this.sw[i] : 1); dxv = u - c * (this.sxx[i] * u + this.sxy[i] * v); dyv = v - c * (this.sxy[i] * u + this.syy[i] * v); }
-      u += (fx[i] - g * dxv) / m * dt; v += (fy[i] - g * dyv) / m * dt;
+      u += (fx[i] - g * dxv) / m * dt; v += (fy[i] + p.gravity * p.sink[kd] - g * dyv) / m * dt;
       let amp = T > 0 ? Math.sqrt(6 * g * T * dt) / m : 0;
       if (kd === JITTER && p.jitShake > 0 && this.e[i] > 0) amp += p.jitShake * Math.sqrt(dt) / m;
       if (amp > 0) { u += amp * (2 * rand() - 1); v += amp * (2 * rand() - 1); }
