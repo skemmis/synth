@@ -1,0 +1,105 @@
+<title>Wirehead</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<!--FONT-->
+<style>
+/*SHARED_CSS*/
+.brain{display:grid;grid-template-columns:minmax(0,1fr) 92px 92px;gap:4px 6px;max-width:440px;align-items:center}
+.brain span{font-size:13px;color:var(--dim);min-width:0}
+.brain .h{font:600 13px var(--display);color:var(--fg);text-align:center}
+.brain button{padding:6px 0;font:600 14px var(--display)}
+.cols{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
+.cols>*{min-width:0;flex:1 1 320px}
+</style>
+<main class="wrap">
+  <header>
+    <h1>Wirehead</h1>
+    <p class="src">Cribbed from Braitenberg's vehicles, with a breeding button borrowed from The Bibites. Each swimmer has two antennae that smell <span class="pel">pellets</span> and poison, and two cilia at the back. There is no brain except the wires you connect between them. Eight copies of your wiring swim each 40 second round.</p>
+  </header>
+  <div class="stage"><canvas id="c"></canvas><div class="hud" id="hud"></div></div>
+  <div class="controls">
+    <button id="pause">Pause</button>
+    <button id="restart">Restart round</button>
+    <button id="evolve">Breed from my wiring</button>
+    <label>Start from <select id="preset"></select></label>
+    <label>Speed <select id="speed"><option value="1">1x</option><option value="3">3x</option><option value="8">8x</option></select></label>
+  </div>
+  <div class="cols">
+    <div>
+      <div class="brain" id="brain"></div>
+    </div>
+    <details class="try" open>
+      <summary>What to try</summary>
+      <ul>
+        <li><b>Cross the pellet wires.</b> Left antenna to right cilium, right antenna to left cilium, both +. The swimmer now turns toward what it smells. Uncross them and it turns away.</li>
+        <li><b>Add poison wires</b> the uncrossed way so it veers off. Then try making poison a brake (−) instead and see which scores better.</li>
+        <li><b>The pulse</b> is a slow beat. Wire it to one cilium only and the swimmer searches in loops when it smells nothing.</li>
+        <li><b>Press "Breed from my wiring"</b> and compare what 15 generations of mutation came up with. The numbers it finds are often not the ones you would draw.</li>
+        <li><b>Click in the dish</b> to drop a pellet in front of a swimmer.</li>
+      </ul>
+    </details>
+  </div>
+</main>
+<script>
+/*SHARED_JS*/
+</script>
+<script>
+const W=900,H=560,NS=6,ROUND=2400;
+const SENSE=['Left antenna smells pellet','Right antenna smells pellet','Left antenna smells poison','Right antenna smells poison','Slow pulse','Always on'];
+const stage=makeStage($('c'),W,H),ctx=stage.ctx;
+function makeWorld(seed,nc){const R=mulberry(seed);
+  const tox=[];for(let i=0;i<5;i++)tox.push({x:120+R()*(W-240),y:90+R()*(H-180),r:42+R()*30});
+  const pel=[];const place=p=>{p.x=25+R()*(W-50);p.y=25+R()*(H-50);return p};for(let i=0;i<36;i++)pel.push(place({}));
+  const cr=[];for(let i=0;i<nc;i++)cr.push({x:60+R()*(W-120),y:60+R()*(H-120),th:R()*6.28,e:1,L:0,R:0,ph:R()*6.28,inp:new Float32Array(NS),eaten:0});
+  const w={tox,pel,cr,tick:0,eaten:0,poison:0,place};return w}
+function smellF(w,x,y){let s=0;for(const p of w.pel){const dx=p.x-x,dy=p.y-y;s+=1/(1+(dx*dx+dy*dy)/625)}return s>1?1:s}
+function smellT(w,x,y){let s=0;for(const t of w.tox){const d=Math.hypot(t.x-x,t.y-y)-t.r;s+=d<=0?1:Math.exp(-d/28)}return s>1?1:s}
+function stepWorld(w,G){w.tick++;
+  for(const c of w.cr){if(c.e<=0)continue;
+    const lx=c.x+Math.cos(c.th-.6)*22,ly=c.y+Math.sin(c.th-.6)*22,rx=c.x+Math.cos(c.th+.6)*22,ry=c.y+Math.sin(c.th+.6)*22,I=c.inp;
+    I[0]=smellF(w,lx,ly);I[1]=smellF(w,rx,ry);I[2]=smellT(w,lx,ly);I[3]=smellT(w,rx,ry);I[4]=(Math.sin(w.tick*.07+c.ph)+1)/2;I[5]=1;
+    let L=0,Rr=0;for(let i=0;i<NS;i++){L+=G[i*2]*I[i];Rr+=G[i*2+1]*I[i]}
+    L=L<0?0:L>1?1:L;Rr=Rr<0?0:Rr>1?1:Rr;c.L=L;c.R=Rr;
+    let inTox=0;for(const t of w.tox)if(Math.hypot(t.x-c.x,t.y-c.y)<t.r)inTox=1;
+    const sp=2.3*(L+Rr)/2*(inTox?.6:1);c.th+=.085*(L-Rr);c.x+=Math.cos(c.th)*sp;c.y+=Math.sin(c.th)*sp;
+    if(c.x<12||c.x>W-12||c.y<12||c.y>H-12){c.x=Math.max(12,Math.min(W-12,c.x));c.y=Math.max(12,Math.min(H-12,c.y));c.th+=.12}
+    c.e-=.00025+.0005*(L+Rr)/2+(inTox?.004:0);if(inTox)w.poison++;
+    for(const p of w.pel){if(Math.abs(p.x-c.x)<15&&Math.abs(p.y-c.y)<15&&Math.hypot(p.x-c.x,p.y-c.y)<15){w.place(p);c.e=Math.min(1.5,c.e+.3);c.eaten++;w.eaten++}}
+  }}
+let G=new Float32Array(NS*2),world,round=0,last=null,best=0,seed=11;
+const PRESETS={'Just drifting':[0,0,0,0,0,0,0,0,0,0,.5,.5],'Blank':[0,0,0,0,0,0,0,0,0,0,0,0],'Pellet seeker':[0,1,1,0,0,0,0,0,0,0,.5,.5]};
+function newRound(){world=makeWorld(seed+round,8)}
+function step(){stepWorld(world,G);if(world.tick>=ROUND){last=world.eaten;best=Math.max(best,last);round++;newRound()}}
+function draw(){stage.begin();ctx.fillStyle='#0a141c';ctx.fillRect(0,0,W,H);
+  for(const t of world.tox){const g=ctx.createRadialGradient(t.x,t.y,t.r*.2,t.x,t.y,t.r+26);g.addColorStop(0,'rgba(183,156,245,.5)');g.addColorStop(t.r/(t.r+26),'rgba(183,156,245,.28)');g.addColorStop(1,'rgba(183,156,245,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(t.x,t.y,t.r+26,0,7);ctx.fill()}
+  ctx.fillStyle='#ffb648';for(const p of world.pel){ctx.beginPath();ctx.arc(p.x,p.y,5,0,7);ctx.fill()}
+  for(const c of world.cr){const dead=c.e<=0;ctx.save();ctx.translate(c.x,c.y);ctx.rotate(c.th);
+    ctx.lineCap='round';
+    for(const s of[-1,1]){const act=s<0?c.L:c.R;const wob=dead?0:Math.sin(world.tick*.8+s)*act*.5;ctx.strokeStyle=dead?'#3a4f5f':'#5fd0c5';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(-9,s*6);ctx.lineTo(-9-8-act*9,s*6+wob*10);ctx.stroke()}
+    for(const s of[-1,1]){const ax=Math.cos(s*.6)*22,ay=Math.sin(s*.6)*22;ctx.strokeStyle='#93a9b8';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(Math.cos(s*.6)*10,Math.sin(s*.6)*10);ctx.lineTo(ax,ay);ctx.stroke();
+      const f=c.inp[s<0?0:1],t=c.inp[s<0?2:3];ctx.fillStyle=dead?'#3a4f5f':t>f?'rgba(183,156,245,'+(.35+.65*t)+')':'rgba(255,182,72,'+(.3+.7*f)+')';ctx.beginPath();ctx.arc(ax,ay,3.5,0,7);ctx.fill()}
+    ctx.fillStyle=dead?'#2a4052':'rgba(231,227,212,'+(.35+.45*Math.min(1,c.e))+')';ctx.strokeStyle=dead?'#3a4f5f':'#e7e3d4';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(0,0,11,0,7);ctx.fill();ctx.stroke();ctx.restore()}
+  const alive=world.cr.filter(c=>c.e>0).length;
+  $('hud').textContent='Round '+(round+1)+'   ·   Pellets '+world.eaten+'   ·   '+alive+' of 8 swimming   ·   '+Math.ceil((ROUND-world.tick)/60)+' s left'+(last!==null?'\nLast round '+last+'   ·   Best '+best:'')}
+function fmt(v){return v===0?'·':(v>0?'+':'−')+(Math.abs(v)===1?'':Math.abs(v).toFixed(1))}
+function paintB(b,v){if(Math.abs(v)<.05)v=0;b.textContent=v===0?'·':v===1?'+':v===-1?'−':fmt(v);const a=Math.min(1,Math.abs(v));b.style.background=v===0?'':(v>0?'rgba(95,208,197,'+(.2+.55*a)+')':'rgba(242,120,122,'+(.2+.55*a)+')')}
+function buildBrain(){const g=$('brain');g.innerHTML='<span></span><span class="h">Left cilium</span><span class="h">Right cilium</span>';
+  for(let i=0;i<NS;i++){const s=document.createElement('span');s.textContent=SENSE[i];g.appendChild(s);
+    for(let j=0;j<2;j++){const b=document.createElement('button');b.id='w'+i+'_'+j;b.setAttribute('aria-label',SENSE[i]+' to '+(j?'right':'left')+' cilium');paintB(b,G[i*2+j]);
+      b.onclick=()=>{const v=G[i*2+j];G[i*2+j]=v===0?1:v===1?-1:v===-1?0:Math.round(v);paintB(b,G[i*2+j])};g.appendChild(b)}}}
+function setG(a){G=Float32Array.from(a);buildBrain()}
+function fitness(g){let f=0;for(let s=0;s<2;s++){const w=makeWorld(900+s*17,4);for(let t=0;t<1500;t++)stepWorld(w,g);f+=w.eaten-w.poison*.01}return f}
+function evolve(gens,done,progress){const R=mulberry(Date.now()&0xffff|1);const gauss=()=>(R()+R()+R()-1.5)*1.2;
+  let pop=[{g:Float32Array.from(G)}];while(pop.length<20){const g=Float32Array.from(G);for(let i=0;i<g.length;i++)if(R()<.4)g[i]+=gauss()*.5;pop.push({g})}
+  let gen=0;const run=()=>{for(const p of pop)if(p.f===undefined)p.f=fitness(p.g);pop.sort((a,b)=>b.f-a.f);gen++;progress&&progress(gen,pop[0].f);
+    if(gen>=gens){done(pop[0]);return}
+    const next=pop.slice(0,5);while(next.length<20){const a=pop[R()*6|0].g,b=pop[R()*6|0].g,g=new Float32Array(a.length);for(let i=0;i<g.length;i++){g[i]=(R()<.5?a:b)[i];if(R()<.25)g[i]+=gauss()*.35;g[i]=Math.max(-1.5,Math.min(1.5,g[i]))}next.push({g})}
+    pop=next;setTimeout(run,0)};run()}
+$('evolve').onclick=()=>{const b=$('evolve');b.disabled=true;evolve(15,p=>{setG(Array.from(p.g,v=>Math.round(v*10)/10));b.disabled=false;b.textContent='Breed from my wiring';round++;newRound()},(g)=>{b.textContent='Breeding, generation '+g+' of 15'})};
+for(const k in PRESETS){const o=document.createElement('option');o.textContent=k;$('preset').appendChild(o)}
+$('preset').onchange=()=>{setG(PRESETS[$('preset').value]);newRound()};
+$('restart').onclick=newRound;
+onPointer($('c'),stage,{down:p=>{world.pel.push({x:p.x,y:p.y})}});
+setG(PRESETS['Just drifting']);newRound();
+const loop=runLoop({step,draw});$('speed').onchange=()=>loop.setSpeed(+$('speed').value);
+window.__t={step,stats:()=>({round,eaten:world.eaten,last,best}),setG,fitness,evolve,get G(){return Array.from(G)}};
+</script>

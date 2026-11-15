@@ -1,0 +1,143 @@
+<title>Gaitkeeper</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* layout: one column. stage on top, controls under it, notes last. one dark look: a dish under a night microscope */
+:root{--bg:#0f1b26;--well:#0a141c;--panel:#172836;--line:#2a4052;--fg:#e4edf2;--dim:#93a9b8;--pellet:#ffb648;--a:#5fd0c5;--b:#f2787a;--c:#b79cf5;--d:#6aa8ff;--e:#e7e3d4;color-scheme:dark;--display:'Space Grotesk',system-ui,sans-serif;--body:'Inter',system-ui,sans-serif}
+html,body{background:var(--bg);color:var(--fg);font-family:var(--body);line-height:1.45}
+.wrap{max-width:1000px;margin:0 auto;padding-block:18px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:12px}
+h1{font-family:var(--display);font-size:1.6rem;margin:0;letter-spacing:-.01em}
+.src{color:var(--dim);margin:0;max-width:68ch}
+.stage{position:relative;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--well)}
+canvas{display:block;width:100%;touch-action:none}
+.hud{position:absolute;left:10px;top:8px;right:10px;font:600 13px var(--display);pointer-events:none;text-shadow:0 1px 3px #000,0 0 2px #000;font-variant-numeric:tabular-nums;white-space:pre-line}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,select{font:500 14px var(--body);color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--dim)}
+button[aria-pressed=true]{background:var(--a);color:#062422;border-color:var(--a)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--pellet);outline-offset:1px}
+label{color:var(--dim);display:flex;gap:6px;align-items:center;font-size:14px}
+input[type=range]{accent-color:var(--a);width:120px}
+.try{color:var(--dim);max-width:72ch}
+.try summary{color:var(--fg);font-family:var(--display);font-weight:600;cursor:pointer}
+.try ul{margin:8px 0 0;padding-left:20px}
+.try li{margin:5px 0}
+.try b{color:var(--fg);font-weight:600}
+.pel{color:var(--pellet)}
+
+</style>
+<main class="wrap">
+  <header>
+    <h1>Gaitkeeper</h1>
+    <p class="src">Cribbed from Sodarace and Karl Sims' evolved creatures. You build the body out of joints, bones and muscles. You do not get to say how the muscles fire. Breeding tries hundreds of rhythms and keeps whichever carries the body furthest to the right in seven seconds, past the most <span class="pel">pellets</span>.</p>
+  </header>
+  <div class="stage"><canvas id="c"></canvas><div class="hud" id="hud"></div></div>
+  <div class="controls">
+    <button id="tAdd">Add joint</button>
+    <button id="tLink">Bone / muscle / none</button>
+    <button id="tErase">Erase joint</button>
+    <button id="run">Let it go</button>
+    <button id="evolve">Breed a gait</button>
+    <label>Start from <select id="preset"></select></label>
+  </div>
+  <details class="try" open>
+    <summary>What to try</summary>
+    <ul>
+      <li><b>Press "Let it go" first.</b> With untrained muscles most bodies shuffle on the spot. Then press "Breed a gait" and watch the same body walk.</li>
+      <li><b>Add one joint</b> to a bred body and breed again. A tail, a heavy head or a long leg changes the gait completely.</li>
+      <li><b>Click a link with the middle tool</b> to turn a bone into a muscle (coral), remove it, or bring it back. Fewer muscles often go further.</li>
+      <li><b>With "Add joint" selected</b>, click empty space for a new joint that ties itself to its neighbours, or drag from one joint to another to tie those two.</li>
+      <li><b>Try to beat 600</b> with eight joints or fewer.</li>
+    </ul>
+  </details>
+</main>
+<script>
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const $=id=>document.getElementById(id);
+function makeStage(canvas,W,H){const ctx=canvas.getContext('2d');let s=1;canvas.style.aspectRatio=W+'/'+H;
+  function fit(){const r=canvas.getBoundingClientRect();const dpr=Math.min(window.devicePixelRatio||1,2);const w=Math.max(1,Math.round(r.width*dpr));if(w===canvas.width)return;canvas.width=w;canvas.height=Math.round(w*H/W);s=w/W}
+  if(window.ResizeObserver)new ResizeObserver(fit).observe(canvas);fit();
+  return{ctx,W,H,begin(){fit();s=canvas.width/W;ctx.setTransform(s,0,0,s,0,0)},pos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}}}
+function onPointer(canvas,stage,h){let down=false;
+  canvas.addEventListener('pointerdown',e=>{down=true;try{canvas.setPointerCapture(e.pointerId)}catch(_){}h.down&&h.down(stage.pos(e),e);e.preventDefault()});
+  canvas.addEventListener('pointermove',e=>{h.move&&h.move(stage.pos(e),down,e)});
+  const up=e=>{if(down){down=false;h.up&&h.up(stage.pos(e),e)}};canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',up);
+  canvas.addEventListener('pointerleave',e=>{h.leave&&h.leave()});
+  canvas.addEventListener('contextmenu',e=>e.preventDefault())}
+function runLoop(o){let paused=false,speed=o.speed||1;const pb=$('pause');
+  if(pb)pb.onclick=()=>{paused=!paused;pb.textContent=paused?'Play':'Pause'};
+  function frame(){if(!paused)for(let i=0;i<speed;i++)o.step();o.draw();requestAnimationFrame(frame)}
+  requestAnimationFrame(frame);
+  return{setSpeed(v){speed=v},get paused(){return paused},set paused(v){paused=v;if(pb)pb.textContent=paused?'Play':'Pause'}}}
+function toolbar(ids,onPick){let cur=ids[0];ids.forEach(id=>{const b=$(id);b.setAttribute('aria-pressed',id===cur);b.onclick=()=>{cur=id;ids.forEach(j=>$(j).setAttribute('aria-pressed',j===id));onPick&&onPick(id)}});return()=>cur}
+
+</script>
+<script>
+const W=900,H=480,GY=400,SECS=7,DT=1/300,SUB=5,FREQ=1.6;
+const stage=makeStage($('c'),W,H),ctx=stage.ctx;
+let nodes=[],links=[],genome=null,mode='build',sim=null,cam=0,best=null,bredFor='';
+const PRESETS={
+  'Tripod':{n:[[250,400],[330,400],[290,330],[380,340]],l:[[0,1,0],[0,2,0],[1,2,1],[2,3,0],[1,3,1]]},
+  'Caterpillar':{n:[[200,400],[260,400],[320,400],[380,400],[230,350],[290,350],[350,350]],l:[[0,1,0],[1,2,0],[2,3,0],[0,4,0],[1,4,1],[1,5,0],[2,5,1],[2,6,0],[3,6,1],[4,5,0],[5,6,0]]},
+  'Blank':{n:[],l:[]}
+};
+function load(p){nodes=p.n.map(a=>({x:a[0],y:a[1]}));links=p.l.map(a=>({a:a[0],b:a[1],t:a[2]}));genome=null;best=null;toBuild()}
+function defGenome(){return links.map((l,i)=>({amp:.2,ph:i*2.1}))}
+function makeSim(g){const n=nodes.length;const s={px:new Float64Array(n),py:new Float64Array(n),vx:new Float64Array(n),vy:new Float64Array(n),t:0,g,len:links.map(l=>Math.hypot(nodes[l.a].x-nodes[l.b].x,nodes[l.a].y-nodes[l.b].y)),x0:0};
+  for(let i=0;i<n;i++){s.px[i]=nodes[i].x;s.py[i]=nodes[i].y}s.x0=cx(s);return s}
+function cx(s){let m=0;for(let i=0;i<s.px.length;i++)m+=s.px[i];return s.px.length?m/s.px.length:0}
+function simStep(s){const n=s.px.length;s.t+=DT;
+  for(let i=0;i<n;i++){s.vy[i]+=1400*DT}
+  for(let k=0;k<links.length;k++){const l=links[k];if(l.t===2)continue;const a=l.a,b=l.b;let dx=s.px[b]-s.px[a],dy=s.py[b]-s.py[a];const d=Math.hypot(dx,dy)||1e-6;dx/=d;dy/=d;
+    let rest=s.len[k];if(l.t===1){const g=s.g[k];rest*=1+g.amp*Math.sin(6.2832*FREQ*s.t+g.ph)}
+    const rv=(s.vx[b]-s.vx[a])*dx+(s.vy[b]-s.vy[a])*dy;const f=(6000*(d-rest)+22*rv)*DT;
+    s.vx[a]+=f*dx;s.vy[a]+=f*dy;s.vx[b]-=f*dx;s.vy[b]-=f*dy}
+  for(let i=0;i<n;i++){let vx=s.vx[i]*.9995,vy=s.vy[i]*.9995;if(vx>3000)vx=3000;if(vx<-3000)vx=-3000;if(vy>3000)vy=3000;if(vy<-3000)vy=-3000;
+    s.px[i]+=vx*DT;s.py[i]+=vy*DT;if(s.py[i]>GY){s.py[i]=GY;if(vy>0)vy=0;vx*=.55}s.vx[i]=vx;s.vy[i]=vy}}
+function score(g){if(nodes.length<2)return 0;const s=makeSim(g);const N=SECS/DT;for(let i=0;i<N;i++)simStep(s);const d=cx(s)-s.x0;return isFinite(d)?d:-1e9}
+function evolve(gens,done,progress){const R=mulberry((Date.now()&0xffff)|1);const mus=links.map(l=>l.t===1);
+  const rnd=()=>links.map(()=>({amp:R()*.3,ph:R()*6.2832}));
+  let pop=[{g:genome||defGenome()}];while(pop.length<30)pop.push({g:rnd()});
+  let gen=0;const run=()=>{for(const p of pop)if(p.f===undefined)p.f=score(p.g);pop.sort((a,b)=>b.f-a.f);gen++;progress&&progress(gen,pop[0].f);
+    if(gen>=gens){done(pop[0]);return}
+    const next=pop.slice(0,6);while(next.length<30){const a=pop[R()*8|0].g,b=pop[R()*8|0].g;next.push({g:a.map((ga,i)=>{const src=R()<.5?ga:b[i];let amp=src.amp,ph=src.ph;if(mus[i]&&R()<.3){amp=Math.max(0,Math.min(.3,amp+(R()-.5)*.15));ph+=(R()-.5)*1.6}return{amp,ph}})})}
+    pop=next;setTimeout(run,0)};run()}
+function sig(){return JSON.stringify([nodes.map(n=>[n.x|0,n.y|0]),links.map(l=>[l.a,l.b,l.t])])}
+function toBuild(){mode='build';sim=null;cam=0;$('run').textContent='Let it go'}
+function toRun(){if(nodes.length<2)return;if(!genome||genome.length!==links.length)genome=defGenome();sim=makeSim(genome);mode='run';$('run').textContent='Back to building'}
+function step(){if(mode==='run'){for(let i=0;i<SUB;i++)simStep(sim);const c=cx(sim);cam+=((c-320)-cam)*.08}}
+function nodeAt(p,r){let b=-1,bd=r*r;for(let i=0;i<nodes.length;i++){const d=(nodes[i].x-p.x)**2+(nodes[i].y-p.y)**2;if(d<bd){bd=d;b=i}}return b}
+function linkAt(p){let b=-1,bd=12;links.forEach((l,k)=>{const A=nodes[l.a],B=nodes[l.b];const vx=B.x-A.x,vy=B.y-A.y;let t=((p.x-A.x)*vx+(p.y-A.y)*vy)/(vx*vx+vy*vy);t=Math.max(.15,Math.min(.85,t));const d=Math.hypot(A.x+vx*t-p.x,A.y+vy*t-p.y);if(d<bd){bd=d;b=k}});return b}
+function hasLink(a,b){return links.findIndex(l=>(l.a===a&&l.b===b)||(l.a===b&&l.b===a))}
+const tool=toolbar(['tAdd','tLink','tErase'],()=>{if(mode==='run')toBuild()});
+let drag=null,hover=null;
+onPointer($('c'),stage,{down:p=>{if(mode!=='build')return;const t=tool(),i=nodeAt(p,16);
+    if(t==='tAdd'){if(i>=0)drag={from:i,p};else if(p.y<=GY+10&&nodes.length<16){const q={x:p.x,y:Math.min(GY,p.y)};const near=nodes.map((n,j)=>({j,d:Math.hypot(n.x-q.x,n.y-q.y)})).filter(o=>o.d<150).sort((a,b)=>a.d-b.d).slice(0,3);nodes.push(q);for(const o of near)links.push({a:o.j,b:nodes.length-1,t:0});changed()}}
+    else if(t==='tLink'){const k=linkAt(p);if(k>=0){links[k].t=(links[k].t+1)%3;changed()}}
+    else if(t==='tErase'&&i>=0){nodes.splice(i,1);links=links.filter(l=>l.a!==i&&l.b!==i).map(l=>({a:l.a>i?l.a-1:l.a,b:l.b>i?l.b-1:l.b,t:l.t}));changed()}},
+  move:(p,d)=>{hover=p;if(drag)drag.p=p},
+  up:p=>{if(drag){const j=nodeAt(p,18);if(j>=0&&j!==drag.from){const k=hasLink(drag.from,j);if(k<0)links.push({a:drag.from,b:j,t:0});else links[k].t=0;changed()}drag=null}}});
+function changed(){genome=null;best=null}
+function draw(){stage.begin();ctx.fillStyle='#0a141c';ctx.fillRect(0,0,W,H);
+  ctx.save();ctx.translate(-cam,0);
+  ctx.fillStyle='#172836';ctx.fillRect(cam,GY,W,H-GY);ctx.strokeStyle='#2a4052';ctx.lineWidth=1;
+  const x0=Math.floor(cam/120)*120;ctx.font='600 12px Space Grotesk, sans-serif';
+  const startX=sim?sim.x0:(nodes.length?nodes.reduce((a,n)=>a+n.x,0)/nodes.length:300),prog=sim?cx(sim):startX;
+  for(let X=x0;X<cam+W+120;X+=120){ctx.beginPath();ctx.moveTo(X,GY);ctx.lineTo(X,GY+10);ctx.stroke();ctx.fillStyle='#93a9b8';ctx.fillText(String(X-Math.round(startX/120)*120),X+4,GY+24);
+    if(X>prog+10){ctx.fillStyle='#ffb648';ctx.beginPath();ctx.arc(X,GY-14,5,0,7);ctx.fill()}}
+  const P=i=>sim?[sim.px[i],sim.py[i]]:[nodes[i].x,nodes[i].y];ctx.lineCap='round';
+  links.forEach((l,k)=>{const a=P(l.a),b=P(l.b);if(l.t===2){if(mode==='build'){ctx.setLineDash([3,6]);ctx.strokeStyle='#2a4052';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();ctx.setLineDash([])}return}
+    let w=4;if(l.t===1&&sim){const g=sim.g[k];w=5-12*g.amp*Math.sin(6.2832*FREQ*sim.t+g.ph)}else if(l.t===1)w=6;
+    ctx.strokeStyle=l.t===1?'#f2787a':'#e7e3d4';ctx.lineWidth=Math.max(2,w);ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke()});
+  for(let i=0;i<nodes.length;i++){const a=P(i);ctx.fillStyle='#5fd0c5';ctx.beginPath();ctx.arc(a[0],a[1],7,0,7);ctx.fill()}
+  if(drag){const a=nodes[drag.from];ctx.strokeStyle='#93a9b8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(drag.p.x,drag.p.y);ctx.stroke()}
+  ctx.restore();
+  const mus=links.filter(l=>l.t===1).length;
+  $('hud').textContent=(mode==='run'?'Distance '+Math.round(cx(sim)-sim.x0)+'   ·   '+sim.t.toFixed(1)+' s':nodes.length+' joints   ·   '+mus+' muscles'+(nodes.length?'':'   ·   Click above the ground to place joints'))+(best!==null?'\nBred gait reaches '+Math.round(best)+' in '+SECS+' s':'')}
+$('run').onclick=()=>{mode==='run'?toBuild():toRun()};
+$('evolve').onclick=()=>{if(nodes.length<2||!links.some(l=>l.t===1)){$('hud').textContent='Needs at least one muscle. Click a link with the middle tool.';return}const b=$('evolve');b.disabled=true;toBuild();evolve(30,p=>{genome=p.g;best=p.f;b.disabled=false;b.textContent='Breed a gait';toRun()},(g,f)=>{b.textContent='Breeding '+g+' of 30, best '+Math.round(f)})};
+for(const k in PRESETS){const o=document.createElement('option');o.textContent=k;$('preset').appendChild(o)}
+$('preset').onchange=()=>load(PRESETS[$('preset').value]);
+load(PRESETS.Tripod);runLoop({step,draw});
+window.__t={step,stats:()=>({mode,dist:sim?Math.round(cx(sim)-sim.x0):null,best}),score,evolve,defGenome,load,PRESETS,toRun,set(g){genome=g}};
+</script>

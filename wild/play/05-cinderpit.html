@@ -1,0 +1,145 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0;font-size:14px}[hidden]{display:none!important}</style></head><body>
+<title>Cinderpit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* layout: one column. stage on top, controls under it, notes last. one dark look: a dish under a night microscope */
+:root{--bg:#0f1b26;--well:#0a141c;--panel:#172836;--line:#2a4052;--fg:#e4edf2;--dim:#93a9b8;--pellet:#ffb648;--a:#5fd0c5;--b:#f2787a;--c:#b79cf5;--d:#6aa8ff;--e:#e7e3d4;color-scheme:dark;--display:'Space Grotesk',system-ui,sans-serif;--body:'Inter',system-ui,sans-serif}
+html,body{background:var(--bg);color:var(--fg);font-family:var(--body);line-height:1.45}
+.wrap{max-width:1000px;margin:0 auto;padding-block:18px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:12px}
+h1{font-family:var(--display);font-size:1.6rem;margin:0;letter-spacing:-.01em}
+.src{color:var(--dim);margin:0;max-width:68ch}
+.stage{position:relative;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--well)}
+canvas{display:block;width:100%;touch-action:none}
+.hud{position:absolute;left:10px;top:8px;right:10px;font:600 13px var(--display);pointer-events:none;text-shadow:0 1px 3px #000,0 0 2px #000;font-variant-numeric:tabular-nums;white-space:pre-line}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,select{font:500 14px var(--body);color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--dim)}
+button[aria-pressed=true]{background:var(--a);color:#062422;border-color:var(--a)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--pellet);outline-offset:1px}
+label{color:var(--dim);display:flex;gap:6px;align-items:center;font-size:14px}
+input[type=range]{accent-color:var(--a);width:120px}
+.try{color:var(--dim);max-width:72ch}
+.try summary{color:var(--fg);font-family:var(--display);font-weight:600;cursor:pointer}
+.try ul{margin:8px 0 0;padding-left:20px}
+.try li{margin:5px 0}
+.try b{color:var(--fg);font-weight:600}
+.pel{color:var(--pellet)}
+
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+</style>
+<main class="wrap">
+  <header>
+    <h1>Cinderpit</h1>
+    <p class="src">Cribbed from falling-sand toys and Noita. Every grain follows two or three tiny rules: water flows, oil floats and burns, moss drinks water and grows, bangdust goes off, acid eats rock. Six sealed chambers hold <span class="pel">pellets</span>. Nothing here is a bomb or a pump until you pour the right things next to each other. Get the pellets down to the glowing floor using as few grains as you can.</p>
+  </header>
+  <div class="stage"><canvas id="c"></canvas><div class="hud" id="hud"></div></div>
+  <div class="controls" id="tools"></div>
+  <div class="controls">
+    <button id="pause">Pause</button>
+    <button id="reset">New pit</button>
+    <button id="empty">Empty pit to play in</button>
+  </div>
+  <details class="try" open>
+    <summary>What to try</summary>
+    <ul>
+      <li><b>Pellets float on water and sink in oil.</b> Fill an open cup with water and they bob up and over the rim.</li>
+      <li><b>A spark on moss</b> burns a plug out. A spark on oil burns the whole pool. A spark on bangdust takes the wall with it.</li>
+      <li><b>Lay a fuse.</b> A trail of moss or oil leading to a pile of bangdust lets you light it from a safe distance, and bangdust sets off other bangdust.</li>
+      <li><b>Acid is the lazy answer</b> and costs the most grains. Try clearing a pit without it.</li>
+      <li><b>In the empty pit</b>, pour water on moss and leave it for a minute.</li>
+    </ul>
+  </details>
+</main>
+<script>
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const $=id=>document.getElementById(id);
+function makeStage(canvas,W,H){const ctx=canvas.getContext('2d');let s=1;canvas.style.aspectRatio=W+'/'+H;
+  function fit(){const r=canvas.getBoundingClientRect();const dpr=Math.min(window.devicePixelRatio||1,2);const w=Math.max(1,Math.round(r.width*dpr));if(w===canvas.width)return;canvas.width=w;canvas.height=Math.round(w*H/W);s=w/W}
+  if(window.ResizeObserver)new ResizeObserver(fit).observe(canvas);fit();
+  return{ctx,W,H,begin(){fit();s=canvas.width/W;ctx.setTransform(s,0,0,s,0,0)},pos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}}}
+function onPointer(canvas,stage,h){let down=false;
+  canvas.addEventListener('pointerdown',e=>{down=true;try{canvas.setPointerCapture(e.pointerId)}catch(_){}h.down&&h.down(stage.pos(e),e);e.preventDefault()});
+  canvas.addEventListener('pointermove',e=>{h.move&&h.move(stage.pos(e),down,e)});
+  const up=e=>{if(down){down=false;h.up&&h.up(stage.pos(e),e)}};canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',up);
+  canvas.addEventListener('pointerleave',e=>{h.leave&&h.leave()});
+  canvas.addEventListener('contextmenu',e=>e.preventDefault())}
+function runLoop(o){let paused=false,speed=o.speed||1;const pb=$('pause');
+  if(pb)pb.onclick=()=>{paused=!paused;pb.textContent=paused?'Play':'Pause'};
+  function frame(){if(!paused)for(let i=0;i<speed;i++)o.step();o.draw();requestAnimationFrame(frame)}
+  requestAnimationFrame(frame);
+  return{setSpeed(v){speed=v},get paused(){return paused},set paused(v){paused=v;if(pb)pb.textContent=paused?'Play':'Pause'}}}
+function toolbar(ids,onPick){let cur=ids[0];ids.forEach(id=>{const b=$(id);b.setAttribute('aria-pressed',id===cur);b.onclick=()=>{cur=id;ids.forEach(j=>$(j).setAttribute('aria-pressed',j===id));onPick&&onPick(id)}});return()=>cur}
+
+</script>
+<script>
+const GW=180,GH=112,CS=5,W=GW*CS,H=GH*CS,NC=GW*GH;
+const E=0,STONE=1,SAND=2,WATER=3,OIL=4,FIRE=5,POW=6,MOSS=7,ACID=8,PEL=9,STEEL=10;
+const NAME={[WATER]:'Water',[SAND]:'Sand',[OIL]:'Oil',[MOSS]:'Moss',[POW]:'Bangdust',[ACID]:'Acid',[FIRE]:'Spark'};
+const RGB={[E]:[10,20,28],[STONE]:[74,93,107],[SAND]:[201,185,138],[WATER]:[63,127,208],[OIL]:[112,78,150],[FIRE]:[255,150,60],[POW]:[190,84,80],[MOSS]:[79,174,122],[ACID]:[184,224,74],[PEL]:[255,182,72],[STEEL]:[36,51,63]};
+const stage=makeStage($('c'),W,H),ctx=stage.ctx;
+const off=document.createElement('canvas');off.width=GW;off.height=GH;const octx=off.getContext('2d');const img=octx.createImageData(GW,GH);
+const g=new Uint8Array(NC),aux=new Uint8Array(NC),stamp=new Uint8Array(NC),noise=new Uint8Array(NC);
+let R=mulberry(3),seedN=3,tick=0,home=0,total=0,used=0,pending=[],cur=WATER,paint=null;
+for(let i=0;i<NC;i++)noise[i]=(Math.imul(i,2654435761)>>>24)%24;
+const idx=(x,y)=>y*GW+x;
+function rect(x0,y0,x1,y1,t){for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)if(x>0&&x<GW-1&&y>0&&y<GH-1)g[idx(x,y)]=t}
+function base(){g.fill(E);aux.fill(0);pending=[];tick=0;home=0;used=0;for(let x=0;x<GW;x++){g[idx(x,0)]=STEEL}for(let y=0;y<GH;y++){g[idx(0,y)]=STEEL;g[idx(GW-1,y)]=STEEL}}
+function chamber(kind,x0){const y0=14,w=24,h=22,x1=x0+w,y1=y0+h;
+  if(kind===0){rect(x0,y0,x1,y1,STONE);rect(x0+2,y0+2,x1-2,y1-2,E);rect(x0+9,y1-1,x0+15,y1,MOSS);rect(x0+4,y1-6,x1-4,y1-2,PEL)}
+  if(kind===1){rect(x0,y0,x1,y1,STONE);rect(x0+3,y0+3,x1-3,y1-3,E);rect(x0+6,y1-6,x1-6,y1-3,PEL)}
+  if(kind===2){rect(x0,y0+4,x1,y1,STONE);rect(x0+2,y0+4,x1-2,y1-2,E);rect(x0+5,y1-4,x1-5,y1-2,PEL)}
+  if(kind===3){rect(x0,y0,x1,y1,STONE);rect(x0+2,y0,x1-2,y1-2,E);rect(x0+2,y1-1,x1-2,y1,MOSS);rect(x0+2,y1-9,x1-2,y1-2,SAND);rect(x0+6,y1-12,x1-6,y1-10,PEL)}
+  if(kind===4){rect(x0,y0+4,x1,y1,STONE);rect(x0+2,y0+4,x1-2,y1-2,E);rect(x0+2,y0+9,x1-2,y1-2,OIL);rect(x0+5,y1-4,x1-5,y1-2,PEL)}
+  if(kind===5){rect(x0,y0,x1,y1,STONE);rect(x0+3,y0+3,x1-3,y1-3,E);rect(x0+4,y1-5,x0+10,y1-3,PEL);rect(x0+14,y1-6,x1-4,y1-3,POW);rect(x1-8,y0-4,x1-7,y1-7,MOSS)}}
+function reset(empty){R=mulberry(seedN++);base();
+  if(!empty){const order=[0,1,2,3,4,5];for(let i=5;i>0;i--){const j=R()*(i+1)|0;[order[i],order[j]]=[order[j],order[i]]}
+    order.forEach((k,i)=>chamber(k,5+i*29));
+    for(let k=0;k<7;k++){const x=8+R()*(GW-40)|0,y=56+R()*40|0,len=10+R()*22|0;rect(x,y,x+len,y+1,STONE)}}
+  total=0;for(let i=0;i<NC;i++)if(g[i]===PEL)total++}
+const liquid=t=>t===WATER||t===OIL||t===ACID;
+function swap(i,j){const t=g[i];g[i]=g[j];g[j]=t;const a=aux[i];aux[i]=aux[j];aux[j]=a;stamp[i]=stamp[j]=tick&255}
+function explode(i){const cx=i%GW,cy=i/GW|0,r=6;for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(dx*dx+dy*dy>r*r)continue;const x=cx+dx,y=cy+dy;if(x<1||y<1||x>=GW-1||y>=GH-1)continue;const j=idx(x,y),t=g[j];
+    if(t===STEEL||t===PEL)continue;if(t===POW&&j!==i){if(pending.length<4000)pending.push(j);continue}
+    if(t===STONE&&R()>.85)continue;g[j]=FIRE;aux[j]=4+R()*10|0}}
+function ignite(j,p,life){if(R()<p){g[j]=FIRE;aux[j]=life+R()*life|0}}
+function simTick(){tick++;const st=tick&255;
+  if(pending.length){const q=pending;pending=[];for(const j of q)if(g[j]===POW){g[j]=E;explode(j)}}
+  for(let y=GH-1;y>=1;y--){const ltr=R()<.5;for(let k=1;k<GW-1;k++){const x=ltr?k:GW-1-k,i=idx(x,y),t=g[i];
+    if(t===E||t===STONE||t===STEEL||stamp[i]===st)continue;
+    if(y===GH-1){if(t===PEL)home++;g[i]=E;continue}
+    const d=i+GW,b=g[d],dir=R()<.5?-1:1;
+    if(t===SAND||t===POW){if(b===E||liquid(b)||b===FIRE){swap(i,d)}else{const a=g[d+dir],c=g[d-dir];if((a===E||liquid(a))&&g[i+dir]!==STONE)swap(i,d+dir);else if((c===E||liquid(c))&&g[i-dir]!==STONE)swap(i,d-dir)}}
+    else if(t===PEL){if(b===E||b===OIL||b===FIRE)swap(i,d);else if(g[i-GW]===WATER){if(R()<.6)swap(i,i-GW)}
+      else{const a=g[d+dir];if((a===E||a===OIL)&&(g[i+dir]===E||g[i+dir]===OIL))swap(i,d+dir);else if(b===WATER&&(g[i+dir]===E)&&R()<.5)swap(i,i+dir)}}
+    else if(liquid(t)){
+      if(t===ACID){for(const n of[d,i-1,i+1,i-GW]){const q=g[n];if((q===STONE||q===SAND||q===MOSS||q===POW)&&R()<.06){g[n]=E;g[i]=E;break}}if(g[i]===E)continue}
+      if(b===E||b===FIRE||(t!==OIL&&b===OIL)){swap(i,d);continue}
+      if(t===OIL&&g[i-GW]===WATER&&R()<.5){swap(i,i-GW);continue}
+      const a=g[d+dir];if(a===E&&g[i+dir]===E){swap(i,d+dir);continue}
+      let j=i;for(let s=0;s<5;s++){const n=g[j+dir];if(n===E||(t!==OIL&&n===OIL&&s===0))j+=dir;else break}
+      if(j!==i)swap(i,j)}
+    else if(t===FIRE){if(aux[i]<=1){g[i]=E;aux[i]=0;continue}aux[i]--;
+      for(const n of[i-1,i+1,i-GW,d]){const q=g[n];if(q===OIL)ignite(n,.3,18);else if(q===MOSS)ignite(n,.1,22);else if(q===POW){g[n]=E;explode(n)}else if(q===WATER){g[i]=E;if(R()<.3)g[n]=E;break}}
+      if(g[i]===FIRE&&g[i-GW]===E&&R()<.5)swap(i,i-GW)}
+    else if(t===MOSS){if(R()<.012){const n=[i-1,i+1,i-GW,d][R()*4|0];if(g[n]===WATER){g[n]=MOSS}}}
+  }}}
+function step(){simTick();simTick();if(paint)apply(paint)}
+function apply(p){const cx=p.x/CS|0,cy=p.y/CS|0,r=cur===FIRE?1:2;for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(dx*dx+dy*dy>r*r+1)continue;const x=cx+dx,y=cy+dy;if(x<1||y<1||x>=GW-1||y>=GH-1)continue;const j=idx(x,y);
+    if(g[j]===E&&(cur===FIRE||R()<.5)){g[j]=cur;aux[j]=cur===FIRE?14:0;used++}
+    else if(cur===FIRE&&(g[j]===OIL||g[j]===MOSS)){g[j]=FIRE;aux[j]=20;used++}
+    else if(cur===FIRE&&g[j]===POW){g[j]=E;explode(j);used++}}}
+onPointer($('c'),stage,{down:p=>{paint=p;apply(p)},move:(p,d)=>{if(d)paint=p},up:()=>paint=null});
+function draw(){const d=img.data;for(let i=0;i<NC;i++){const t=g[i],c=RGB[t],o=i*4;let n=t===E||t===STEEL?0:noise[i]-12;if(t===FIRE){n=(noise[(i+tick*7)%NC]-12)*4;d[o]=255;d[o+1]=150+n;d[o+2]=60;d[o+3]=255;continue}if(t===PEL)n=0;d[o]=c[0]+n;d[o+1]=c[1]+n;d[o+2]=c[2]+n;d[o+3]=255}
+  octx.putImageData(img,0,0);stage.begin();ctx.imageSmoothingEnabled=false;ctx.drawImage(off,0,0,W,H);
+  ctx.fillStyle='rgba(255,182,72,'+(.5+.2*Math.sin(tick*.05))+')';ctx.fillRect(CS,H-CS,W-2*CS,CS);
+  $('hud').textContent=total?('Pellets home '+home+' of '+total+'   ·   Grains used '+used+(home>=total?'   ·   Pit cleared':'')):'Empty pit   ·   Grains used '+used}
+const order=[WATER,SAND,OIL,MOSS,POW,ACID,FIRE];
+order.forEach(t=>{const b=document.createElement('button');b.id='tool'+t;b.innerHTML='<span class="sw" style="background:rgb('+RGB[t].join(',')+')"></span>'+NAME[t];$('tools').appendChild(b)});
+toolbar(order.map(t=>'tool'+t),id=>cur=+id.slice(4));
+$('reset').onclick=()=>reset(false);$('empty').onclick=()=>reset(true);
+reset(false);runLoop({step,draw});
+window.__t={step,stats:()=>{const c={};for(let i=0;i<NC;i++)c[g[i]]=(c[g[i]]||0)+1;return{home,total,used,pel:c[PEL]||0,fire:c[FIRE]||0,water:c[WATER]||0,moss:c[MOSS]||0}},put(x,y,t,r){for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const j=idx(x+dx,y+dy);if(g[j]===E){g[j]=t;aux[j]=t===FIRE?14:0}else if(t===FIRE&&(g[j]===MOSS||g[j]===OIL)){g[j]=FIRE;aux[j]=20}}},find(t){const o=[];for(let i=0;i<NC;i++)if(g[i]===t)o.push([i%GW,i/GW|0]);return o},reset};
+</script>
+
+</body></html>

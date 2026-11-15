@@ -1,0 +1,95 @@
+<title>Bloomfield</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<!--FONT-->
+<style>
+/*SHARED_CSS*/
+</style>
+<main class="wrap">
+  <header>
+    <h1>Bloomfield</h1>
+    <p class="src">Cribbed from Gray-Scott reaction-diffusion, the two-chemical recipe behind leopard spots and coral. Your organism is not a thing, it is a stain that keeps itself alive. On bare ground it holds as quiet spots. Where you lay feed it grows, branches and splits. Lead it to the <span class="pel">pellets</span> before your feed runs out.</p>
+  </header>
+  <div class="stage"><canvas id="c"></canvas><div class="hud" id="hud"></div></div>
+  <div class="controls">
+    <button id="tFeed">Lay feed</button>
+    <button id="tSeed">Drop a spore</button>
+    <button id="tWipe">Wipe</button>
+    <button id="tWall">Draw wall</button>
+    <button id="pause">Pause</button>
+    <button id="reset">New dish</button>
+    <label>Ground <select id="regime">
+      <option value="0.030,0.065">Quiet spots</option>
+      <option value="0.030,0.063">Dividing cells</option>
+      <option value="0.0545,0.062">Coral</option>
+    </select></label>
+  </div>
+  <details class="try" open>
+    <summary>What to try</summary>
+    <ul>
+      <li><b>Draw a thin feed line</b> from the stain to the nearest pellet. The stain eats the line as it follows it, so thin lines go further than fat ones.</li>
+      <li><b>Each pellet reached refunds feed</b> and blooms on the spot. Chain them.</li>
+      <li><b>Walls starve whatever touches them.</b> Use one to cut a branch off, or to stop the bloom spreading the wrong way.</li>
+      <li><b>Change the ground</b> to "Dividing cells" and drop one spore. Now it spreads with no feed at all and the game becomes containment.</li>
+    </ul>
+  </details>
+</main>
+<script>
+/*SHARED_JS*/
+</script>
+<script>
+const GW=240,GH=150,CS=4,W=GW*CS,H=GH*CS,NC=GW*GH;
+const stage=makeStage($('c'),W,H),ctx=stage.ctx;
+const off=document.createElement('canvas');off.width=GW;off.height=GH;const octx=off.getContext('2d');const img=octx.createImageData(GW,GH);
+let u=new Float32Array(NC),v=new Float32Array(NC),u2=new Float32Array(NC),v2=new Float32Array(NC);
+const food=new Float32Array(NC),wall=new Uint8Array(NC);
+let F=.030,Kk=.065,ink=0,eaten=0,pel=[],seedN=1,R=mulberry(1),won=0,tick=0;
+const FOODF=.008,FOODK=.004,EAT=.00035;
+function disc(cx,cy,r,fn){for(let j=-r;j<=r;j++)for(let i=-r;i<=r;i++){if(i*i+j*j>r*r)continue;const X=cx+i,Y=cy+j;if(X<1||Y<1||X>=GW-1||Y>=GH-1)continue;fn(Y*GW+X)}}
+function spore(cx,cy){disc(cx,cy,3,i=>{v[i]=.5;u[i]=.25})}
+function reset(){R=mulberry(seedN++);u.fill(1);v.fill(0);food.fill(0);wall.fill(0);eaten=0;ink=1600;won=0;tick=0;
+  spore(22,GH>>1);spore(27,(GH>>1)+6);
+  pel=[];while(pel.length<12){const p={x:45+R()*(GW-55)|0,y:10+R()*(GH-20)|0};if(pel.every(q=>(q.x-p.x)**2+(q.y-p.y)**2>20*20))pel.push(p)}
+  for(let k=0;k<5;k++){const cx=60+R()*(GW-90)|0,cy=15+R()*(GH-30)|0,vert=R()<.5,len=14+R()*20|0;
+    for(let t=0;t<len;t++){const X=vert?cx:cx+t,Y=vert?cy+t:cy;if(X<GW-2&&Y<GH-2&&pel.every(q=>(q.x-X)**2+(q.y-Y)**2>36)){wall[Y*GW+X]=1;wall[Y*GW+X+1]=1}}}}
+function sim(){
+  for(let y=1;y<GH-1;y++){for(let x=1;x<GW-1;x++){const i=y*GW+x;
+    if(wall[i]){u2[i]=0;v2[i]=0;continue}
+    const a=u[i],b=v[i];
+    const la=(u[i-1]+u[i+1]+u[i-GW]+u[i+GW])*.2+(u[i-GW-1]+u[i-GW+1]+u[i+GW-1]+u[i+GW+1])*.05-a;
+    const lb=(v[i-1]+v[i+1]+v[i-GW]+v[i+GW])*.2+(v[i-GW-1]+v[i-GW+1]+v[i+GW-1]+v[i+GW+1])*.05-b;
+    const r=a*b*b,f=F+food[i]*FOODF;
+    u2[i]=a+la-r+f*(1-a);v2[i]=b+.5*lb+r-(Kk-food[i]*FOODK+f)*b;
+    if(food[i]>0){food[i]-=EAT*b*8;if(food[i]<0)food[i]=0}
+  }}
+  let t=u;u=u2;u2=t;t=v;v=v2;v2=t;
+}
+function step(){tick++;for(let k=0;k<12;k++)sim();
+  for(let k=pel.length-1;k>=0;k--){const p=pel[k];if(v[p.y*GW+p.x]>.18){pel.splice(k,1);eaten++;ink+=380;disc(p.x,p.y,7,i=>{food[i]=1});if(!pel.length)won=tick}}
+  if(paint)apply(paint);
+}
+let paint=null,tool=toolbar(['tFeed','tSeed','tWipe','tWall'],null);
+function apply(p){const cx=p.x/CS|0,cy=p.y/CS|0,t=tool();
+  if(t==='tFeed')disc(cx,cy,2,i=>{if(food[i]<1&&ink>0&&!wall[i]){ink-=(1-food[i]);food[i]=1}});
+  else if(t==='tWipe')disc(cx,cy,5,i=>{v[i]=0;u[i]=1;food[i]=0;wall[i]=0});
+  else if(t==='tWall')disc(cx,cy,1,i=>{wall[i]=1;food[i]=0});
+  if(ink<0)ink=0}
+onPointer($('c'),stage,{down:p=>{if(tool()==='tSeed'){if(ink>=150){ink-=150;spore(p.x/CS|0,p.y/CS|0)}}else{paint=p;apply(p)}},move:(p,d)=>{if(d&&paint){
+    const n=Math.ceil(Math.hypot(p.x-paint.x,p.y-paint.y)/CS);for(let k=1;k<=n;k++)apply({x:paint.x+(p.x-paint.x)*k/n,y:paint.y+(p.y-paint.y)*k/n});paint=p}},up:()=>paint=null});
+function mass(){let m=0;for(let i=0;i<NC;i++)m+=v[i];return m}
+function draw(){
+  const d=img.data;
+  for(let i=0;i<NC;i++){const o=i*4;
+    if(wall[i]){d[o]=70;d[o+1]=92;d[o+2]=110;d[o+3]=255;continue}
+    let t=v[i]*2.3;if(t>1)t=1;const fd=food[i];
+    // well -> teal -> bone
+    let r,g,b;if(t<.6){const k=t/.6;r=10+k*85;g=20+k*188;b=28+k*169}else{const k=(t-.6)/.4;r=95+k*136;g=208+k*19;b=197+k*15}
+    d[o]=r+fd*70;d[o+1]=g+fd*42;d[o+2]=b;d[o+3]=255}
+  octx.putImageData(img,0,0);
+  stage.begin();ctx.imageSmoothingEnabled=true;ctx.drawImage(off,0,0,W,H);
+  for(const p of pel){ctx.fillStyle='#ffb648';ctx.beginPath();ctx.arc(p.x*CS+2,p.y*CS+2,6,0,7);ctx.fill()}
+  $('hud').textContent='Pellets '+eaten+' of '+(eaten+pel.length)+'   ·   Feed left '+Math.round(ink)+(won?'   ·   Dish cleared':'')+(ink<=0&&pel.length?'   ·   Out of feed. Wait for the stain, or start a new dish.':'');
+}
+$('reset').onclick=reset;$('regime').onchange=()=>{const a=$('regime').value.split(',');F=+a[0];Kk=+a[1]};
+reset();runLoop({step,draw});
+window.__t={step,stats:()=>({eaten,ink:Math.round(ink),mass:Math.round(mass())}),reset,line(x0,y0,x1,y1){const n=Math.ceil(Math.hypot(x1-x0,y1-y0));for(let k=0;k<=n;k++)disc(Math.round(x0+(x1-x0)*k/n),Math.round(y0+(y1-y0)*k/n),2,i=>{food[i]=1})},set(f,k){F=f;Kk=k},pel:()=>pel};
+</script>

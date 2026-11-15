@@ -1,0 +1,94 @@
+<title>Sprout</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<!--FONT-->
+<style>
+/*SHARED_CSS*/
+.genes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.gene{border:1px solid var(--line);border-radius:6px;padding:10px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 8px;align-items:center;font-size:13px;color:var(--dim)}
+.gene h2{grid-column:1/-1;font:600 14px var(--display);margin:0;color:var(--fg);display:flex;align-items:center;gap:8px}
+.gene h2 i{width:12px;height:12px;border-radius:50%;display:inline-block}
+.gene select{padding:4px 6px;font-size:13px;min-width:0;width:100%}
+</style>
+<main class="wrap">
+  <header>
+    <h1>Sprout</h1>
+    <p class="src">Cribbed from Cell Lab and from Karl Sims' idea that a body is a small program that unfolds. You do not build the creature. You write four cell types: what job each does, when it splits, and what its two halves become. One germ cell is dropped in and the body grows itself. The dish wraps around at the edges. Mouths eat <span class="pel">pellets</span>, leaves soak up light, tails push against whatever they are joined to, and joined cells share food.</p>
+  </header>
+  <div class="stage"><canvas id="c"></canvas><div class="hud" id="hud"></div></div>
+  <div class="controls">
+    <button id="restart">Drop a fresh germ</button>
+    <button id="pause">Pause</button>
+    <label>Start from <select id="preset"></select></label>
+    <label>Speed <select id="speed"><option value="1">1x</option><option value="3" selected>3x</option><option value="8">8x</option></select></label>
+  </div>
+  <div class="genes" id="genes"></div>
+  <details class="try" open>
+    <summary>What to try</summary>
+    <ul>
+      <li><b>Start from "Tadpole"</b> and read its four cards against what you see. Then change one dropdown and drop a fresh germ.</li>
+      <li><b>Start from "Leaf raft"</b>, a sheet that never lets go of its halves. Make one half a tail and see whether the sheet can afford to move.</li>
+      <li><b>Two tails on one small mouth</b> pull against each other and starve it. Most bodies you write will die. The ones that live are worth keeping.</li>
+      <li><b>Leaves need no pellets</b> but earn slowly and shade each other. See whether a leaf body can afford a tail.</li>
+      <li><b>Aim for the most cells alive at once</b> (the dish holds 160), then for the most pellets a minute. They want different bodies.</li>
+      <li><b>Click the dish</b> to drop pellets where you want them.</li>
+    </ul>
+  </details>
+</main>
+<script>
+/*SHARED_JS*/
+</script>
+<script>
+const W=900,H=560,CAPC=160,JOBS=['Mouth','Tail','Leaf'],JCOL=['#5fd0c5','#f2787a','#8fd36b','#b79cf5'],TCOL=['#5fd0c5','#b79cf5','#6aa8ff','#e7e3d4'];
+const SPLITS=[['never',0],['small',1.6],['medium',2.6],['big',4]];const wr=(d,L)=>d>L/2?d-L:d<-L/2?d+L:d;
+const stage=makeStage($('c'),W,H),ctx=stage.ctx;
+const PRESETS={
+  'Tadpole':[{job:0,split:2.6,a:1,b:2,join:1,side:0},{job:0,split:4,a:1,b:0,join:0,side:1},{job:1,split:0,a:2,b:2,join:1,side:0},{job:2,split:0,a:3,b:3,join:0,side:0}],
+  'Algae':[{job:2,split:1.6,a:0,b:0,join:0,side:0},{job:0,split:0,a:1,b:1,join:0,side:0},{job:1,split:0,a:2,b:2,join:1,side:0},{job:2,split:0,a:3,b:3,join:0,side:0}],
+  'Leaf raft':[{job:2,split:1.6,a:0,b:0,join:1,side:1},{job:0,split:0,a:1,b:1,join:0,side:0},{job:1,split:0,a:2,b:2,join:1,side:0},{job:2,split:0,a:3,b:3,join:0,side:0}],
+  'Solar skiff':[{job:2,split:2.6,a:0,b:1,join:1,side:0},{job:0,split:2.6,a:1,b:2,join:1,side:0},{job:1,split:0,a:2,b:2,join:1,side:0},{job:2,split:0,a:3,b:3,join:0,side:0}],
+  'One lonely mouth':[{job:0,split:0,a:0,b:0,join:0,side:0},{job:0,split:0,a:1,b:1,join:0,side:0},{job:1,split:0,a:2,b:2,join:1,side:0},{job:2,split:0,a:3,b:3,join:0,side:0}]
+};
+let PV=2,UP=1;let G=JSON.parse(JSON.stringify(PRESETS.Tadpole)),cells=[],bonds=[],pel=[],R=mulberry(4),tick=0,eaten=0,log=[],peak=0,nid=1;
+const rad=m=>5+4*Math.sqrt(m);
+function germ(){cells=[{id:nid++,x:W/2,y:H/2,vx:0,vy:0,m:3,t:0,th:0,age:0}];bonds=[];pel=[];tick=0;eaten=0;log=[];peak=0;for(let i=0;i<90;i++)pel.push({x:20+R()*(W-40),y:20+R()*(H-40)})}
+function step(){tick++;
+  if(tick%8===0&&pel.length<120)pel.push({x:20+R()*(W-40),y:20+R()*(H-40)});
+  for(const p of pel){p.vx=((p.vx||0)+(R()-.5)*.08)*.97;p.vy=((p.vy||0)+(R()-.5)*.08)*.97;p.x=(p.x+p.vx+W)%W;p.y=(p.y+p.vy+H)%H}
+  const n=cells.length;let leaves=0;for(const c of cells){c.fx=0;c.fy=0;c.bx=0;c.by=0;c.nb=0;if(G[c.t].job===2)leaves++}
+  for(let i=0;i<n;i++){const a=cells[i],ra=rad(a.m);for(let j=i+1;j<n;j++){const b=cells[j];const dx=wr(b.x-a.x,W),dy=wr(b.y-a.y,H),rr=ra+rad(b.m);if(Math.abs(dx)>rr||Math.abs(dy)>rr)continue;const d=Math.hypot(dx,dy)||.01;if(d<rr){const f=.25*(rr-d)/d;a.fx-=dx*f;a.fy-=dy*f;b.fx+=dx*f;b.fy+=dy*f}}}
+  const byId=new Map(cells.map(c=>[c.id,c]));
+  for(let k=bonds.length-1;k>=0;k--){const bo=bonds[k],a=byId.get(bo[0]),b=byId.get(bo[1]);if(!a||!b){bonds.splice(k,1);continue}
+    const dx=wr(b.x-a.x,W),dy=wr(b.y-a.y,H),d=Math.hypot(dx,dy)||.01,rest=(rad(a.m)+rad(b.m))*.92,f=.2*(d-rest)/d;a.fx+=dx*f;a.fy+=dy*f;b.fx-=dx*f;b.fy-=dy*f;
+    a.bx+=dx/d;a.by+=dy/d;a.nb++;b.bx-=dx/d;b.by-=dy/d;b.nb++;const fl=.02*(a.m-b.m);a.m-=fl;b.m+=fl}
+  const born=[];
+  for(let i=cells.length-1;i>=0;i--){const c=cells[i],g=G[c.t],r=rad(c.m);c.age++;
+    c.m-=(.0003+.00025*c.m)*UP;
+    if(g.job===1){let tx,ty;if(c.nb){c.th=Math.atan2(c.by,c.bx)}const wob=Math.sin(tick*.01+c.id*2.4)*.5;tx=Math.cos(c.th+wob);ty=Math.sin(c.th+wob);c.fx+=tx*.3;c.fy+=ty*.3;c.m-=.0006}
+    else if(g.job===2){c.m+=.003*40/(40+leaves)}
+    else{for(let k=pel.length-1;k>=0;k--){const p=pel[k],qx=wr(p.x-c.x,W),qy=wr(p.y-c.y,H);if(Math.abs(qx)<r+5&&Math.abs(qy)<r+5&&qx*qx+qy*qy<(r+5)*(r+5)){pel.splice(k,1);c.m+=PV;eaten++;log.push(tick)}}}
+    c.vx=(c.vx+c.fx)*.86;c.vy=(c.vy+c.fy)*.86;c.x+=c.vx;c.y+=c.vy;
+    c.x=(c.x+W)%W;c.y=(c.y+H)%H;
+    if(c.m<.35){cells.splice(i,1);if(R()<.5)pel.push({x:c.x,y:c.y});continue}
+    if(g.split&&c.m>=g.split&&cells.length+born.length<CAPC&&c.age>40){const ang=c.th+(g.side?1.5708:0),ux=Math.cos(ang),uy=Math.sin(ang),off=r*.45;
+      const A={id:nid++,x:c.x+ux*off,y:c.y+uy*off,vx:c.vx,vy:c.vy,m:c.m/2,t:g.a,th:c.th,age:0},B={id:nid++,x:c.x-ux*off,y:c.y-uy*off,vx:c.vx,vy:c.vy,m:c.m/2,t:g.b,th:c.th+Math.PI,age:0};
+      for(const bo of bonds){for(let s=0;s<2;s++)if(bo[s]===c.id){const o=byId.get(bo[1-s]);bo[s]=(o&&(wr(o.x-A.x,W)**2+wr(o.y-A.y,H)**2<wr(o.x-B.x,W)**2+wr(o.y-B.y,H)**2))?A.id:B.id}}
+      if(g.join)bonds.push([A.id,B.id]);cells.splice(i,1);born.push(A,B)}}
+  for(const b of born)cells.push(b);
+  while(log.length&&log[0]<tick-3600)log.shift();if(cells.length>peak)peak=cells.length}
+function draw(){stage.begin();ctx.fillStyle='#0a141c';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#ffb648';for(const p of pel){ctx.beginPath();ctx.arc(p.x,p.y,4,0,7);ctx.fill()}
+  const byId=new Map(cells.map(c=>[c.id,c]));ctx.strokeStyle='rgba(231,227,212,.55)';ctx.lineWidth=3;ctx.beginPath();for(const bo of bonds){const a=byId.get(bo[0]),b=byId.get(bo[1]);if(a&&b&&Math.abs(a.x-b.x)<W/2&&Math.abs(a.y-b.y)<H/2){ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y)}}ctx.stroke();
+  for(const c of cells){const g=G[c.t],r=rad(c.m);
+    if(g.job===1){ctx.strokeStyle='#f2787a';ctx.lineWidth=2;ctx.beginPath();const bx=c.x-Math.cos(c.th)*r,by=c.y-Math.sin(c.th)*r;ctx.moveTo(bx,by);for(let s=1;s<=4;s++){const w=Math.sin(tick*.5+s*1.2)*3;ctx.lineTo(bx-Math.cos(c.th)*s*4-Math.sin(c.th)*w,by-Math.sin(c.th)*s*4+Math.cos(c.th)*w)}ctx.stroke()}
+    ctx.fillStyle=TCOL[c.t]+'55';ctx.strokeStyle=TCOL[c.t];ctx.lineWidth=2;ctx.beginPath();ctx.arc(c.x,c.y,r,0,7);ctx.fill();ctx.stroke();
+    ctx.fillStyle=JCOL[g.job];ctx.beginPath();if(g.job===0){ctx.arc(c.x,c.y,r*.45,.5,5.78);ctx.lineTo(c.x,c.y)}else if(g.job===2){ctx.ellipse(c.x,c.y,r*.5,r*.25,.6,0,7)}else ctx.arc(c.x,c.y,r*.25,0,7);ctx.fill()}
+  $('hud').textContent='Cells '+cells.length+'   ·   Most at once '+peak+'   ·   Pellets '+eaten+'   ·   '+log.length+' in the last minute'+(cells.length?'':'\nEverything died. Change a card and drop a fresh germ.')}
+function buildGenes(){const g=$('genes');g.innerHTML='';G.forEach((ge,i)=>{const d=document.createElement('div');d.className='gene';d.innerHTML='<h2><i style="background:'+TCOL[i]+'"></i>Type '+(i+1)+(i===0?' (the germ)':'')+'</h2>';
+    const row=(label,key,opts)=>{const l=document.createElement('label');l.textContent=label;l.htmlFor='g'+i+key;const s=document.createElement('select');s.id='g'+i+key;opts.forEach(([t,v])=>{const o=document.createElement('option');o.textContent=t;o.value=v;s.appendChild(o)});s.value=ge[key];s.onchange=()=>{ge[key]=+s.value};d.appendChild(l);d.appendChild(s)};
+    row('Job','job',JOBS.map((j,k)=>[j,k]));row('Splits at size','split',SPLITS);row('Front half becomes','a',[0,1,2,3].map(k=>['Type '+(k+1),k]));row('Back half becomes','b',[0,1,2,3].map(k=>['Type '+(k+1),k]));row('Halves stay joined','join',[['no',0],['yes',1]]);row('Split line','side',[['lengthwise',0],['crosswise',1]]);g.appendChild(d)})}
+for(const k in PRESETS){const o=document.createElement('option');o.textContent=k;$('preset').appendChild(o)}
+$('preset').onchange=()=>{G=JSON.parse(JSON.stringify(PRESETS[$('preset').value]));buildGenes();germ()};
+$('restart').onclick=germ;onPointer($('c'),stage,{down:p=>{for(let i=0;i<5;i++)pel.push({x:p.x+(R()-.5)*30,y:p.y+(R()-.5)*30})}});
+buildGenes();germ();const loop=runLoop({step,draw,speed:3});$('speed').onchange=()=>loop.setSpeed(+$('speed').value);
+window.__t={step,stats:()=>({cells:cells.length,peak,eaten,perMin:log.length,bonds:bonds.length,mass:+cells.reduce((a,c)=>a+c.m,0).toFixed(1)}),load(k){G=JSON.parse(JSON.stringify(PRESETS[k]));buildGenes();germ()},setG(g){G=g;germ()},cfg(a,b){PV=a;UP=b},PRESETS};
+</script>

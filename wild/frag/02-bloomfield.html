@@ -1,0 +1,135 @@
+<title>Bloomfield</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* layout: one column. stage on top, controls under it, notes last. one dark look: a dish under a night microscope */
+:root{--bg:#0f1b26;--well:#0a141c;--panel:#172836;--line:#2a4052;--fg:#e4edf2;--dim:#93a9b8;--pellet:#ffb648;--a:#5fd0c5;--b:#f2787a;--c:#b79cf5;--d:#6aa8ff;--e:#e7e3d4;color-scheme:dark;--display:'Space Grotesk',system-ui,sans-serif;--body:'Inter',system-ui,sans-serif}
+html,body{background:var(--bg);color:var(--fg);font-family:var(--body);line-height:1.45}
+.wrap{max-width:1000px;margin:0 auto;padding-block:18px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:12px}
+h1{font-family:var(--display);font-size:1.6rem;margin:0;letter-spacing:-.01em}
+.src{color:var(--dim);margin:0;max-width:68ch}
+.stage{position:relative;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--well)}
+canvas{display:block;width:100%;touch-action:none}
+.hud{position:absolute;left:10px;top:8px;right:10px;font:600 13px var(--display);pointer-events:none;text-shadow:0 1px 3px #000,0 0 2px #000;font-variant-numeric:tabular-nums;white-space:pre-line}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,select{font:500 14px var(--body);color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--dim)}
+button[aria-pressed=true]{background:var(--a);color:#062422;border-color:var(--a)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--pellet);outline-offset:1px}
+label{color:var(--dim);display:flex;gap:6px;align-items:center;font-size:14px}
+input[type=range]{accent-color:var(--a);width:120px}
+.try{color:var(--dim);max-width:72ch}
+.try summary{color:var(--fg);font-family:var(--display);font-weight:600;cursor:pointer}
+.try ul{margin:8px 0 0;padding-left:20px}
+.try li{margin:5px 0}
+.try b{color:var(--fg);font-weight:600}
+.pel{color:var(--pellet)}
+
+</style>
+<main class="wrap">
+  <header>
+    <h1>Bloomfield</h1>
+    <p class="src">Cribbed from Gray-Scott reaction-diffusion, the two-chemical recipe behind leopard spots and coral. Your organism is not a thing, it is a stain that keeps itself alive. On bare ground it holds as quiet spots. Where you lay feed it grows, branches and splits. Lead it to the <span class="pel">pellets</span> before your feed runs out.</p>
+  </header>
+  <div class="stage"><canvas id="c"></canvas><div class="hud" id="hud"></div></div>
+  <div class="controls">
+    <button id="tFeed">Lay feed</button>
+    <button id="tSeed">Drop a spore</button>
+    <button id="tWipe">Wipe</button>
+    <button id="tWall">Draw wall</button>
+    <button id="pause">Pause</button>
+    <button id="reset">New dish</button>
+    <label>Ground <select id="regime">
+      <option value="0.030,0.065">Quiet spots</option>
+      <option value="0.030,0.063">Dividing cells</option>
+      <option value="0.0545,0.062">Coral</option>
+    </select></label>
+  </div>
+  <details class="try" open>
+    <summary>What to try</summary>
+    <ul>
+      <li><b>Draw a thin feed line</b> from the stain to the nearest pellet. The stain eats the line as it follows it, so thin lines go further than fat ones.</li>
+      <li><b>Each pellet reached refunds feed</b> and blooms on the spot. Chain them.</li>
+      <li><b>Walls starve whatever touches them.</b> Use one to cut a branch off, or to stop the bloom spreading the wrong way.</li>
+      <li><b>Change the ground</b> to "Dividing cells" and drop one spore. Now it spreads with no feed at all and the game becomes containment.</li>
+    </ul>
+  </details>
+</main>
+<script>
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const $=id=>document.getElementById(id);
+function makeStage(canvas,W,H){const ctx=canvas.getContext('2d');let s=1;canvas.style.aspectRatio=W+'/'+H;
+  function fit(){const r=canvas.getBoundingClientRect();const dpr=Math.min(window.devicePixelRatio||1,2);const w=Math.max(1,Math.round(r.width*dpr));if(w===canvas.width)return;canvas.width=w;canvas.height=Math.round(w*H/W);s=w/W}
+  if(window.ResizeObserver)new ResizeObserver(fit).observe(canvas);fit();
+  return{ctx,W,H,begin(){fit();s=canvas.width/W;ctx.setTransform(s,0,0,s,0,0)},pos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}}}
+function onPointer(canvas,stage,h){let down=false;
+  canvas.addEventListener('pointerdown',e=>{down=true;try{canvas.setPointerCapture(e.pointerId)}catch(_){}h.down&&h.down(stage.pos(e),e);e.preventDefault()});
+  canvas.addEventListener('pointermove',e=>{h.move&&h.move(stage.pos(e),down,e)});
+  const up=e=>{if(down){down=false;h.up&&h.up(stage.pos(e),e)}};canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',up);
+  canvas.addEventListener('pointerleave',e=>{h.leave&&h.leave()});
+  canvas.addEventListener('contextmenu',e=>e.preventDefault())}
+function runLoop(o){let paused=false,speed=o.speed||1;const pb=$('pause');
+  if(pb)pb.onclick=()=>{paused=!paused;pb.textContent=paused?'Play':'Pause'};
+  function frame(){if(!paused)for(let i=0;i<speed;i++)o.step();o.draw();requestAnimationFrame(frame)}
+  requestAnimationFrame(frame);
+  return{setSpeed(v){speed=v},get paused(){return paused},set paused(v){paused=v;if(pb)pb.textContent=paused?'Play':'Pause'}}}
+function toolbar(ids,onPick){let cur=ids[0];ids.forEach(id=>{const b=$(id);b.setAttribute('aria-pressed',id===cur);b.onclick=()=>{cur=id;ids.forEach(j=>$(j).setAttribute('aria-pressed',j===id));onPick&&onPick(id)}});return()=>cur}
+
+</script>
+<script>
+const GW=240,GH=150,CS=4,W=GW*CS,H=GH*CS,NC=GW*GH;
+const stage=makeStage($('c'),W,H),ctx=stage.ctx;
+const off=document.createElement('canvas');off.width=GW;off.height=GH;const octx=off.getContext('2d');const img=octx.createImageData(GW,GH);
+let u=new Float32Array(NC),v=new Float32Array(NC),u2=new Float32Array(NC),v2=new Float32Array(NC);
+const food=new Float32Array(NC),wall=new Uint8Array(NC);
+let F=.030,Kk=.065,ink=0,eaten=0,pel=[],seedN=1,R=mulberry(1),won=0,tick=0;
+const FOODF=.008,FOODK=.004,EAT=.00035;
+function disc(cx,cy,r,fn){for(let j=-r;j<=r;j++)for(let i=-r;i<=r;i++){if(i*i+j*j>r*r)continue;const X=cx+i,Y=cy+j;if(X<1||Y<1||X>=GW-1||Y>=GH-1)continue;fn(Y*GW+X)}}
+function spore(cx,cy){disc(cx,cy,3,i=>{v[i]=.5;u[i]=.25})}
+function reset(){R=mulberry(seedN++);u.fill(1);v.fill(0);food.fill(0);wall.fill(0);eaten=0;ink=1600;won=0;tick=0;
+  spore(22,GH>>1);spore(27,(GH>>1)+6);
+  pel=[];while(pel.length<12){const p={x:45+R()*(GW-55)|0,y:10+R()*(GH-20)|0};if(pel.every(q=>(q.x-p.x)**2+(q.y-p.y)**2>20*20))pel.push(p)}
+  for(let k=0;k<5;k++){const cx=60+R()*(GW-90)|0,cy=15+R()*(GH-30)|0,vert=R()<.5,len=14+R()*20|0;
+    for(let t=0;t<len;t++){const X=vert?cx:cx+t,Y=vert?cy+t:cy;if(X<GW-2&&Y<GH-2&&pel.every(q=>(q.x-X)**2+(q.y-Y)**2>36)){wall[Y*GW+X]=1;wall[Y*GW+X+1]=1}}}}
+function sim(){
+  for(let y=1;y<GH-1;y++){for(let x=1;x<GW-1;x++){const i=y*GW+x;
+    if(wall[i]){u2[i]=0;v2[i]=0;continue}
+    const a=u[i],b=v[i];
+    const la=(u[i-1]+u[i+1]+u[i-GW]+u[i+GW])*.2+(u[i-GW-1]+u[i-GW+1]+u[i+GW-1]+u[i+GW+1])*.05-a;
+    const lb=(v[i-1]+v[i+1]+v[i-GW]+v[i+GW])*.2+(v[i-GW-1]+v[i-GW+1]+v[i+GW-1]+v[i+GW+1])*.05-b;
+    const r=a*b*b,f=F+food[i]*FOODF;
+    u2[i]=a+la-r+f*(1-a);v2[i]=b+.5*lb+r-(Kk-food[i]*FOODK+f)*b;
+    if(food[i]>0){food[i]-=EAT*b*8;if(food[i]<0)food[i]=0}
+  }}
+  let t=u;u=u2;u2=t;t=v;v=v2;v2=t;
+}
+function step(){tick++;for(let k=0;k<12;k++)sim();
+  for(let k=pel.length-1;k>=0;k--){const p=pel[k];if(v[p.y*GW+p.x]>.18){pel.splice(k,1);eaten++;ink+=380;disc(p.x,p.y,7,i=>{food[i]=1});if(!pel.length)won=tick}}
+  if(paint)apply(paint);
+}
+let paint=null,tool=toolbar(['tFeed','tSeed','tWipe','tWall'],null);
+function apply(p){const cx=p.x/CS|0,cy=p.y/CS|0,t=tool();
+  if(t==='tFeed')disc(cx,cy,2,i=>{if(food[i]<1&&ink>0&&!wall[i]){ink-=(1-food[i]);food[i]=1}});
+  else if(t==='tWipe')disc(cx,cy,5,i=>{v[i]=0;u[i]=1;food[i]=0;wall[i]=0});
+  else if(t==='tWall')disc(cx,cy,1,i=>{wall[i]=1;food[i]=0});
+  if(ink<0)ink=0}
+onPointer($('c'),stage,{down:p=>{if(tool()==='tSeed'){if(ink>=150){ink-=150;spore(p.x/CS|0,p.y/CS|0)}}else{paint=p;apply(p)}},move:(p,d)=>{if(d&&paint){
+    const n=Math.ceil(Math.hypot(p.x-paint.x,p.y-paint.y)/CS);for(let k=1;k<=n;k++)apply({x:paint.x+(p.x-paint.x)*k/n,y:paint.y+(p.y-paint.y)*k/n});paint=p}},up:()=>paint=null});
+function mass(){let m=0;for(let i=0;i<NC;i++)m+=v[i];return m}
+function draw(){
+  const d=img.data;
+  for(let i=0;i<NC;i++){const o=i*4;
+    if(wall[i]){d[o]=70;d[o+1]=92;d[o+2]=110;d[o+3]=255;continue}
+    let t=v[i]*2.3;if(t>1)t=1;const fd=food[i];
+    // well -> teal -> bone
+    let r,g,b;if(t<.6){const k=t/.6;r=10+k*85;g=20+k*188;b=28+k*169}else{const k=(t-.6)/.4;r=95+k*136;g=208+k*19;b=197+k*15}
+    d[o]=r+fd*70;d[o+1]=g+fd*42;d[o+2]=b;d[o+3]=255}
+  octx.putImageData(img,0,0);
+  stage.begin();ctx.imageSmoothingEnabled=true;ctx.drawImage(off,0,0,W,H);
+  for(const p of pel){ctx.fillStyle='#ffb648';ctx.beginPath();ctx.arc(p.x*CS+2,p.y*CS+2,6,0,7);ctx.fill()}
+  $('hud').textContent='Pellets '+eaten+' of '+(eaten+pel.length)+'   ·   Feed left '+Math.round(ink)+(won?'   ·   Dish cleared':'')+(ink<=0&&pel.length?'   ·   Out of feed. Wait for the stain, or start a new dish.':'');
+}
+$('reset').onclick=reset;$('regime').onchange=()=>{const a=$('regime').value.split(',');F=+a[0];Kk=+a[1]};
+reset();runLoop({step,draw});
+window.__t={step,stats:()=>({eaten,ink:Math.round(ink),mass:Math.round(mass())}),reset,line(x0,y0,x1,y1){const n=Math.ceil(Math.hypot(x1-x0,y1-y0));for(let k=0;k<=n;k++)disc(Math.round(x0+(x1-x0)*k/n),Math.round(y0+(y1-y0)*k/n),2,i=>{food[i]=1})},set(f,k){F=f;Kk=k},pel:()=>pel};
+</script>

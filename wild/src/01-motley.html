@@ -1,0 +1,116 @@
+<title>Motley</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<!--FONT-->
+<style>
+/*SHARED_CSS*/
+.mx{display:grid;grid-template-columns:auto repeat(5,minmax(34px,1fr));gap:4px;max-width:420px;align-items:center}
+.mx button{padding:6px 0;font:600 13px var(--display);min-width:0}
+.mx .dot{width:14px;height:14px;border-radius:50%;justify-self:center}
+.mx .hd{display:flex;justify-content:center}
+.cols{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
+.cols>div{min-width:0}
+.cap{color:var(--dim);font-size:13px;margin:0 0 6px}
+</style>
+<main class="wrap">
+  <header>
+    <h1>Motley</h1>
+    <p class="src">Cribbed from Particle Life. Five colours of mote, and one small table that says how much each colour likes or avoids each other colour. Nothing else. Bodies, chasers and shells form on their own. Only the pale motes can smell a <span class="pel">pellet</span>, and they cannot crack it. Cracking takes three coloured motes touching it at once, so a body has to follow its noses.</p>
+  </header>
+  <div class="stage"><canvas id="c"></canvas><div class="hud" id="hud"></div></div>
+  <div class="controls">
+    <button id="pause">Pause</button>
+    <button id="shuffle">New random rules</button>
+    <button id="mutate">Nudge rules</button>
+    <button id="scatter">Scatter motes</button>
+    <label>Start from <select id="preset"></select></label>
+  </div>
+  <div class="cols">
+    <div>
+      <p class="cap">Row colour feels this way about column colour. Click to step up, right-click or Shift-click to step down.</p>
+      <div class="mx" id="mx"></div>
+    </div>
+    <details class="try" open>
+      <summary>What to try</summary>
+      <ul>
+        <li><b>Make a chaser.</b> Set teal to like coral (+1) and coral to avoid teal (−1). One colour hunts the other forever and the pair starts to travel.</li>
+        <li><b>Start from Blank.</b> The pale noses find pellets and sit on them, useless. Now give one colour a reason to follow pale (+1 in the pale column) and the count starts.</li>
+        <li><b>Press "New random rules"</b> a dozen times. Roughly one in five gives something that looks alive. "Nudge rules" changes one number, which is how you breed one you like.</li>
+        <li><b>Drag in the dish</b> to stir. Good bodies heal, bad ones never re-form.</li>
+      </ul>
+    </details>
+  </div>
+</main>
+<script>
+/*SHARED_JS*/
+</script>
+<script>
+const W=900,H=560,N=400,K=5,RM=70,BETA=.3,PR=120;
+const COL=['#5fd0c5','#f2787a','#b79cf5','#6aa8ff','#e7e3d4'];
+const stage=makeStage($('c'),W,H),ctx=stage.ctx;
+let R=mulberry(7);
+const x=new Float32Array(N),y=new Float32Array(N),vx=new Float32Array(N),vy=new Float32Array(N),kind=new Uint8Array(N);
+let M=[],pel=[],eaten=0,tick=0,log=[],stir=null;
+const PRESETS={
+  'Hunters':[[.5,1,0,0,.5],[-1,.5,1,0,0],[0,-1,.5,1,.5],[0,0,-1,.5,1],[0,0,0,0,-.5]],
+  'Found by chance A':[[1,.5,-1,-1,1],[-.5,0,0,0,.5],[0,0,1,0,-1],[-.5,.5,-1,-1,.5],[0,.5,1,-.5,-1]],
+  'Found by chance B':[[.5,-1,0,1,.5],[.5,.5,1,0,.5],[0,1,-.5,-.5,-.5],[.5,-.5,-.5,0,1],[-.5,0,-.5,1,1]],
+  'Blank':[[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]]
+};
+function scatter(){for(let i=0;i<N;i++){x[i]=R()*W;y[i]=R()*H;vx[i]=vy[i]=0;kind[i]=i%K}}
+function newPellet(p){p.x=20+R()*(W-40);p.y=20+R()*(H-40);p.t=0;p.fl=0;return p}
+function reset(){scatter();pel=[];for(let i=0;i<26;i++)pel.push(newPellet({}));eaten=0;tick=0;log=[]}
+function setM(m){M=m.map(r=>r.slice());drawMx()}
+function randM(){return Array.from({length:K},()=>Array.from({length:K},()=>Math.round((R()*2-1)*2)/2))}
+function step(){
+  tick++;
+  for(const p of pel)p.t=0;
+  for(let i=0;i<N;i++){
+    let fx=0,fy=0;const xi=x[i],yi=y[i],row=M[kind[i]];
+    for(let j=0;j<N;j++){if(j===i)continue;
+      let dx=x[j]-xi,dy=y[j]-yi;
+      if(dx>W/2)dx-=W;else if(dx<-W/2)dx+=W;
+      if(dy>H/2)dy-=H;else if(dy<-H/2)dy+=H;
+      const d2=dx*dx+dy*dy;if(d2>RM*RM||d2<1e-6)continue;
+      const d=Math.sqrt(d2),q=d/RM;
+      const f=q<BETA?q/BETA-1:row[kind[j]]*(1-Math.abs(2*q-1-BETA)/(1-BETA));
+      fx+=dx/d*f;fy+=dy/d*f;
+    }
+    const ap=kind[i]===4?1:0;
+    for(const p of pel){const dx=p.x-xi,dy=p.y-yi,d2=dx*dx+dy*dy;if(d2>PR*PR)continue;const d=Math.sqrt(d2)+.01;
+      if(d<13&&!ap)p.t++;
+      if(ap){const f=ap*(1-d/PR)*1.6;fx+=dx/d*f;fy+=dy/d*f}}
+    if(stir){const dx=xi-stir.x,dy=yi-stir.y,d2=dx*dx+dy*dy;if(d2<90*90){const d=Math.sqrt(d2)+.01;fx+=dx/d*4*(1-d/90);fy+=dy/d*4*(1-d/90)}}
+    vx[i]=(vx[i]+fx*.32)*.86;vy[i]=(vy[i]+fy*.32)*.86;
+  }
+  for(let i=0;i<N;i++){x[i]=(x[i]+vx[i]+W)%W;y[i]=(y[i]+vy[i]+H)%H}
+  for(const p of pel){if(p.fl>0)p.fl--;if(p.t>=3){eaten++;log.push(tick);const ox=p.x,oy=p.y;newPellet(p);p.fl=0;bursts.push({x:ox,y:oy,a:1})}}
+  while(log.length&&log[0]<tick-3600)log.shift();
+}
+const bursts=[];
+function draw(){
+  stage.begin();ctx.fillStyle='#0a141c';ctx.fillRect(0,0,W,H);
+  for(let i=0;i<N;i++){ctx.fillStyle=COL[kind[i]];ctx.beginPath();ctx.arc(x[i],y[i],3.2,0,7);ctx.fill()}
+  for(const p of pel){ctx.fillStyle='#ffb648';ctx.beginPath();ctx.arc(p.x,p.y,6,0,7);ctx.fill();
+    if(p.t>0){ctx.strokeStyle='#ffb648';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,9+p.t*2,0,7);ctx.stroke()}}
+  for(let i=bursts.length-1;i>=0;i--){const b=bursts[i];ctx.strokeStyle='rgba(255,182,72,'+b.a+')';ctx.lineWidth=2;ctx.beginPath();ctx.arc(b.x,b.y,8+(1-b.a)*26,0,7);ctx.stroke();b.a-=.04;if(b.a<=0)bursts.splice(i,1)}
+  $('hud').textContent='Pellets cracked '+eaten+'   ·   '+log.length+' in the last minute';
+}
+function cellStyle(b,v){const a=Math.abs(v);b.textContent=v===0?'·':(v>0?'+':'−')+(a===1?'1':'½');
+  b.style.background=v===0?'':(v>0?'rgba(95,208,197,'+(.25+.5*a)+')':'rgba(242,120,122,'+(.25+.5*a)+')')}
+function drawMx(){const g=$('mx');g.innerHTML='';
+  g.appendChild(document.createElement('span'));
+  for(let j=0;j<K;j++){const h=document.createElement('span');h.className='hd';const d=document.createElement('span');d.className='dot';d.style.background=COL[j];h.appendChild(d);g.appendChild(h)}
+  for(let i=0;i<K;i++){const d=document.createElement('span');d.className='dot';d.style.background=COL[i];g.appendChild(d);
+    for(let j=0;j<K;j++){const b=document.createElement('button');b.id='m'+i+'_'+j;cellStyle(b,M[i][j]);
+      const bump=dir=>{let v=M[i][j]+dir*.5;if(v>1)v=-1;if(v<-1)v=1;M[i][j]=v;cellStyle(b,v)};
+      b.onclick=e=>bump(e.shiftKey?-1:1);b.oncontextmenu=e=>{e.preventDefault();bump(-1)};g.appendChild(b)}}}
+for(const k in PRESETS){const o=document.createElement('option');o.textContent=k;$('preset').appendChild(o)}
+$('preset').onchange=()=>{setM(PRESETS[$('preset').value]);scatter()};
+$('shuffle').onclick=()=>{setM(randM());scatter()};
+$('mutate').onclick=()=>{const i=R()*K|0,j=R()*K|0;let v=M[i][j]+(R()<.5?-.5:.5);M[i][j]=Math.max(-1,Math.min(1,v));drawMx();const b=$('m'+i+'_'+j);b.style.outline='2px solid #ffb648';setTimeout(()=>b.style.outline='',900)};
+$('scatter').onclick=scatter;
+onPointer($('c'),stage,{down:p=>stir=p,move:(p,d)=>{if(d)stir=p},up:()=>stir=null});
+reset();setM(PRESETS.Hunters);
+runLoop({step,draw});
+window.__t={step,stats:()=>({eaten,perMin:log.length}),setM,randM,reset,get M(){return M}};
+</script>

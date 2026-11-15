@@ -1,0 +1,127 @@
+<title>Gulp</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* layout: one column. stage on top, controls under it, notes last. one dark look: a dish under a night microscope */
+:root{--bg:#0f1b26;--well:#0a141c;--panel:#172836;--line:#2a4052;--fg:#e4edf2;--dim:#93a9b8;--pellet:#ffb648;--a:#5fd0c5;--b:#f2787a;--c:#b79cf5;--d:#6aa8ff;--e:#e7e3d4;color-scheme:dark;--display:'Space Grotesk',system-ui,sans-serif;--body:'Inter',system-ui,sans-serif}
+html,body{background:var(--bg);color:var(--fg);font-family:var(--body);line-height:1.45}
+.wrap{max-width:1000px;margin:0 auto;padding-block:18px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:12px}
+h1{font-family:var(--display);font-size:1.6rem;margin:0;letter-spacing:-.01em}
+.src{color:var(--dim);margin:0;max-width:68ch}
+.stage{position:relative;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--well)}
+canvas{display:block;width:100%;touch-action:none}
+.hud{position:absolute;left:10px;top:8px;right:10px;font:600 13px var(--display);pointer-events:none;text-shadow:0 1px 3px #000,0 0 2px #000;font-variant-numeric:tabular-nums;white-space:pre-line}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,select{font:500 14px var(--body);color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--dim)}
+button[aria-pressed=true]{background:var(--a);color:#062422;border-color:var(--a)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--pellet);outline-offset:1px}
+label{color:var(--dim);display:flex;gap:6px;align-items:center;font-size:14px}
+input[type=range]{accent-color:var(--a);width:120px}
+.try{color:var(--dim);max-width:72ch}
+.try summary{color:var(--fg);font-family:var(--display);font-weight:600;cursor:pointer}
+.try ul{margin:8px 0 0;padding-left:20px}
+.try li{margin:5px 0}
+.try b{color:var(--fg);font-weight:600}
+.pel{color:var(--pellet)}
+
+</style>
+<main class="wrap">
+  <header>
+    <h1>Gulp</h1>
+    <p class="src">Cribbed from pressure soft bodies (the jelly blobs of Box2D demos and the Spore cell stage). You are a bag of fluid: a ring of beads joined by springs, held round by pressure. That is the whole body. It squeezes through gaps because nothing says it cannot. Every <span class="pel">pellet</span> makes you bigger, and bigger does not fit. Spit mass out to shrink and get a kick forward.</p>
+  </header>
+  <div class="stage"><canvas id="c"></canvas><div class="hud" id="hud"></div></div>
+  <div class="controls">
+    <button id="shed">Spit (Space)</button>
+    <button id="pause">Pause</button>
+    <button id="reset">New cave</button>
+    <label>Membrane <select id="skin"><option value="1">Springy</option><option value="0.45">Slack</option><option value="2.2">Taut</option></select></label>
+  </div>
+  <details class="try" open>
+    <summary>What to try</summary>
+    <ul>
+      <li><b>Move the pointer</b> (or drag on a phone) and the cell swims after it. Push into a gap narrower than you are and keep pushing.</li>
+      <li><b>Eat five pellets, then try the same gap.</b> Spit to shrink. What you spit can be eaten again later, so park it somewhere open.</li>
+      <li><b>Spit while wedged.</b> The kick is the only fast move you have.</li>
+      <li><b>Coral urchins leak you.</b> A leak sprays pellets you can re-eat if you get clear.</li>
+      <li><b>Switch the membrane to Slack or Taut</b> and feel how much of the game was in that one number.</li>
+    </ul>
+  </details>
+</main>
+<script>
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const $=id=>document.getElementById(id);
+function makeStage(canvas,W,H){const ctx=canvas.getContext('2d');let s=1;canvas.style.aspectRatio=W+'/'+H;
+  function fit(){const r=canvas.getBoundingClientRect();const dpr=Math.min(window.devicePixelRatio||1,2);const w=Math.max(1,Math.round(r.width*dpr));if(w===canvas.width)return;canvas.width=w;canvas.height=Math.round(w*H/W);s=w/W}
+  if(window.ResizeObserver)new ResizeObserver(fit).observe(canvas);fit();
+  return{ctx,W,H,begin(){fit();s=canvas.width/W;ctx.setTransform(s,0,0,s,0,0)},pos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}}}
+function onPointer(canvas,stage,h){let down=false;
+  canvas.addEventListener('pointerdown',e=>{down=true;try{canvas.setPointerCapture(e.pointerId)}catch(_){}h.down&&h.down(stage.pos(e),e);e.preventDefault()});
+  canvas.addEventListener('pointermove',e=>{h.move&&h.move(stage.pos(e),down,e)});
+  const up=e=>{if(down){down=false;h.up&&h.up(stage.pos(e),e)}};canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',up);
+  canvas.addEventListener('pointerleave',e=>{h.leave&&h.leave()});
+  canvas.addEventListener('contextmenu',e=>e.preventDefault())}
+function runLoop(o){let paused=false,speed=o.speed||1;const pb=$('pause');
+  if(pb)pb.onclick=()=>{paused=!paused;pb.textContent=paused?'Play':'Pause'};
+  function frame(){if(!paused)for(let i=0;i<speed;i++)o.step();o.draw();requestAnimationFrame(frame)}
+  requestAnimationFrame(frame);
+  return{setSpeed(v){speed=v},get paused(){return paused},set paused(v){paused=v;if(pb)pb.textContent=paused?'Play':'Pause'}}}
+function toolbar(ids,onPick){let cur=ids[0];ids.forEach(id=>{const b=$(id);b.setAttribute('aria-pressed',id===cur);b.onclick=()=>{cur=id;ids.forEach(j=>$(j).setAttribute('aria-pressed',j===id));onPick&&onPick(id)}});return()=>cur}
+
+</script>
+<script>
+const W=900,H=560,SUB=6;
+const stage=makeStage($('c'),W,H),ctx=stage.ctx;
+let R=mulberry(5),seedN=5,rocks=[],pel=[],urch=[],cell,target={x:120,y:280},eaten=0,total=0,tick=0,doneAt=0,skin=1;
+function newCell(x,y,A0){const N=22,r=Math.sqrt(A0/Math.PI),c={px:[],py:[],vx:[],vy:[],A0,leak:0};for(let i=0;i<N;i++){const a=i/N*6.2832;c.px.push(x+Math.cos(a)*r);c.py.push(y+Math.sin(a)*r);c.vx.push(0);c.vy.push(0)}return c}
+function area(c){let a=0;const n=c.px.length;for(let i=0;i<n;i++){const j=(i+1)%n;a+=c.px[i]*c.py[j]-c.px[j]*c.py[i]}return a/2}
+function centroid(c){let x=0,y=0;const n=c.px.length;for(let i=0;i<n;i++){x+=c.px[i];y+=c.py[i]}return{x:x/n,y:y/n}}
+function inside(c,x,y){let s=false;const n=c.px.length;for(let i=0,j=n-1;i<n;j=i++){if((c.py[i]>y)!==(c.py[j]>y)&&x<(c.px[j]-c.px[i])*(y-c.py[i])/(c.py[j]-c.py[i])+c.px[i])s=!s}return s}
+function rockAt(x,y,pad){for(const r of rocks)if(Math.hypot(r.x-x,r.y-y)<r.r+pad)return true;return false}
+function reset(){R=mulberry(seedN++);rocks=[];pel=[];urch=[];eaten=0;tick=0;doneAt=0;
+  let guard=0;while(rocks.length<24&&guard++<500){const r={x:R()*W,y:R()*H,r:22+R()*42};if(Math.hypot(r.x-120,r.y-280)<r.r+70)continue;rocks.push(r)}
+  guard=0;while(pel.length<26&&guard++<4000){const x=20+R()*(W-40),y=20+R()*(H-40);if(rockAt(x,y,7))continue;const nook=rockAt(x,y,30);if(!nook&&R()<.75)continue;if(pel.some(p=>Math.hypot(p.x-x,p.y-y)<26))continue;pel.push({x,y,vx:0,vy:0,cool:0})}
+  guard=0;while(urch.length<4&&guard++<500){const x=250+R()*(W-300),y=40+R()*(H-80);if(rockAt(x,y,24))continue;urch.push({x,y,vx:(R()-.5)*.8,vy:(R()-.5)*.8})}
+  total=pel.length;cell=newCell(120,280,Math.PI*30*30);target={x:120,y:280}}
+function sub(){const c=cell,n=c.px.length,L0=2*Math.sqrt(Math.PI*c.A0)/n*.96,ks=.32*skin,kb=.06*skin;
+  const A=area(c),sg=A>=0?1:-1,pr=.9*(c.A0-Math.abs(A))/c.A0;const ce=centroid(c);
+  let tx=target.x-ce.x,ty=target.y-ce.y;const td=Math.hypot(tx,ty);const push=td>12?.05:0;if(td>0){tx/=td;ty/=td}
+  const fx=new Float64Array(n),fy=new Float64Array(n);
+  for(let i=0;i<n;i++){const j=(i+1)%n,k=(i+2)%n;let dx=c.px[j]-c.px[i],dy=c.py[j]-c.py[i];const d=Math.hypot(dx,dy)||1e-6;const f=ks*(d-L0)/d;fx[i]+=f*dx;fy[i]+=f*dy;fx[j]-=f*dx;fy[j]-=f*dy;
+    const px=sg*dy*pr*.5,py=-sg*dx*pr*.5;fx[i]+=px;fy[i]+=py;fx[j]+=px;fy[j]+=py;
+    dx=c.px[k]-c.px[i];dy=c.py[k]-c.py[i];const d2=Math.hypot(dx,dy)||1e-6,L2=2*L0*Math.cos(Math.PI/n);const f2=kb*(d2-L2)/d2;fx[i]+=f2*dx;fy[i]+=f2*dy;fx[k]-=f2*dx;fy[k]-=f2*dy}
+  for(let i=0;i<n;i++){let vx=(c.vx[i]+fx[i]+tx*push)*.9,vy=(c.vy[i]+fy[i]+ty*push)*.9;let x=c.px[i]+vx,y=c.py[i]+vy;
+    for(const r of rocks){const dx=x-r.x,dy=y-r.y,rr=r.r+2;if(Math.abs(dx)<rr&&Math.abs(dy)<rr){const d=Math.hypot(dx,dy);if(d<rr){const nx=dx/(d||1),ny=dy/(d||1);x=r.x+nx*rr;y=r.y+ny*rr;const vn=vx*nx+vy*ny;if(vn<0){vx-=vn*nx;vy-=vn*ny}}}}
+    for(const u of urch){const dx=x-u.x,dy=y-u.y,d=Math.hypot(dx,dy);if(d<19){x=u.x+dx/d*19;y=u.y+dy/d*19;c.leak+=1}}
+    if(x<4){x=4;vx=0}if(x>W-4){x=W-4;vx=0}if(y<4){y=4;vy=0}if(y>H-4){y=H-4;vy=0}
+    c.px[i]=x;c.py[i]=y;c.vx[i]=vx;c.vy[i]=vy}}
+function spawnBlob(x,y,vx,vy){pel.push({x,y,vx,vy,cool:90,free:true})}
+function shed(){const c=cell;if(c.A0<1500)return;const ce=centroid(c);let tx=target.x-ce.x,ty=target.y-ce.y;const d=Math.hypot(tx,ty)||1;tx/=d;ty/=d;const r=Math.sqrt(c.A0/Math.PI);c.A0-=500;spawnBlob(ce.x-tx*(r+8),ce.y-ty*(r+8),-tx*3,-ty*3);spawnBlob(ce.x-tx*(r+8)+ty*8,ce.y-ty*(r+8)-tx*8,-tx*2.4+ty,-ty*2.4-tx);for(let i=0;i<c.px.length;i++){c.vx[i]+=tx*2.6;c.vy[i]+=ty*2.6}}
+function step(){tick++;const c=cell;for(let s=0;s<SUB;s++)sub();
+  // resize the bead ring to the perimeter
+  const want=Math.max(14,Math.round(2*Math.sqrt(Math.PI*c.A0)/9));let n=c.px.length;
+  if(n<want){let bi=0,bd=0;for(let i=0;i<n;i++){const j=(i+1)%n,d=Math.hypot(c.px[j]-c.px[i],c.py[j]-c.py[i]);if(d>bd){bd=d;bi=i}}const j=(bi+1)%n;c.px.splice(bi+1,0,(c.px[bi]+c.px[j])/2);c.py.splice(bi+1,0,(c.py[bi]+c.py[j])/2);c.vx.splice(bi+1,0,0);c.vy.splice(bi+1,0,0)}
+  else if(n>want+1){let bi=0,bd=1e9;for(let i=0;i<n;i++){const j=(i+1)%n,d=Math.hypot(c.px[j]-c.px[i],c.py[j]-c.py[i]);if(d<bd){bd=d;bi=i}}c.px.splice(bi,1);c.py.splice(bi,1);c.vx.splice(bi,1);c.vy.splice(bi,1)}
+  if(c.leak>0){if(c.leak>40&&c.A0>1500){c.A0-=250;const ce=centroid(c);const a=R()*6.28;spawnBlob(ce.x+Math.cos(a)*10,ce.y+Math.sin(a)*10,Math.cos(a)*3.5,Math.sin(a)*3.5);c.leak=0}}
+  for(const u of urch){u.x+=u.vx;u.y+=u.vy;if(u.x<20||u.x>W-20||rockAt(u.x,u.y,16)){u.vx*=-1;u.x+=u.vx*2}if(u.y<20||u.y>H-20||rockAt(u.x,u.y,16)){u.vy*=-1;u.y+=u.vy*2}}
+  for(let k=pel.length-1;k>=0;k--){const p=pel[k];if(p.free){p.x+=p.vx;p.y+=p.vy;p.vx*=.95;p.vy*=.95;for(const r of rocks){const dx=p.x-r.x,dy=p.y-r.y,d=Math.hypot(dx,dy);if(d<r.r+6){p.x=r.x+dx/d*(r.r+6);p.y=r.y+dy/d*(r.r+6);p.vx*=-.4;p.vy*=-.4}}p.x=Math.max(8,Math.min(W-8,p.x));p.y=Math.max(8,Math.min(H-8,p.y))}
+    if(p.cool>0){p.cool--;continue}
+    if(inside(c,p.x,p.y)){pel.splice(k,1);c.A0+=p.free?250:300;if(!p.free){eaten++;if(!pel.some(q=>!q.free)&&!doneAt)doneAt=tick}}}}
+function draw(){stage.begin();ctx.fillStyle='#0a141c';ctx.fillRect(0,0,W,H);
+  for(const r of rocks){ctx.fillStyle='#1d3242';ctx.strokeStyle='#2f4a5e';ctx.lineWidth=2;ctx.beginPath();ctx.arc(r.x,r.y,r.r,0,7);ctx.fill();ctx.stroke()}
+  for(const p of pel){ctx.fillStyle=p.free?'#e9a23c':'#ffb648';ctx.beginPath();ctx.arc(p.x,p.y,p.free?4.5:5.5,0,7);ctx.fill()}
+  for(const u of urch){ctx.strokeStyle='#f2787a';ctx.lineWidth=2;ctx.beginPath();for(let i=0;i<10;i++){const a=i/10*6.283+tick*.01;ctx.moveTo(u.x+Math.cos(a)*7,u.y+Math.sin(a)*7);ctx.lineTo(u.x+Math.cos(a)*17,u.y+Math.sin(a)*17)}ctx.stroke();ctx.fillStyle='#f2787a';ctx.beginPath();ctx.arc(u.x,u.y,8,0,7);ctx.fill()}
+  const c=cell,n=c.px.length,ce=centroid(c);
+  ctx.strokeStyle='rgba(95,208,197,.7)';ctx.lineWidth=1.2;ctx.beginPath();for(let i=0;i<n;i++){const dx=c.px[i]-ce.x,dy=c.py[i]-ce.y,d=Math.hypot(dx,dy)||1,w=Math.sin(tick*.25+i*1.3)*.35,ca=Math.cos(w),sa=Math.sin(w),ux=(dx*ca-dy*sa)/d,uy=(dx*sa+dy*ca)/d;ctx.moveTo(c.px[i],c.py[i]);ctx.lineTo(c.px[i]+ux*7,c.py[i]+uy*7)}ctx.stroke();
+  ctx.beginPath();for(let i=0;i<n;i++){const j=(i+1)%n,mx=(c.px[i]+c.px[j])/2,my=(c.py[i]+c.py[j])/2;if(i===0){const k=n-1;ctx.moveTo((c.px[k]+c.px[0])/2,(c.py[k]+c.py[0])/2)}ctx.quadraticCurveTo(c.px[i],c.py[i],mx,my)}ctx.closePath();
+  ctx.fillStyle='rgba(95,208,197,.22)';ctx.fill();ctx.strokeStyle='#5fd0c5';ctx.lineWidth=3;ctx.stroke();
+  ctx.fillStyle='rgba(231,227,212,.8)';ctx.beginPath();ctx.arc(ce.x,ce.y,Math.sqrt(c.A0/Math.PI)*.22,0,7);ctx.fill();
+  $('hud').textContent='Pellets '+eaten+'   ·   '+pel.filter(q=>!q.free).length+' left   ·   Girth '+Math.round(2*Math.sqrt(c.A0/Math.PI))+(doneAt?'   ·   Cave cleared in '+Math.round(doneAt/60)+' s':'')}
+onPointer($('c'),stage,{down:p=>target=p,move:p=>target=p});
+$('shed').onclick=shed;addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();shed()}});
+$('reset').onclick=reset;$('skin').onchange=()=>skin=+$('skin').value;
+reset();runLoop({step,draw});
+window.__t={step,stats:()=>{const ce=centroid(cell);return{eaten,left:pel.length,A0:Math.round(cell.A0),area:Math.round(Math.abs(area(cell))),x:Math.round(ce.x),y:Math.round(ce.y),n:cell.px.length}},setTarget(x,y){target={x,y}},shed,
+  gapTest(gap,A0){rocks=[{x:400,y:280-gap/2-60,r:60},{x:400,y:280+gap/2+60,r:60}];pel=[];urch=[];cell=newCell(250,280,A0);target={x:700,y:280};let t=0;for(;t<3000;t++){step();if(centroid(cell).x>520)break}return{gap,t,x:Math.round(centroid(cell).x),area:Math.round(Math.abs(area(cell)))}},reset,pel:()=>pel};
+</script>
