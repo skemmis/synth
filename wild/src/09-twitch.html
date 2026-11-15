@@ -1,0 +1,119 @@
+<title>Twitch</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<!--FONT-->
+<style>
+/*SHARED_CSS*/
+.brain{display:grid;grid-template-columns:minmax(0,1fr) repeat(4,minmax(40px,58px));gap:4px 5px;max-width:460px;align-items:center}
+.brain span{font-size:13px;color:var(--dim);min-width:0}
+.brain .h{font:600 13px var(--display);text-align:center}
+.brain button{padding:5px 0;font:600 13px var(--display);min-width:0}
+.cols{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
+.cols>*{min-width:0;flex:1 1 320px}
+.cap{color:var(--dim);font-size:13px;margin:0 0 6px}
+</style>
+<main class="wrap">
+  <header>
+    <h1>Twitch</h1>
+    <p class="src">Gulp's soft body with Wirehead's wiring. The cell has four patches on its membrane, A to D. Each patch has a nose and a tuft of cilia. A pellet nose fires when it smells more <span class="pel">pellet</span> than the other three do, an urchin nose fires when an urchin is near, and a firing tuft shoves the cell away from its own side. You do not steer. You decide which nose fires which tuft, then watch one cell work the cave for 40 seconds.</p>
+  </header>
+  <div class="stage"><canvas id="c"></canvas><div class="hud" id="hud"></div></div>
+  <div class="controls">
+    <button id="pause">Pause</button>
+    <button id="restart">Restart round</button>
+    <button id="evolve">Breed from my wiring</button>
+    <label>Start from <select id="preset"></select></label>
+    <label>Speed <select id="speed"><option value="1">1x</option><option value="3">3x</option></select></label>
+  </div>
+  <div class="cols">
+    <div>
+      <p class="cap">Rows are what a patch senses. Columns are whose cilia fire. Click to cycle nothing, +, −.</p>
+      <div class="brain" id="brain"></div>
+    </div>
+    <details class="try" open>
+      <summary>What to try</summary>
+      <ul>
+        <li><b>Start from Blank.</b> Nothing moves. Wire "A smells pellet" to C's cilia with +. C is opposite A, so its shove carries the cell toward what A smells. Do the same for the other three.</li>
+        <li><b>It gets stuck behind rocks,</b> because smell goes through rock and the cell does not. Wire the slow pulse to one tuft and see if the wobble frees it.</li>
+        <li><b>Urchins cost points.</b> Wire each urchin nose to its own patch's cilia so the cell backs off.</li>
+        <li><b>Press Breed</b> (it takes a few seconds) and read what it changed.</li>
+      </ul>
+    </details>
+  </div>
+</main>
+<script>
+/*SHARED_JS*/
+</script>
+<script>
+const W=900,H=560,SUB=4,NB=24,NI=10,NO=4,ROUND=2400,A0=Math.PI*30*30,SITE=[0,6,12,18],SCOL=['#5fd0c5','#b79cf5','#6aa8ff','#e7e3d4'],LET='ABCD';
+const ROWS=['A smells pellet','B smells pellet','C smells pellet','D smells pellet','A smells urchin','B smells urchin','C smells urchin','D smells urchin','Slow pulse','Always on'];
+const stage=makeStage($('c'),W,H),ctx=stage.ctx;
+function rockAt(w,x,y,pad){for(const r of w.rocks)if(Math.hypot(r.x-x,r.y-y)<r.r+pad)return true;return false}
+function makeWorld(seed){const R=mulberry(seed),w={R,rocks:[],pel:[],urch:[],tick:0,eaten:0,hurt:0,inp:new Float32Array(NI),act:new Float32Array(NO)};
+  let g=0;while(w.rocks.length<18&&g++<500){const r={x:R()*W,y:R()*H,r:22+R()*40};if(Math.hypot(r.x-450,r.y-280)<r.r+60)continue;w.rocks.push(r)}
+  w.place=p=>{let k=0;do{p.x=20+R()*(W-40);p.y=20+R()*(H-40)}while(rockAt(w,p.x,p.y,8)&&k++<60);return p};
+  for(let i=0;i<24;i++)w.pel.push(w.place({}));
+  g=0;while(w.urch.length<4&&g++<500){const x=60+R()*(W-120),y=40+R()*(H-80);if(rockAt(w,x,y,24)||Math.hypot(x-450,y-280)<120)continue;w.urch.push({x,y,vx:(R()-.5)*.8,vy:(R()-.5)*.8})}
+  const c={px:new Float64Array(NB),py:new Float64Array(NB),vx:new Float64Array(NB),vy:new Float64Array(NB)};for(let i=0;i<NB;i++){const a=i/NB*6.2832;c.px[i]=450+Math.cos(a)*30;c.py[i]=280+Math.sin(a)*30}w.c=c;return w}
+function area(c){let a=0;for(let i=0;i<NB;i++){const j=(i+1)%NB;a+=c.px[i]*c.py[j]-c.px[j]*c.py[i]}return a/2}
+function cen(c){let x=0,y=0;for(let i=0;i<NB;i++){x+=c.px[i];y+=c.py[i]}return{x:x/NB,y:y/NB}}
+function inside(c,x,y){let s=false;for(let i=0,j=NB-1;i<NB;j=i++){if((c.py[i]>y)!==(c.py[j]>y)&&x<(c.px[j]-c.px[i])*(y-c.py[i])/(c.py[j]-c.py[i])+c.px[i])s=!s}return s}
+const fx=new Float64Array(NB),fy=new Float64Array(NB);
+function stepWorld(w,G){w.tick++;const c=w.c,ce=cen(c),I=w.inp;
+  for(let s=0;s<4;s++){const i=SITE[s];let ox=c.px[i]-ce.x,oy=c.py[i]-ce.y;const d=Math.hypot(ox,oy)||1;const sx=c.px[i]+ox/d*10,sy=c.py[i]+oy/d*10;
+    let p=0;for(const q of w.pel){const dx=q.x-sx,dy=q.y-sy;p+=1/(1+(dx*dx+dy*dy)/900)}I[s]=p;
+    let u=0;for(const q of w.urch){u+=Math.exp(-Math.hypot(q.x-sx,q.y-sy)/40)}I[4+s]=u>1?1:u}
+  {const m=(I[0]+I[1]+I[2]+I[3])/4;for(let s=0;s<4;s++){const v=(I[s]-m)*5;I[s]=v<0?0:v>1?1:v}}
+  I[8]=(Math.sin(w.tick*.05)+1)/2;I[9]=1;
+  for(let o=0;o<NO;o++){let a=0;for(let i=0;i<NI;i++)a+=G[i*NO+o]*I[i];w.act[o]=a<0?0:a>1?1:a}
+  const L0=2*Math.sqrt(Math.PI*A0)/NB*.96,L2=2*L0*Math.cos(Math.PI/NB);
+  let stung=0;
+  for(let sub=0;sub<SUB;sub++){const A=area(c),sg=A>=0?1:-1,pr=.9*(A0-Math.abs(A))/A0,ce2=cen(c);fx.fill(0);fy.fill(0);
+    for(let i=0;i<NB;i++){const j=(i+1)%NB,k=(i+2)%NB;let dx=c.px[j]-c.px[i],dy=c.py[j]-c.py[i];const d=Math.hypot(dx,dy)||1e-6,f=.32*(d-L0)/d;fx[i]+=f*dx;fy[i]+=f*dy;fx[j]-=f*dx;fy[j]-=f*dy;
+      const px=sg*dy*pr*.5,py=-sg*dx*pr*.5;fx[i]+=px;fy[i]+=py;fx[j]+=px;fy[j]+=py;
+      dx=c.px[k]-c.px[i];dy=c.py[k]-c.py[i];const d2=Math.hypot(dx,dy)||1e-6,f2=.06*(d2-L2)/d2;fx[i]+=f2*dx;fy[i]+=f2*dy;fx[k]-=f2*dx;fy[k]-=f2*dy}
+    for(let s=0;s<4;s++){const a=w.act[s];if(a<=0)continue;for(let o=-1;o<=1;o++){const i=(SITE[s]+o+NB)%NB;const dx=ce2.x-c.px[i],dy=ce2.y-c.py[i],d=Math.hypot(dx,dy)||1;fx[i]+=dx/d*a*.5;fy[i]+=dy/d*a*.5}}
+    for(let i=0;i<NB;i++){let vx=(c.vx[i]+fx[i])*.9,vy=(c.vy[i]+fy[i])*.9,x=c.px[i]+vx,y=c.py[i]+vy;
+      for(const r of w.rocks){const dx=x-r.x,dy=y-r.y,rr=r.r+2;if(Math.abs(dx)<rr&&Math.abs(dy)<rr){const d=Math.hypot(dx,dy);if(d<rr){const nx=dx/(d||1),ny=dy/(d||1);x=r.x+nx*rr;y=r.y+ny*rr;const vn=vx*nx+vy*ny;if(vn<0){vx-=vn*nx;vy-=vn*ny}}}}
+      for(const u of w.urch){const dx=x-u.x,dy=y-u.y,d=Math.hypot(dx,dy);if(d<19){x=u.x+dx/d*19;y=u.y+dy/d*19;stung=1}}
+      if(x<4){x=4;vx=0}if(x>W-4){x=W-4;vx=0}if(y<4){y=4;vy=0}if(y>H-4){y=H-4;vy=0}
+      c.px[i]=x;c.py[i]=y;c.vx[i]=vx;c.vy[i]=vy}}
+  w.hurt+=stung;
+  for(const u of w.urch){u.x+=u.vx;u.y+=u.vy;if(u.x<20||u.x>W-20||rockAt(w,u.x,u.y,16)){u.vx*=-1;u.x+=u.vx*2}if(u.y<20||u.y>H-20||rockAt(w,u.x,u.y,16)){u.vy*=-1;u.y+=u.vy*2}}
+  for(const p of w.pel)if(inside(c,p.x,p.y)){w.eaten++;w.place(p)}}
+const score=w=>w.eaten-Math.floor(w.hurt/60);
+let G=new Float32Array(NI*NO),world,round=0,last=null,best=null,seed=21;
+const blank=()=>new Array(NI*NO).fill(0);
+const PRESETS={'Blank':blank(),'Seeker':(()=>{const g=blank();for(let s=0;s<4;s++)g[s*NO+(s+2)%4]=1;return g})(),'Seeker that fears urchins':(()=>{const g=blank();for(let s=0;s<4;s++){g[s*NO+(s+2)%4]=1;g[(4+s)*NO+s]=1}return g})()};
+function newRound(){world=makeWorld(seed+round)}
+function step(){stepWorld(world,G);if(world.tick>=ROUND){last=score(world);best=best===null?last:Math.max(best,last);round++;newRound()}}
+function draw(){stage.begin();ctx.fillStyle='#0a141c';ctx.fillRect(0,0,W,H);const w=world,c=w.c,ce=cen(c);
+  for(const r of w.rocks){ctx.fillStyle='#1d3242';ctx.strokeStyle='#2f4a5e';ctx.lineWidth=2;ctx.beginPath();ctx.arc(r.x,r.y,r.r,0,7);ctx.fill();ctx.stroke()}
+  ctx.fillStyle='#ffb648';for(const p of w.pel){ctx.beginPath();ctx.arc(p.x,p.y,5.5,0,7);ctx.fill()}
+  for(const u of w.urch){ctx.strokeStyle='#f2787a';ctx.lineWidth=2;ctx.beginPath();for(let i=0;i<10;i++){const a=i/10*6.283+w.tick*.01;ctx.moveTo(u.x+Math.cos(a)*7,u.y+Math.sin(a)*7);ctx.lineTo(u.x+Math.cos(a)*17,u.y+Math.sin(a)*17)}ctx.stroke();ctx.fillStyle='#f2787a';ctx.beginPath();ctx.arc(u.x,u.y,8,0,7);ctx.fill()}
+  ctx.beginPath();for(let i=0;i<NB;i++){const j=(i+1)%NB,mx=(c.px[i]+c.px[j])/2,my=(c.py[i]+c.py[j])/2;if(i===0)ctx.moveTo((c.px[NB-1]+c.px[0])/2,(c.py[NB-1]+c.py[0])/2);ctx.quadraticCurveTo(c.px[i],c.py[i],mx,my)}ctx.closePath();ctx.fillStyle='rgba(95,208,197,.16)';ctx.fill();ctx.strokeStyle='#4a7f86';ctx.lineWidth=3;ctx.stroke();
+  ctx.font='700 13px Space Grotesk, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  for(let s=0;s<4;s++){const a=w.act[s];ctx.strokeStyle=SCOL[s];ctx.lineWidth=2;ctx.beginPath();for(let o=-1;o<=1;o++){const i=(SITE[s]+o+NB)%NB,dx=c.px[i]-ce.x,dy=c.py[i]-ce.y,d=Math.hypot(dx,dy)||1,wob=Math.sin(w.tick*.7+o+s)*a*.5,ca=Math.cos(wob),sa=Math.sin(wob),ux=(dx*ca-dy*sa)/d,uy=(dx*sa+dy*ca)/d,len=5+a*12;ctx.moveTo(c.px[i],c.py[i]);ctx.lineTo(c.px[i]+ux*len,c.py[i]+uy*len)}ctx.stroke();
+    const i=SITE[s],dx=c.px[i]-ce.x,dy=c.py[i]-ce.y,d=Math.hypot(dx,dy)||1;const p=w.inp[s],u=w.inp[4+s];
+    ctx.fillStyle=u>p?'rgba(242,120,122,'+(.3+.7*u)+')':'rgba(255,182,72,'+(.25+.75*p)+')';ctx.beginPath();ctx.arc(c.px[i]-dx/d*7,c.py[i]-dy/d*7,4,0,7);ctx.fill();
+    ctx.fillStyle=SCOL[s];ctx.fillText(LET[s],c.px[i]-dx/d*18,c.py[i]-dy/d*18)}
+  $('hud').textContent='Round '+(round+1)+'   ·   Pellets '+w.eaten+'   ·   Urchin stings −'+Math.floor(w.hurt/60)+'   ·   '+Math.ceil((ROUND-w.tick)/60)+' s left'+(last!==null?'\nLast round '+last+'   ·   Best '+best:'')}
+function paintB(b,v){if(Math.abs(v)<.05)v=0;b.textContent=v===0?'·':v===1?'+':v===-1?'−':(v>0?'+':'−')+Math.abs(v).toFixed(1);const a=Math.min(1,Math.abs(v));b.style.background=v===0?'':(v>0?'rgba(95,208,197,'+(.2+.55*a)+')':'rgba(242,120,122,'+(.2+.55*a)+')')}
+function buildBrain(){const g=$('brain');g.innerHTML='<span></span>'+[0,1,2,3].map(s=>'<span class="h" style="color:'+SCOL[s]+'">'+LET[s]+' cilia</span>').join('');
+  for(let i=0;i<NI;i++){const s=document.createElement('span');s.textContent=ROWS[i];if(i<8)s.style.color=SCOL[i%4];g.appendChild(s);
+    for(let j=0;j<NO;j++){const b=document.createElement('button');b.id='w'+i+'_'+j;b.setAttribute('aria-label',ROWS[i]+' to '+LET[j]+' cilia');paintB(b,G[i*NO+j]);b.onclick=()=>{const v=G[i*NO+j];G[i*NO+j]=v===0?1:v===1?-1:v===-1?0:Math.round(v);paintB(b,G[i*NO+j])};g.appendChild(b)}}}
+function setG(a){G=Float32Array.from(a);buildBrain()}
+function fitness(g,ticks){const w=makeWorld(777);for(let t=0;t<(ticks||1500);t++)stepWorld(w,g);return w.eaten-w.hurt/60}
+function evolve(gens,pop,done,progress){const R=mulberry((Date.now()&0xffff)|1);const gauss=()=>(R()+R()+R()-1.5)*1.2;
+  let P=[{g:Float32Array.from(G)}];while(P.length<pop){const g=Float32Array.from(G);for(let i=0;i<g.length;i++)if(R()<.2)g[i]+=gauss()*.6;P.push({g})}
+  let gen=0,idx=0;const run=()=>{const t0=performance.now();while(idx<P.length&&performance.now()-t0<40){if(P[idx].f===undefined)P[idx].f=fitness(P[idx].g);idx++}
+    if(idx<P.length){setTimeout(run,0);return}
+    P.sort((a,b)=>b.f-a.f);gen++;progress&&progress(gen,P[0].f);if(gen>=gens){done(P[0]);return}
+    const next=P.slice(0,4);while(next.length<pop){const a=P[R()*5|0].g,b=P[R()*5|0].g,g=new Float32Array(a.length);for(let i=0;i<g.length;i++){g[i]=(R()<.5?a:b)[i];if(R()<.12)g[i]+=gauss()*.5;g[i]=Math.max(-1.5,Math.min(1.5,g[i]))}next.push({g})}
+    P=next;idx=0;setTimeout(run,0)};run()}
+$('evolve').onclick=()=>{const b=$('evolve');b.disabled=true;b.textContent='Breeding, generation 1 of 8';evolve(8,14,p=>{setG(Array.from(p.g,v=>Math.round(v*10)/10));b.disabled=false;b.textContent='Breed from my wiring';round++;newRound()},g=>{b.textContent='Breeding, generation '+(g+1)+' of 8'})};
+for(const k in PRESETS){const o=document.createElement('option');o.textContent=k;$('preset').appendChild(o)}
+$('preset').onchange=()=>{setG(PRESETS[$('preset').value]);newRound()};$('restart').onclick=newRound;
+onPointer($('c'),stage,{down:p=>{world.pel.push({x:p.x,y:p.y})}});
+$('preset').value='Seeker';setG(PRESETS.Seeker);newRound();const loop=runLoop({step,draw});$('speed').onchange=()=>loop.setSpeed(+$('speed').value);
+window.__t={step,stats:()=>({round,eaten:world.eaten,hurt:world.hurt,last,best}),setG,fitness,evolve,PRESETS,get G(){return Array.from(G)}};
+</script>

@@ -22,6 +22,7 @@ Gallery: https://claude.ai/artifact/Kzh4XfTS9fcLXSS6xTfjcm
 | 06 | Gulp | pressure soft bodies, Spore cell stage | https://claude.ai/artifact/UkGx1iWj4V9zgRZnh7HAds |
 | 07 | Mycel | Physarum | https://claude.ai/artifact/FzPo4YC4jkB8MU3ZPFBFvB |
 | 08 | Sprout | Cell Lab, Karl Sims | https://claude.ai/artifact/YM4pczR1N6WTBh477pcY5e |
+| 09 | Twitch | 06 Gulp crossed with 03 Wirehead | https://claude.ai/artifact/KMyfuvEMFECz2YLho6gu2m |
 
 To republish one, publish `frag/NN-name.html` to its URL above.
 
@@ -62,6 +63,12 @@ second-nearest pellet every 4 s averages about 2,100. Still strongly boom and bu
 wobble. Tadpole filled the dish (160 cells) in 6 of 6 runs; Solar skiff stays at 3 to 6 cells; Leaf raft makes one
 128-cell sheet; a lone mouth survives without growing; "ribbon" (a mouth that keeps budding tails) dies because the tails
 oppose each other.
+
+**09 Twitch.** Soft cell, four patches (nose + cilia tuft), 40 wires. First pass: raw pellet smell saturated on all four
+noses, all tufts fired inward and crushed the cell in place; an urchin contact was counted per bead per substep, so one
+snag scored −280. Changes: pellet noses fire on contrast (own smell minus the mean of the four), stings count once per
+tick, one point per second. Test dish, 40 s: blank 0, same-side wiring −2.5, opposite-side seeker 32.5, seeker plus
+urchin fear 35.1, bred (8 generations of 14, 3.5 s) 43.4. A slow pulse does not help. Fixed size, no growth yet.
 
 ## Ideas proposed to Sam (see gallery.json `next`)
 

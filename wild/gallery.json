@@ -1,19 +1,127 @@
-{"items":[
-{"file":"06-gulp","name":"Gulp","axis":"be the cell","url":"https://claude.ai/artifact/UkGx1iWj4V9zgRZnh7HAds","from":"pressure soft bodies and the Spore cell stage. A ring of beads, springs and one pressure number.","hands":"steer with the pointer, squeeze through gaps, spit mass to shrink and kick.","first":"push into a gap narrower than you. Then eat five pellets and try the same gap.","note":"The size trade-off is real with no rule written for it: a starting cell passes a 36 gap but not 26, a well-fed one needs 50. Closest of the eight to the membrane-and-cilia cell."},
-{"file":"03-wirehead","name":"Wirehead","axis":"sensing and neurology","url":"https://claude.ai/artifact/GvHMiPpv1DQpJaTrR46fSj","from":"Braitenberg's vehicles, with breeding borrowed from The Bibites.","hands":"connect two antennae to two cilia with plus and minus wires. Twelve wires in all.","first":"cross the pellet wires and watch it turn toward food. Then press Breed.","note":"Hand wiring scores about 27 to 38 in the test dish. Breeding reaches about 80 by finding a lopsided idle that sweeps in spirals, which is not something a person draws first. That gap is the fun."},
-{"file":"08-sprout","name":"Sprout","axis":"grow, don't build","url":"https://claude.ai/artifact/YM4pczR1N6WTBh477pcY5e","from":"Cell Lab and Karl Sims' unfolding body programs.","hands":"fill in four cell-type cards: job, when to split, what the halves become.","first":"run Tadpole at 3x, then change one dropdown and drop a fresh germ.","note":"Most genomes die, a few take over the dish. Tadpole filled the dish in 6 of 6 runs. Two tails on one mouth pull against each other and starve, which nobody programmed."},
-{"file":"05-cinderpit","name":"Cinderpit","axis":"madcap chemistry","url":"https://claude.ai/artifact/RN4z3X1sC1qpjLM9Ybn4Eh","from":"falling-sand toys and Noita.","hands":"pour seven materials with a brush. Fewest grains wins.","first":"flood an open cup so the pellets float out, then lay a moss fuse to the bangdust.","note":"Fuses, floats and bombs all work from two or three rules per grain. An unplanned one: flooding the oil cup lifts the oil out over the rim, and the pellets follow. Moss overgrows anything you flood."},
-{"file":"07-mycel","name":"Mycel","axis":"body as a crowd","url":"https://claude.ai/artifact/FzPo4YC4jkB8MU3ZPFBFvB","from":"Physarum slime mould simulations.","hands":"lay lure and salt. You cannot steer anything directly.","first":"wait for the first crash, then draw a lure line from a live vein to a far pellet.","note":"Left alone it booms and busts around 1,200 specks on average. A simple shepherding script holds about 2,100. Boom and bust is strong and may want softening."},
-{"file":"02-bloomfield","name":"Bloomfield","axis":"body as a pattern","url":"https://claude.ai/artifact/UqobtTZb2bU7QURx1KY2RV","from":"Gray-Scott reaction-diffusion.","hands":"paint feed, walls and spores into a living stain.","first":"draw one thin feed line to the nearest pellet and watch spots divide along it.","note":"On quiet ground spots hold still forever. A feed line makes them bud along it one after another. It is slow and meditative, the least game-like of the set."},
-{"file":"04-gaitkeeper","name":"Gaitkeeper","axis":"you build, evolution drives","url":"https://claude.ai/artifact/U6R3BSYN2VxcZJTnK5kVX6","from":"Sodarace and Karl Sims' evolved creatures.","hands":"place joints, bones and muscles. Breeding picks the muscle rhythm.","first":"press Let it go, then Breed a gait, on the same body.","note":"Untrained bodies move about 15. Bred ones reach 400 to 500 in half a second of breeding. Small body edits change the gait completely."},
-{"file":"01-motley","name":"Motley","axis":"design the physics","url":"https://claude.ai/artifact/Es7humxnDj5nFnYNWWoQcn","from":"Particle Life.","hands":"edit a five by five table of likes and dislikes, live.","first":"start from Blank, then give one colour +1 toward pale.","note":"Random tables crack between 0 and 176 pellets in 25 seconds, so the table matters a lot. When every colour could smell pellets the game was trivial, so now only pale can."}
-],
-"next":[
-{"name":"Wired cell","what":"Gulp's soft body with Wirehead's wiring. Sensors and cilia sit on the membrane and you connect them, so steering comes from the body instead of the pointer.","params":"22 beads, 4 sensor sites, 4 cilia sites, wires at -1/0/+1, 40 s rounds, breed 15 generations of 20"},
-{"name":"Cell in the pit","what":"Gulp's cell swimming inside Cinderpit's grain world, where water, oil, moss and bangdust are both hazard and tool.","params":"180 x 112 grains, 20 bead cell, 6 chambers, cell can carry and drop one material"},
-{"name":"Grown machines","what":"Sprout's cards driving the parts sandbox from the other thread, so slingshots and whips are grown from a germ instead of placed by hand.","params":"4 types x 6 settings, bond kinds rod/spring/rope, dish cap 160"},
-{"name":"Bigger brains","what":"Wirehead with two inner neurons, a touch sense and a hunger sense, to see where hand wiring stops being readable.","params":"8 senses, 2 inner, 2 cilia, breed 30 generations of 40, 3 dishes"},
-{"name":"Living pond","what":"Wirehead swimmers that breed in the dish as they eat, with you as gardener moving pellets and poison.","params":"start 40 swimmers, cap 120, mutation 0.2 per wire, split at energy 1.5"},
-{"name":"Species hunt","what":"A search over Motley tables for bodies that travel, heal and feed, to give a shelf of found species to start from.","params":"2,000 tables, 5 colours, half-step values, 35 s each, about 25 minutes on four threads"}
-],
-"notBuilt":"Lenia and neural cellular automata (smooth creatures that regrow when cut) and Avida (programs that evolve to compute) were on the list. Both are harder to put hands on, so they come after a first reaction to these eight."}
+{
+ "items": [
+  {
+   "file": "06-gulp",
+   "name": "Gulp",
+   "axis": "be the cell",
+   "url": "https://claude.ai/artifact/UkGx1iWj4V9zgRZnh7HAds",
+   "from": "pressure soft bodies and the Spore cell stage. A ring of beads, springs and one pressure number.",
+   "hands": "steer with the pointer, squeeze through gaps, spit mass to shrink and kick.",
+   "first": "push into a gap narrower than you. Then eat five pellets and try the same gap.",
+   "note": "The size trade-off is real with no rule written for it: a starting cell passes a 36 gap but not 26, a well-fed one needs 50. Closest of the eight to the membrane-and-cilia cell."
+  },
+  {
+   "file": "03-wirehead",
+   "name": "Wirehead",
+   "axis": "sensing and neurology",
+   "url": "https://claude.ai/artifact/GvHMiPpv1DQpJaTrR46fSj",
+   "from": "Braitenberg's vehicles, with breeding borrowed from The Bibites.",
+   "hands": "connect two antennae to two cilia with plus and minus wires. Twelve wires in all.",
+   "first": "cross the pellet wires and watch it turn toward food. Then press Breed.",
+   "note": "Hand wiring scores about 27 to 38 in the test dish. Breeding reaches about 80 by finding a lopsided idle that sweeps in spirals, which is not something a person draws first. That gap is the fun."
+  },
+  {
+   "file": "09-twitch",
+   "name": "Twitch",
+   "axis": "wired soft cell",
+   "url": "https://claude.ai/artifact/KMyfuvEMFECz2YLho6gu2m",
+   "from": "Gulp crossed with Wirehead. The first of the proposed tests, built.",
+   "hands": "wire four membrane noses to four tufts of cilia. No steering.",
+   "first": "start from Blank and wire A's pellet nose to C's cilia, then the other three.",
+   "note": "Blank scores 0, the opposite-side seeker 32, adding urchin fear 35, bred 43 after 3.5 seconds of breeding. Same-side wiring flees food (\u22122). Raw smell made all four tufts fire and crush the cell, so noses now fire on contrast."
+  },
+  {
+   "file": "08-sprout",
+   "name": "Sprout",
+   "axis": "grow, don't build",
+   "url": "https://claude.ai/artifact/YM4pczR1N6WTBh477pcY5e",
+   "from": "Cell Lab and Karl Sims' unfolding body programs.",
+   "hands": "fill in four cell-type cards: job, when to split, what the halves become.",
+   "first": "run Tadpole at 3x, then change one dropdown and drop a fresh germ.",
+   "note": "Most genomes die, a few take over the dish. Tadpole filled the dish in 6 of 6 runs. Two tails on one mouth pull against each other and starve, which nobody programmed."
+  },
+  {
+   "file": "05-cinderpit",
+   "name": "Cinderpit",
+   "axis": "madcap chemistry",
+   "url": "https://claude.ai/artifact/RN4z3X1sC1qpjLM9Ybn4Eh",
+   "from": "falling-sand toys and Noita.",
+   "hands": "pour seven materials with a brush. Fewest grains wins.",
+   "first": "flood an open cup so the pellets float out, then lay a moss fuse to the bangdust.",
+   "note": "Fuses, floats and bombs all work from two or three rules per grain. An unplanned one: flooding the oil cup lifts the oil out over the rim, and the pellets follow. Moss overgrows anything you flood."
+  },
+  {
+   "file": "07-mycel",
+   "name": "Mycel",
+   "axis": "body as a crowd",
+   "url": "https://claude.ai/artifact/FzPo4YC4jkB8MU3ZPFBFvB",
+   "from": "Physarum slime mould simulations.",
+   "hands": "lay lure and salt. You cannot steer anything directly.",
+   "first": "wait for the first crash, then draw a lure line from a live vein to a far pellet.",
+   "note": "Left alone it booms and busts around 1,200 specks on average. A simple shepherding script holds about 2,100. Boom and bust is strong and may want softening."
+  },
+  {
+   "file": "02-bloomfield",
+   "name": "Bloomfield",
+   "axis": "body as a pattern",
+   "url": "https://claude.ai/artifact/UqobtTZb2bU7QURx1KY2RV",
+   "from": "Gray-Scott reaction-diffusion.",
+   "hands": "paint feed, walls and spores into a living stain.",
+   "first": "draw one thin feed line to the nearest pellet and watch spots divide along it.",
+   "note": "On quiet ground spots hold still forever. A feed line makes them bud along it one after another. It is slow and meditative, the least game-like of the set."
+  },
+  {
+   "file": "04-gaitkeeper",
+   "name": "Gaitkeeper",
+   "axis": "you build, evolution drives",
+   "url": "https://claude.ai/artifact/U6R3BSYN2VxcZJTnK5kVX6",
+   "from": "Sodarace and Karl Sims' evolved creatures.",
+   "hands": "place joints, bones and muscles. Breeding picks the muscle rhythm.",
+   "first": "press Let it go, then Breed a gait, on the same body.",
+   "note": "Untrained bodies move about 15. Bred ones reach 400 to 500 in half a second of breeding. Small body edits change the gait completely."
+  },
+  {
+   "file": "01-motley",
+   "name": "Motley",
+   "axis": "design the physics",
+   "url": "https://claude.ai/artifact/Es7humxnDj5nFnYNWWoQcn",
+   "from": "Particle Life.",
+   "hands": "edit a five by five table of likes and dislikes, live.",
+   "first": "start from Blank, then give one colour +1 toward pale.",
+   "note": "Random tables crack between 0 and 176 pellets in 25 seconds, so the table matters a lot. When every colour could smell pellets the game was trivial, so now only pale can."
+  }
+ ],
+ "next": [
+  {
+   "name": "Wired cell, second pass",
+   "what": "Twitch plus the parts that would make it a game: patches you can move around the membrane, growth from pellets, and a choice of what to add at each size.",
+   "params": "up to 6 patches, 3 patch kinds (nose, cilia, spike), grow every 5 pellets"
+  },
+  {
+   "name": "Cell in the pit",
+   "what": "Gulp's cell swimming inside Cinderpit's grain world, where water, oil, moss and bangdust are both hazard and tool.",
+   "params": "180 x 112 grains, 20 bead cell, 6 chambers, cell can carry and drop one material"
+  },
+  {
+   "name": "Grown machines",
+   "what": "Sprout's cards driving the parts sandbox from the other thread, so slingshots and whips are grown from a germ instead of placed by hand.",
+   "params": "4 types x 6 settings, bond kinds rod/spring/rope, dish cap 160"
+  },
+  {
+   "name": "Bigger brains",
+   "what": "Wirehead with two inner neurons, a touch sense and a hunger sense, to see where hand wiring stops being readable.",
+   "params": "8 senses, 2 inner, 2 cilia, breed 30 generations of 40, 3 dishes"
+  },
+  {
+   "name": "Living pond",
+   "what": "Wirehead swimmers that breed in the dish as they eat, with you as gardener moving pellets and poison.",
+   "params": "start 40 swimmers, cap 120, mutation 0.2 per wire, split at energy 1.5"
+  },
+  {
+   "name": "Species hunt",
+   "what": "A search over Motley tables for bodies that travel, heal and feed, to give a shelf of found species to start from.",
+   "params": "2,000 tables, 5 colours, half-step values, 35 s each, about 25 minutes on four threads"
+  }
+ ],
+ "notBuilt": "Lenia and neural cellular automata (smooth creatures that regrow when cut) and Avida (programs that evolve to compute) were on the list. Both are harder to put hands on, so they come after a first reaction to these eight."
+}
